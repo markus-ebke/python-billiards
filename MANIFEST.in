@@ -1,0 +1,7 @@
+graft src
+
+include AUTHORS.rst
+include LICENSE
+include README.rst
+
+global-exclude *.py[cod] __pycache__/* *.so *.dylib
