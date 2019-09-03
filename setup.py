@@ -87,7 +87,16 @@ metadata = dict(
 
 options = dict(
     python_requires=">=3.5",
-    install_requires=["numpy"],
+    install_requires=[
+        "numpy",
+    ],
+    setup_requires=[
+        "pytest-runner",
+    ],
+    tests_require=[
+        "pytest",
+        "pytest-cov",
+    ],
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     py_modules=[splitext(basename(path))[0] for path in glob("src/*.py")],
