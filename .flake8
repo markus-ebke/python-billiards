@@ -1,0 +1,14 @@
+[flake8]
+ignore =
+    # E501: line to long, the autoformatter will take care of that
+    E501
+exclude =
+    .git,
+    .tox,
+    __pycache__,
+    *.pyc,
+    *.egg-info,
+    .eggs,
+    build,
+    dist
+format = ${cyan}%(path)s${reset}:${yellow_bold}%(row)d${reset}:${green_bold}%(col)d${reset}: ${red_bold}%(code)s${reset} %(text)s
