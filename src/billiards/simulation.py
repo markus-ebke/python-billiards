@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Main code for billiard simulation."""
 import numpy as np
 
 
@@ -12,6 +13,7 @@ class Simulation(object):
         balls_velocity: List of 2D velocities of the balls.
 
     """
+
     def __init__(self):
         """Create an empty world."""
         self.time = 0

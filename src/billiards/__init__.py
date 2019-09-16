@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
-__version__ = '0.0.0'
+"""Billiards main module."""
+__version__ = "0.0.0"
 
-from .simulation import *
+# Local
+from .simulation import Simulation
+
+__all__ = ["Simulation"]

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import pytest
+
 from billiards import Simulation
 
 
@@ -41,3 +43,7 @@ def test_movement():
         # no change in velocity
         vel = sim.balls_velocity[idx]
         assert vel[0] == 0 and vel[1] == 1
+
+
+if __name__ == "__main__":
+    pytest.main()

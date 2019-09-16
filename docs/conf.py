@@ -5,19 +5,17 @@
 # http://www.sphinx-doc.org/en/master/config
 import datetime
 import os
+import sys
 
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-import sys
 sys.path.insert(0, os.path.abspath("../src/billiards"))
 
 
 # -- Project information -----------------------------------------------------
-
 project = "billiards"
 year = str(datetime.datetime.now().year)
 author = "Markus Ebke"
@@ -63,6 +61,8 @@ if not on_rtd:  # only set the theme if we're building docs locally
 
 # extlinks will expand external links
 extlinks = {
-    "issue": ("https://github.com/markus-ebke/python-billiards/issues/%s",
-              "issue "),  # writing :issue:`42` will link to github issue 42
+    "issue": (
+        "https://github.com/markus-ebke/python-billiards/issues/%s",
+        "issue ",
+    )  # writing :issue:`42` will link to issue number 42 on GitHub
 }
