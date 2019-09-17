@@ -4,17 +4,10 @@ Installation
 Requirements
 ------------
 
-``billiards`` depends on ``numpy`` and will install it automatically.
-If you want to install numpy manually, use::
+``billiards`` depends on ``numpy`` (it will be installed automatically).
+If you want to install it manually, use::
 
     $ pip install numpy
-
-
-
-Installing from PyPi
---------------------
-
-TODO
 
 
 Installing from GitHub
@@ -22,6 +15,6 @@ Installing from GitHub
 
 At the command line::
 
-    $ git clone https://github.com/markus-ebke/billiards.git
+    $ git clone https://github.com/markus-ebke/python-billiards.git
     $ python setup.py install
 

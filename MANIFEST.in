@@ -1,7 +1,6 @@
 graft src
 graft tests
 
-include AUTHORS.rst
 include LICENSE
 include README.rst
 

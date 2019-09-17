@@ -8,7 +8,7 @@ Welcome to billiards' documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Contents
 
    readme
    installation

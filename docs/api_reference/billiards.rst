@@ -1,17 +1,6 @@
 billiards package
 =================
 
-Submodules
-----------
-
-billiards.simulation module
----------------------------
-
-.. automodule:: billiards.simulation
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 
 Module contents
 ---------------

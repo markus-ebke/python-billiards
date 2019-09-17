@@ -1,7 +1,7 @@
 Usage
 =====
 
-To use Billiards in a project::
+To use ``billiards`` in a project::
 
     import billiards
 
