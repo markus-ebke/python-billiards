@@ -8,7 +8,7 @@ Basically the particles act like billiard balls.
 This type of dynamical system is also known as [dynamical billiards](https://en.wikipedia.org/wiki/Dynamical_billiards).
 
 
-- Free software: GPLv3+ license, see ``LICENSE`` for more information.
+- Free software: GPLv3+ license, see `LICENSE` for more information.
 
 
 ## Quickstart

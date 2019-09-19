@@ -117,8 +117,8 @@ For merging, you should:
 1. Include passing tests (run tox).
 2. Update the documentation if you extend the API or add functionality, etc.
    If you add functions or classes use the docstring.
-3. Add a note at the top of ``CHANGELOG.md`` about the changes.
-4. Add yourself to the _Author_ section in the ``README.md`` file.
+3. Add a note at the top of `CHANGELOG.md` about the changes.
+4. Add yourself to the _Author_ section in the `README.md` file.
 
 
 ### Tips
@@ -137,3 +137,18 @@ If you want to use only one of them:
 ```shell
 $ tox -e codestyle
 ```
+
+## Notes for the Maintainer
+- Create the `requirements_dev.txt` from the Pipfile with
+  ```shell
+  $ pipenv lock --requirements --dev > requirements_dev.txt
+  ```
+  but delete the `-e .` line because pip19.1 [can't do editable installs with ``pyproject.toml`` files](https://github.com/pypa/pip/issues/6375) (the [recommended way](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode) is `$ python setup.py develop`).
+
+- Use `major.minor.patch` version numbering and use [bump2version](https://pypi.org/project/bump2version/) to change it.
+  Make sure all changes are committed (and `CHANGELOG.md` updated), then use
+  ```shell
+  $ bump2version minor
+  $ git push --tags
+  ```
+  to increase the minor version number (alternative: `major` or `patch`).
