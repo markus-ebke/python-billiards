@@ -5,10 +5,10 @@ _billiards_ is a python library that implements a very simple physics engine:
 It simulates the movement of point particles that live in two dimensions.
 When particles collide they behave like hard balls.
 Basically the particles act like billiard balls.
-This type of dynamical system is also known as [dynamical billiards][wiki].
+This type of dynamical system is also known as [dynamical billiards](https://en.wikipedia.org/wiki/Dynamical_billiards).
 
 
-- Free software: GPLv3+ license, see ``LICENSE`` for more information.
+- Free software: GPLv3+ license, see `LICENSE` for more information.
 
 
 ## Quickstart
@@ -49,6 +49,3 @@ The output is:
 
 - Markus Ebke - <https://github.com/markus-ebke>
 
-
-<!-- Markdown links -->
-[wiki]: https://en.wikipedia.org/wiki/Dynamical_billiards
