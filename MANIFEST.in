@@ -3,6 +3,7 @@ graft tests
 
 include LICENSE
 include README.md
+include CHANGELOG.md
 
 include pyproject.toml
 include pytest.ini

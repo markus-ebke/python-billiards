@@ -1,0 +1,17 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+grip = "*"
+setuptools = ">=39.2"
+pytest = "*"
+tox = "*"
+billiards = {editable = true,path = "."}
+
+[packages]
+numpy = "*"
+
+[requires]
+python_version = "3.6"
