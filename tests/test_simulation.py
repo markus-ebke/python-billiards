@@ -91,5 +91,45 @@ def test_movement():
         assert vel[0] == 0 and vel[1] == 1
 
 
+def test_toi_structure():
+    sim = Simulation()
+
+    for i in range(10):
+        sim.add_ball((i, 0), (0, 1))
+
+        assert len(sim.toi_table) == i + 1
+        assert len(sim.toi_table[i]) == i
+
+        assert len(sim.toi_min) == i + 1
+
+
+def test_toi_contents():
+    inf = float("inf")
+    sim = Simulation()
+
+    # add a single ball, no collision possible here
+    sim.add_ball((0, 0), (0, 0), 1)
+    assert sim.toi_min[0] == (inf, -1)
+    assert sim.toi_next == (inf, -1)
+
+    # add one more ball on collision course
+    sim.add_ball((4, 0), (-1, 0), 1)
+    assert sim.toi_table[1] == [2.0]
+    assert sim.toi_min[1] == (2.0, 0)
+    assert sim.toi_next == (2.0, 0)
+
+    # add a third ball that collides earlier with the first one and then with
+    # the second one
+    sim.add_ball((0, 4), (0, -2), 1)
+    assert sim.toi_table[2] == [1.0, pytest.approx(2.0)]
+    assert sim.toi_min[2] == (1.0, 0)
+    assert sim.toi_next == (1.0, 0)
+
+    # test Simulation.calc_toi
+    assert sim.calc_toi(0, 1) == 2.0
+    assert sim.calc_toi(0, 2) == 1.0
+    assert sim.calc_toi(1, 2) == pytest.approx(2.0)
+
+
 if __name__ == "__main__":
     pytest.main()
