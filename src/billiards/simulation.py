@@ -19,7 +19,7 @@ def time_of_impact(pos1, vel1, radius1, pos2, vel2, radius2):
         radius2: Radius of the second ball.
 
     Return:
-        Non-negative time of impact, is infinite if there is no impact
+        Non-negative time of impact, is infinite if there is no impact.
 
     """
     # switch to coordinate system of ball 1
@@ -59,6 +59,37 @@ def time_of_impact(pos1, vel1, radius1, pos2, vel2, radius2):
         t2 = c / t1  # note t2 >= 0, is zero if c = 0, i.e. balls are touching
         assert t2 >= 0, (t2, c)
         return min(t1, t2)
+
+
+def elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2):
+    """Perfectly elastic collision between 2 balls.
+
+    Args:
+        pos1: Center of the first ball.
+        vel1: Velocity of the first ball.
+        mass1: Mass of the first ball.
+        pos2: Center of the second ball.
+        vel2: Velocity of the second ball.
+        mass2: Mass of the second ball.
+
+    Return:
+        Two velocities after the collision.
+
+    """
+    # switch to coordinate system of ball 1
+    pos_diff = np.subtract(pos2, pos1)
+    vel_diff = np.subtract(vel2, vel1)
+
+    pos_dot_vel = np.dot(pos_diff, vel_diff)
+    assert pos_dot_vel < 0  # colliding balls do not move apart
+
+    dist_sqrd = np.dot(pos_diff, pos_diff)
+
+    bla = 2 * (pos_dot_vel * pos_diff) / ((mass1 + mass2) * dist_sqrd)
+    vel1 += mass2 * bla
+    vel2 -= mass1 * bla
+
+    return vel1, vel2
 
 
 class Simulation(object):

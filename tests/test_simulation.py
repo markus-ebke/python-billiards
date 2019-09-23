@@ -3,8 +3,7 @@ from math import sqrt
 
 import pytest
 
-from billiards import Simulation
-from billiards.simulation import time_of_impact
+from billiards import Simulation, elastic_collision, time_of_impact
 
 
 def test_time_of_impact():
@@ -48,6 +47,25 @@ def test_time_of_impact():
     assert toi((1, 0), (0, 1), 0) == inf  # slide
     # cos(60°) == 1/2 => pythagoras: sin(60°) == sqrt(1 - 1/2**2) == sqrt(3/4)
     assert toi((0.5, 1), (0, -1), 0) == pytest.approx(1 - sqrt(3 / 4))  # side
+
+
+def test_elastic_collision():
+    pos1, pos2 = (0, 0), (2, 0)
+    mass1, mass2 = 1, 1
+
+    def ec(vel1, vel2):
+        v1, v2 = elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2)
+        return (tuple(v1), tuple(v2))
+
+    # head-on collision
+    assert ec((0, 0), (-1, 0)) == ((-1, 0), (0, 0))
+    assert ec((1, 0), (-1, 0)) == ((-1, 0), (1, 0))
+    assert ec((1, 0), (0, 0)) == ((0, 0), (1, 0))
+
+    # sideways collsion
+    assert ec((0, 0), (-1, 1)) == ((-1, 0), (0, 1))
+    assert ec((0, 0), (-0.5, 1)) == ((-0.5, 0), (0, 1))
+    assert ec((0, 0), (-42, 1 / 42)) == ((-42, 0), (0, 1 / 42))
 
 
 def test_index():
