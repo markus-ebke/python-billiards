@@ -19,7 +19,7 @@ def time_of_impact(pos1, vel1, radius1, pos2, vel2, radius2):
         radius2: Radius of the second ball.
 
     Return:
-        Non-negative time of impact, is infinite if there is no impact.
+        Non-negative time until impact, is infinite if there is no impact.
 
     """
     # switch to coordinate system of ball 1
@@ -116,13 +116,14 @@ class Simulation(object):
         self.balls_position = np.empty(shape=(0, 2), dtype=np.float64)
         self.balls_velocity = np.empty(shape=(0, 2), dtype=np.float64)
         self.balls_radius = []
+        self.balls_mass = []
 
         # time of impact table
         self.toi_table = []
         self.toi_min = []
         self.toi_next = (INF, -1)
 
-    def add_ball(self, pos, vel, radius=0):
+    def add_ball(self, pos, vel, radius=0, mass=1):
         """Add a ball at the given position with the given velocity.
 
         Args:
@@ -140,25 +141,27 @@ class Simulation(object):
         self.balls_position = np.append(self.balls_position, [pos], axis=0)
         self.balls_velocity = np.append(self.balls_velocity, [vel], axis=0)
         self.balls_radius.append(radius)
+        self.balls_mass.append(mass)
 
         # update ball count and calculate index
         self.num += 1
         idx = self.num - 1  # last added ball is at the end
 
         # calculate next time of impact
-        row = [self.calc_toi(i, idx) for i in range(idx)]
+        row = [self.calc_toi(j, idx) for j in range(idx)]
         self.toi_table.append(row)
 
-        toi_pairs = ((t, i) for (i, t) in enumerate(row))
+        toi_pairs = ((t, j) for (j, t) in enumerate(row))
         toi_idx = min(toi_pairs, default=(INF, -1))
         self.toi_min.append(toi_idx)
 
-        self.toi_next = min(self.toi_min)
+        self.toi_next = min((t, j, i) for i, (t, j) in enumerate(self.toi_min))
 
         # sanity checks
         assert self.balls_position.shape[0] == self.num
         assert self.balls_velocity.shape[0] == self.num
         assert len(self.balls_radius) == self.num
+        assert len(self.balls_mass) == self.num
         assert len(self.toi_table) == self.num
 
         return idx
@@ -171,7 +174,7 @@ class Simulation(object):
             idx2: Index of another ball.
 
         Returns:
-            Non-negative time of impact between the two balls.
+            Time of impact between the two balls.
 
         """
         p1 = self.balls_position[idx1]
@@ -182,7 +185,27 @@ class Simulation(object):
         v2 = self.balls_velocity[idx2]
         r2 = self.balls_radius[idx2]
 
-        return time_of_impact(p1, v1, r1, p2, v2, r2)
+        return self.time + time_of_impact(p1, v1, r1, p2, v2, r2)
+
+    def collision(self, idx1, idx2):
+        """Update the velocities of two balls in the simulation that collide.
+
+        Args:
+            idx1: Index of one ball.
+            idx2: Index of another ball.
+
+        """
+        p1 = self.balls_position[idx1]
+        v1 = self.balls_velocity[idx1]
+        m1 = self.balls_mass[idx1]
+
+        p2 = self.balls_position[idx2]
+        v2 = self.balls_velocity[idx2]
+        m2 = self.balls_mass[idx2]
+
+        v1, v2 = elastic_collision(p1, v1, m1, p2, v2, m2)
+        self.balls_velocity[idx1] = v1
+        self.balls_velocity[idx2] = v2
 
     def step(self, dt):
         """Advance the simulation by the given timestep.
@@ -197,35 +220,41 @@ class Simulation(object):
             self._move(self.toi_next[0])
 
             # get the balls that collide
-            idx2 = self.toi_next[1]
+            idx1 = self.toi_next[1]
+            idx2 = self.toi_next[2]
+            assert idx1 < idx2, (idx1, idx2)
             assert self.toi_min[idx2][0] == self.toi_next[0]
-            idx1 = self.toi_min[idx2][1]
-            assert idx1 < idx2
+            assert self.toi_min[idx2][1] == idx1
 
-            # TODO handle collision between balls with index idx1 and idx2
-            assert self.calc_toi(idx1, idx2) == INF
+            # handle collision between balls with index idx1 and idx2
+            self.collision(idx1, idx2)
 
             # update time of impact for the two balls
-            for i in range(idx1):
-                self.toi_table[i][idx1] = self.calc_toi(i, idx1)
-                self.toi_table[i][idx2] = self.calc_toi(i, idx2)
+            self.toi_table[idx2][idx1] = INF
+            assert self.calc_toi(idx1, idx2) == INF
 
-            for j in range(idx1 + 1, idx2):
-                self.toi_table[idx1][j] = self.calc_toi(idx1, j)
-                self.toi_table[j][idx2] = self.calc_toi(j, idx2)
-
-            for j in range(idx2 + 1, self.num):
+            for j in range(idx1):
                 self.toi_table[idx1][j] = self.calc_toi(idx1, j)
                 self.toi_table[idx2][j] = self.calc_toi(idx2, j)
 
-            # update toi_min
-            for j in range(idx1, self.num):
-                row = self.toi_table[j]
-                toi_pairs = ((t, i) for (i, t) in enumerate(row))
-                toi_idx = min(toi_pairs, default=(INF, -1))
-                self.toi_min[j] = toi_idx
+            for i in range(idx1 + 1, idx2):
+                self.toi_table[i][idx1] = self.calc_toi(i, idx1)
+                self.toi_table[idx2][i] = self.calc_toi(idx2, i)
 
-            self.toi_next = min(self.toi_min)
+            for i in range(idx2 + 1, self.num):
+                self.toi_table[i][idx1] = self.calc_toi(i, idx1)
+                self.toi_table[i][idx2] = self.calc_toi(i, idx2)
+
+            # update toi_min
+            for i in range(idx1, self.num):
+                row = self.toi_table[i]
+                toi_pairs = ((t, j) for (j, t) in enumerate(row))
+                toi_idx = min(toi_pairs, default=(INF, -1))
+                self.toi_min[i] = toi_idx
+
+            self.toi_next = min(
+                (t, i, j) for j, (t, i) in enumerate(self.toi_min)
+            )
 
         assert end < self.toi_next[0]
         self._move(end)

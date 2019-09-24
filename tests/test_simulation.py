@@ -128,25 +128,61 @@ def test_toi_contents():
     # add a single ball, no collision possible here
     sim.add_ball((0, 0), (0, 0), 1)
     assert sim.toi_min[0] == (inf, -1)
-    assert sim.toi_next == (inf, -1)
+    assert sim.toi_next == (inf, -1, 0)
 
     # add one more ball on collision course
     sim.add_ball((4, 0), (-1, 0), 1)
     assert sim.toi_table[1] == [2.0]
     assert sim.toi_min[1] == (2.0, 0)
-    assert sim.toi_next == (2.0, 0)
+    assert sim.toi_next == (2.0, 0, 1)
 
     # add a third ball that collides earlier with the first one and then with
     # the second one
     sim.add_ball((0, 4), (0, -2), 1)
     assert sim.toi_table[2] == [1.0, pytest.approx(2.0)]
     assert sim.toi_min[2] == (1.0, 0)
-    assert sim.toi_next == (1.0, 0)
+    assert sim.toi_next == (1.0, 0, 2)
 
     # test Simulation.calc_toi
     assert sim.calc_toi(0, 1) == 2.0
     assert sim.calc_toi(0, 2) == 1.0
     assert sim.calc_toi(1, 2) == pytest.approx(2.0)
+
+
+def test_step():
+    sim = Simulation()
+
+    # setup newton's cradle with four balls
+    sim.add_ball((-3, 0), (1, 0), 1)
+    sim.add_ball((0, 0), (0, 0), 1)
+    sim.add_ball((3, 0), (0, 0), 1)
+    sim.add_ball((5, 0), (0, 0), 1)  # in direct contact with third ball
+
+    assert sim.toi_next == (1, 0, 1)
+
+    # first collision
+    sim.step(1)
+    assert tuple(sim.balls_position[0]) == (-2, 0)
+    assert tuple(sim.balls_velocity[0]) == (0, 0)
+    assert tuple(sim.balls_position[1]) == (0, 0)
+    assert tuple(sim.balls_velocity[1]) == (1, 0)
+    assert sim.toi_next == (2, 1, 2)
+
+    # second and third collision and then some more time
+    sim.step(10)
+    assert sim.time == 11
+    assert tuple(sim.balls_position[1]) == (1, 0)
+    assert tuple(sim.balls_velocity[1]) == (0, 0)
+    assert tuple(sim.balls_position[2]) == (3, 0)
+    assert tuple(sim.balls_velocity[2]) == (0, 0)
+    assert tuple(sim.balls_position[3]) == (5 + (11 - 2) * 1, 0)
+    assert tuple(sim.balls_velocity[3]) == (1, 0)
+
+    # there are no other collisions
+    inf = float("inf")
+    assert sim.toi_table == [[], [inf], [inf, inf], [inf, inf, inf]]
+    assert sim.toi_min == [(inf, -1), (inf, 0), (inf, 0), (inf, 0)]
+    assert sim.toi_next == (inf, -1, 0)
 
 
 if __name__ == "__main__":
