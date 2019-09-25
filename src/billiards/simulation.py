@@ -1,99 +1,19 @@
 # -*- coding: utf-8 -*-
-"""Main code for billiard simulation."""
-from math import isinf, sqrt
+"""The simulation module contains the main code for a billiard simulation."""
+from math import isinf
 
 import numpy as np
+
+from .physics import elastic_collision, time_of_impact
 
 INF = float("inf")
 
 
-def time_of_impact(pos1, vel1, radius1, pos2, vel2, radius2):
-    """Calculate the time of impact of two moving balls.
+class Billiard(object):
+    """The billiard class represent a billiard world.
 
-    Args:
-        pos1: Center of the first ball.
-        vel1: Velocity of the first ball.
-        radius1: Radius of the first ball.
-        pos2: Center of the second ball.
-        vel2: Velocity of the second ball.
-        radius2: Radius of the second ball.
-
-    Return:
-        Non-negative time until impact, is infinite if there is no impact.
-
-    """
-    # switch to coordinate system of ball 1
-    pos_diff = np.subtract(pos2, pos1)
-    vel_diff = np.subtract(vel2, vel1)
-
-    pos_dot_vel = np.dot(pos_diff, vel_diff)
-    if pos_dot_vel >= 0:
-        # balls are moving apart, no impact
-        return INF
-    else:
-        pos_sqrd = np.dot(pos_diff, pos_diff)
-
-        dist_sqrd = pos_sqrd - (radius1 + radius2) ** 2
-        if dist_sqrd < 0:
-            # one ball is inside the other, but don't count this as an impact
-            return INF
-
-        # time of impact is given as the solution of the quadratic equation
-        # t^2 + b t + c = 0 with b and c below
-        vel_sqrd = np.dot(vel_diff, vel_diff)  # note vel_sqrd != 0
-        assert vel_sqrd > 0, vel_sqrd
-        b = pos_dot_vel / vel_sqrd  # note b < 0
-        assert b < 0, b
-        c = dist_sqrd / vel_sqrd  # note c >= 0
-        assert c >= 0, c
-
-        discriminant = b ** 2 - c
-        if discriminant <= 0:
-            # the balls miss or slide past each other
-            return INF
-
-        # when writing the solution of the quadratic equation use that
-        # c = t1 t2
-        t1 = -b + sqrt(discriminant)  # note t1 > 0
-        assert t1 > 0, (t1, b, sqrt(discriminant))
-        t2 = c / t1  # note t2 >= 0, is zero if c = 0, i.e. balls are touching
-        assert t2 >= 0, (t2, c)
-        return min(t1, t2)
-
-
-def elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2):
-    """Perfectly elastic collision between 2 balls.
-
-    Args:
-        pos1: Center of the first ball.
-        vel1: Velocity of the first ball.
-        mass1: Mass of the first ball.
-        pos2: Center of the second ball.
-        vel2: Velocity of the second ball.
-        mass2: Mass of the second ball.
-
-    Return:
-        Two velocities after the collision.
-
-    """
-    # switch to coordinate system of ball 1
-    pos_diff = np.subtract(pos2, pos1)
-    vel_diff = np.subtract(vel2, vel1)
-
-    pos_dot_vel = np.dot(pos_diff, vel_diff)
-    assert pos_dot_vel < 0  # colliding balls do not move apart
-
-    dist_sqrd = np.dot(pos_diff, pos_diff)
-
-    bla = 2 * (pos_dot_vel * pos_diff) / ((mass1 + mass2) * dist_sqrd)
-    vel1 += mass2 * bla
-    vel2 -= mass1 * bla
-
-    return vel1, vel2
-
-
-class Simulation(object):
-    """The simulation object represent a billiard world.
+    By default the 2-dimensional world is infinite in every direction.
+    To populate it use the `add_ball` method.
 
     Attributes:
         time: Current simulation time.
@@ -101,9 +21,10 @@ class Simulation(object):
         balls_position: List of 2D position of the balls' centers.
         balls_velocity: List of 2D velocities of the balls.
         balls_radius: List of numbers that represent the radii of the balls.
-        toi_table: Lower-triangular matrix (= nested lists) of time of impacts
-        toi_min: List of time-index pairs of the next collision for each ball
-        toi_next: Time-index pair for the next collision
+        balls_mass: List of number that represent the masses of the balls.
+        toi_table: Lower-triangular matrix (= nested lists) of time of impacts.
+        toi_min: List of time-index pairs of the next collision for each ball.
+        toi_next: Time-index-index triple for the next collision.
 
     """
 
@@ -121,10 +42,19 @@ class Simulation(object):
         # time of impact table
         self.toi_table = []
         self.toi_min = []
-        self.toi_next = (INF, -1)
+        self.toi_next = (INF, -1, 0)
 
     def add_ball(self, pos, vel, radius=0, mass=1):
         """Add a ball at the given position with the given velocity.
+
+        Note that balls with zero radius act like point particles and two balls
+        with zero radius will never collide.
+
+        Balls with zero mass don't push other balls around, balls with infinite
+        mass are not pushed around themselves. If two balls with zero mass
+        collide this will raise a warning from numpy. If two balls with
+        infinite mass collide only the first one is treated with infinite mass
+        and the other one gets pushed around.
 
         Args:
             pos: A 2D vector that represents the center of the ball.
@@ -132,6 +62,7 @@ class Simulation(object):
             radius (optional): The radius of the added ball.
                 Defaults to 0 in which case the ball behaves like a point
                 particle.
+            mass (optional): Ball mass, defaults to 1, can be 0 or inf.
 
         Returns:
             List-index where the balls' information is stored.
@@ -187,8 +118,8 @@ class Simulation(object):
 
         return self.time + time_of_impact(p1, v1, r1, p2, v2, r2)
 
-    def collision(self, idx1, idx2):
-        """Update the velocities of two balls in the simulation that collide.
+    def collide_balls(self, idx1, idx2):
+        """Update the velocities of two colliding balls in the simulation.
 
         Args:
             idx1: Index of one ball.
@@ -213,57 +144,57 @@ class Simulation(object):
         self.balls_velocity[idx1] = v1
         self.balls_velocity[idx2] = v2
 
-    def step(self, dt):
-        """Advance the simulation by the given timestep.
+    def evolve(self, end_time):
+        """Advance the simulation until the given time is reached.
 
         Args:
-            dt: Size of the timestep.
+            end_time: Time until which the billiard should be simulated.
 
         """
-        end = self.time + dt
-        while self.toi_next[0] <= end:
-            # advance to the next collision
-            self._move(self.toi_next[0])
+        while self.toi_next[0] <= end_time:
+            self.step()
 
-            # get the balls that collide
-            idx1 = self.toi_next[1]
-            idx2 = self.toi_next[2]
-            assert idx1 < idx2, (idx1, idx2)
-            assert self.toi_min[idx2][0] == self.toi_next[0]
-            assert self.toi_min[idx2][1] == idx1
+        assert end_time < self.toi_next[0]
+        self._move(end_time)
 
-            # handle collision between balls with index idx1 and idx2
-            self.collision(idx1, idx2)
+    def step(self):
+        """Advance to the next collision and handle it."""
+        t, idx1, idx2 = self.toi_next
 
-            # update time of impact for the two balls
-            self.toi_table[idx2][idx1] = INF
-            assert self.calc_toi(idx1, idx2) == INF
+        # advance to the next collision
+        self._move(t)
 
-            for j in range(idx1):
-                self.toi_table[idx1][j] = self.calc_toi(idx1, j)
-                self.toi_table[idx2][j] = self.calc_toi(idx2, j)
+        # get the balls that collide
+        assert idx1 < idx2, (idx1, idx2)
+        assert self.toi_min[idx2] == (t, idx1)
 
-            for i in range(idx1 + 1, idx2):
-                self.toi_table[i][idx1] = self.calc_toi(i, idx1)
-                self.toi_table[idx2][i] = self.calc_toi(idx2, i)
+        # handle collision between balls with index idx1 and idx2
+        self.collide_balls(idx1, idx2)
 
-            for i in range(idx2 + 1, self.num):
-                self.toi_table[i][idx1] = self.calc_toi(i, idx1)
-                self.toi_table[i][idx2] = self.calc_toi(i, idx2)
+        # update time of impact for the two balls
+        self.toi_table[idx2][idx1] = INF
+        assert self.calc_toi(idx1, idx2) == INF
 
-            # update toi_min
-            for i in range(idx1, self.num):
-                row = self.toi_table[i]
-                toi_pairs = ((t, j) for (j, t) in enumerate(row))
-                toi_idx = min(toi_pairs, default=(INF, -1))
-                self.toi_min[i] = toi_idx
+        for j in range(idx1):
+            self.toi_table[idx1][j] = self.calc_toi(idx1, j)
+            self.toi_table[idx2][j] = self.calc_toi(idx2, j)
 
-            self.toi_next = min(
-                (t, i, j) for j, (t, i) in enumerate(self.toi_min)
-            )
+        for i in range(idx1 + 1, idx2):
+            self.toi_table[i][idx1] = self.calc_toi(i, idx1)
+            self.toi_table[idx2][i] = self.calc_toi(idx2, i)
 
-        assert end < self.toi_next[0]
-        self._move(end)
+        for i in range(idx2 + 1, self.num):
+            self.toi_table[i][idx1] = self.calc_toi(i, idx1)
+            self.toi_table[i][idx2] = self.calc_toi(i, idx2)
+
+        # update toi_min
+        for i in range(idx1, self.num):
+            row = self.toi_table[i]
+            toi_pairs = ((t, j) for (j, t) in enumerate(row))
+            toi_idx = min(toi_pairs, default=(INF, -1))
+            self.toi_min[i] = toi_idx
+
+        self.toi_next = min((t, i, j) for j, (t, i) in enumerate(self.toi_min))
 
     def _move(self, time):
         # just update position, no collision handling here

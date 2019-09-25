@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Billiards main module."""
+"""Billiards top-level module.
+
+You can import the ``Simulation`` class from here for convenience.
+"""
 __version__ = "0.1.0"
 
 # Local
-from .simulation import Simulation, elastic_collision, time_of_impact
+from .simulation import Billiard
 
-__all__ = ["time_of_impact", "elastic_collision", "Simulation"]
+__all__ = ["Billiard"]
