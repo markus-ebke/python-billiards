@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Main code for billiard simulation."""
-from math import sqrt
+from math import isinf, sqrt
 
 import numpy as np
 
@@ -49,7 +49,7 @@ def time_of_impact(pos1, vel1, radius1, pos2, vel2, radius2):
 
         discriminant = b ** 2 - c
         if discriminant <= 0:
-            # the balls miss
+            # the balls miss or slide past each other
             return INF
 
         # when writing the solution of the quadratic equation use that
@@ -202,6 +202,12 @@ class Simulation(object):
         p2 = self.balls_position[idx2]
         v2 = self.balls_velocity[idx2]
         m2 = self.balls_mass[idx2]
+
+        # collision with infinite masses: the other mass is effectively zero
+        if isinf(m1):
+            m1, m2 = (1, 0)
+        elif isinf(m2):
+            m1, m2 = (0, 1)
 
         v1, v2 = elastic_collision(p1, v1, m1, p2, v2, m2)
         self.balls_velocity[idx1] = v1
