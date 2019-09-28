@@ -7,8 +7,12 @@ import numpy as np
 INF = float("inf")
 
 
-def time_of_impact(pos1, vel1, radius1, pos2, vel2, radius2):
-    """Calculate the time of impact of two moving balls.
+def time_of_impact(pos1, vel1, radius1, pos2, vel2, radius2, t_eps=1e-10):
+    """Calculate for two moving balls the time until impact.
+
+    Overlapping balls are not counted as a collision (because the impact
+    already occured). But due to rounding errors an actual impact might be
+    missed, use a larger t_eps to correct for that.
 
     Args:
         pos1: Center of the first ball.
@@ -17,9 +21,10 @@ def time_of_impact(pos1, vel1, radius1, pos2, vel2, radius2):
         pos2: Center of the second ball.
         vel2: Velocity of the second ball.
         radius2: Radius of the second ball.
+        t_eps (optional): Correction for rounding errors, default: 1e-10.
 
     Return:
-        Non-negative time until impact, is infinite if there is no impact.
+        Time until impact, is infinite if there is no impact.
 
     """
     # switch to coordinate system of ball 1
@@ -30,35 +35,35 @@ def time_of_impact(pos1, vel1, radius1, pos2, vel2, radius2):
     if pos_dot_vel >= 0:
         # balls are moving apart, no impact
         return INF
-    else:
-        pos_sqrd = np.dot(pos_diff, pos_diff)
 
-        dist_sqrd = pos_sqrd - (radius1 + radius2) ** 2
-        if dist_sqrd < 0:
-            # one ball is inside the other, but don't count this as an impact
-            return INF
+    pos_sqrd = np.dot(pos_diff, pos_diff)
+    vel_sqrd = np.dot(vel_diff, vel_diff)  # note: vel_sqrd != 0
+    assert vel_sqrd > 0, vel_sqrd
 
-        # time of impact is given as the solution of the quadratic equation
-        # t^2 + b t + c = 0 with b and c below
-        vel_sqrd = np.dot(vel_diff, vel_diff)  # note vel_sqrd != 0
-        assert vel_sqrd > 0, vel_sqrd
-        b = pos_dot_vel / vel_sqrd  # note b < 0
-        assert b < 0, b
-        c = dist_sqrd / vel_sqrd  # note c >= 0
-        assert c >= 0, c
+    # time of impact is given as the solution of the quadratic equation
+    # t^2 + b t + c = 0 with b and c below
+    b = pos_dot_vel / vel_sqrd  # note: b < 0 because pos_dot_vel < 0
+    assert b < 0, b
+    c = (pos_sqrd - (radius1 + radius2) ** 2) / vel_sqrd
 
-        discriminant = b ** 2 - c
-        if discriminant <= 0:
-            # the balls miss or slide past each other
-            return INF
+    discriminant = b ** 2 - c
+    if discriminant <= 0:
+        # the balls miss or slide past each other
+        return INF
 
-        # when writing the solution of the quadratic equation use that
-        # c = t1 t2
-        t1 = -b + sqrt(discriminant)  # note t1 > 0
-        assert t1 > 0, (t1, b, sqrt(discriminant))
-        t2 = c / t1  # note t2 >= 0, is zero if c = 0, i.e. balls are touching
-        assert t2 >= 0, (t2, c)
-        return min(t1, t2)
+    # when writing the solution of the quadratic equation use that
+    # c = t1 t2 (prevents rounding errors)
+    t1 = -b + sqrt(discriminant)  # note: t1 > 0
+    assert t1 > 0, (t1, b, c, sqrt(discriminant))
+    t2 = c / t1
+
+    if t2 < -t_eps:
+        # If t2 is negative, then the balls overlap. This doesn't count as an
+        # impact, but if t2 is close to zero, then a collision might have
+        # happened and we miss it just because of rounding errors
+        return INF
+
+    return min(t1, t2)
 
 
 def elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2):
