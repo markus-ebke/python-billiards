@@ -94,6 +94,26 @@ def test_toi_contents():
     assert sim.calc_toi(1, 2) == approx(2.0)
 
 
+def test_simple_collision():
+    sim = Billiard()
+
+    sim.add_ball((2, 0), (4, 0), radius=1)
+    sim.evolve(10.0)
+    assert tuple(sim.balls_position[0]) == (42.0, 0.0)
+    assert tuple(sim.balls_velocity[0]) == (4.0, 0.0)
+
+    # add another ball that will collide with the first one
+    sim.add_ball((50, 18), (0, -9), radius=1, mass=2)
+    assert sim.toi_next == (approx(11.79693), 0, 1)
+
+    sim.evolve(14.0)
+    assert sim.time == 14
+    assert tuple(sim.balls_position[0]) == (approx(46.2503), approx(-26.43683))
+    assert tuple(sim.balls_position[1]) == (approx(55.8748), approx(-4.78158))
+    assert tuple(sim.balls_velocity[0]) == (approx(-1.333333), approx(-12))
+    assert tuple(sim.balls_velocity[1]) == (approx(2.666667), approx(-3))
+
+
 def test_newton_cradle():
     sim = Billiard()
 
