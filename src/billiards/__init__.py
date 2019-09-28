@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Billiards main module."""
-__version__ = "0.1.0"
+"""Billiards top-level module.
+
+You can import the ``Billiard`` class from here for convenience::
+
+    from billiard import Billiard
+
+"""
+__version__ = "0.2.0"
 
 # Local
-from .simulation import Simulation
+from .simulation import Billiard
 
-__all__ = ["Simulation"]
+__all__ = ["Billiard"]
