@@ -8,7 +8,7 @@ You can import the ``Billiard`` class from here for convenience::
 """
 __version__ = "0.2.0"
 
-# Local
+from . import physics
 from .simulation import Billiard
 
-__all__ = ["Billiard"]
+__all__ = ["Billiard", "physics"]

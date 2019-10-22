@@ -38,6 +38,42 @@ def test_index():
         assert tuple(sim.balls_velocity[idx]) == (0, idx)
 
 
+def test_add():
+    # missing required positional arguments
+    sim = Billiard()
+    with pytest.raises(TypeError):
+        sim.add_ball((0, 0))
+
+    # wrong type send to numpy
+    sim = Billiard()
+    with pytest.raises(ValueError):
+        sim.add_ball((0, 0), None)
+
+    # wrong data send to numpy
+    sim = Billiard()
+    with pytest.raises(ValueError):
+        sim.add_ball((0, 0), (0, 0, 0))
+
+    sim = Billiard()
+    assert sim.add_ball((0, 0), (0, 0)) == 0
+
+    # wrong type for radius
+    sim = Billiard()
+    with pytest.raises(TypeError):
+        sim.add_ball((0, 0), (0, 0), None)
+
+    sim = Billiard()
+    assert sim.add_ball((0, 0), (0, 0), 0) == 0
+
+    # wrong type for mass
+    sim = Billiard()
+    with pytest.raises(TypeError):
+        sim.add_ball((0, 0), (0, 0), 1, None)
+
+    sim = Billiard()
+    assert sim.add_ball((0, 0), (0, 0), 0, 0) == 0
+
+
 def test_movement():
     sim = Billiard()
 
@@ -117,7 +153,7 @@ def test_simple_collision():
 def test_newton_cradle():
     sim = Billiard()
 
-    # setup newton's cradle with four balls
+    # setup Newton's cradle with four balls
     sim.add_ball((-3, 0), (1, 0), 1)
     sim.add_ball((0, 0), (0, 0), 1)
     sim.add_ball((5, 0), (0, 0), 1)  # this is the last ball (more coverage)
