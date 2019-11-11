@@ -8,8 +8,9 @@ try:
     from matplotlib.collections import Collection
     from matplotlib.animation import FuncAnimation
     import matplotlib.pyplot as plt
-except ImportError:
-    print("matplotlib import failed, cannot use 'plot' or 'animate'")
+except ImportError as ex:
+    print("Cannot use billiards.visualization, matplotlib is not installed.")
+    raise ex
 
 
 class BallCollection(Collection):
@@ -52,20 +53,36 @@ def _plot_frame(sim, fig, ax):
     radii = sim.balls_radius
 
     # draw balls as circles
-    balls = BallCollection(radii, offsets=pos, transOffset=ax.transData,
-                           edgecolor="black", linewidth=1, zorder=0)
+    balls = BallCollection(
+        radii,
+        offsets=pos,
+        transOffset=ax.transData,
+        edgecolor="black",
+        linewidth=1,
+        zorder=0,
+    )
     ax.add_collection(balls)
 
     # indicate positions via scatter plot
-    scatter = ax.scatter(pos[:, 0], pos[:, 1], s=10, color="black")
+    scatter = ax.scatter(pos[:, 0], pos[:, 1], s=20, color="black")
 
     # indicate velocities with arrows, slow balls are marked with hexagons
-    quiver = ax.quiver(pos[:, 0], pos[:, 1], vel[:, 0], vel[:, 1], angles="xy",
-                       scale_units="xy", scale=1, width=0.005, color="black")
+    quiver = ax.quiver(
+        pos[:, 0],
+        pos[:, 1],
+        vel[:, 0],
+        vel[:, 1],
+        angles="xy",
+        scale_units="xy",
+        scale=1,
+        width=0.004,
+        color="black",
+    )
 
     # show the current simulation time
-    time_text = ax.text(0.02, 0.95, "time = {:.2f}s".format(sim.time),
-                        transform=ax.transAxes)
+    time_text = ax.text(
+        0.02, 0.95, "time = {:.2f}s".format(sim.time), transform=ax.transAxes
+    )
 
     return fig, ax, balls, scatter, quiver, time_text
 
@@ -106,8 +123,14 @@ def animate(sim, end_time, fps=30, fig=None, ax=None, show=True):
 
         return (balls, scatter, quiver, time_text)
 
-    anim = FuncAnimation(fig, animate, int(fps*end_time), interval=1000/fps,
-                         blit=True, init_func=init)
+    anim = FuncAnimation(
+        fig,
+        animate,
+        frames=int(fps * end_time),
+        interval=1000 / fps,
+        blit=True,
+        init_func=init,
+    )
 
     if show:
         plt.show()
