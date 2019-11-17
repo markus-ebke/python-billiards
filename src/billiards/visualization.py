@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Visualize a billiard using Matplotlib."""
 import numpy as np
 
 try:
@@ -8,13 +9,16 @@ try:
     from matplotlib.collections import Collection
     from matplotlib.animation import FuncAnimation
     import matplotlib.pyplot as plt
-except ImportError as ex:
+except ImportError as ex:  # pragma: no cover
     print("Cannot use billiards.visualization, matplotlib is not installed.")
     raise ex
 
 
 class BallCollection(Collection):
+    """Balls in data coordinates, simplified from EllipseCollection."""
+
     def __init__(self, radius, **kwargs):
+        """Create balls from given parameters."""
         Collection.__init__(self, **kwargs)
         self.radius = np.asarray(radius)
         self.set_transform(transforms.IdentityTransform())
@@ -34,6 +38,7 @@ class BallCollection(Collection):
 
     @allow_rasterization
     def draw(self, renderer):
+        """Set transform, then draw."""
         self._set_transforms()
         Collection.draw(self, renderer)
 
@@ -88,15 +93,54 @@ def _plot_frame(sim, fig, ax):
 
 
 def plot(sim, fig=None, ax=None, show=True):
+    """Plot the given billiard for the current moment.
+
+    Args:
+        sim: A billiard simulation.
+        fig (optional): Figure used for drawing.
+            Defaults to None in which case a new figure will be created.
+        ax (optional): Axes used for drawing.
+            Defaults to None in which case a nex axes object will be created.
+            If an axes object is supplied, use
+            ax.set_aspect(self, aspect="equal", adjustable="datalim")
+            for correct aspect ratio.
+        show (optional): Use pyplot.show() to show the animation.
+
+    Returns:
+        fig: matplotlib.figure.Figure object, to save the plot use show=False
+        and fig.savefig("savename.png").
+
+    """
     fig, ax, balls, scatter, quiver, time_text = _plot_frame(sim, fig, ax)
 
-    if show:
+    if show:  # pragma: no cover
         plt.show()
 
     return fig
 
 
 def animate(sim, end_time, fps=30, fig=None, ax=None, show=True):
+    """Animate the billiard plot.
+
+    Args:
+        sim: A billiard simulation.
+        end_time: Animate from t=0 to t=end_time.
+        fps (optional): Frames per second of the animation.
+            Defaults to 30.
+        fig (optional): Figure used for drawing.
+            Defaults to None in which case a new figure will be created.
+        ax (optional): Axes used for drawing.
+            Defaults to None in which case a nex axes object will be created.
+            If an axes object is supplied, use
+            ax.set_aspect(self, aspect="equal", adjustable="datalim")
+            for correct aspect ratio.
+        show (optional): Use pyplot.show() to show the animation.
+
+    Returns:
+        anim: matplotlib.animation.FuncAnimation object, to save the animation
+            use show=False and anim.save("savename.mp4").
+
+    """
     fig, ax, balls, scatter, quiver, time_text = _plot_frame(sim, fig, ax)
 
     def init():
@@ -132,7 +176,7 @@ def animate(sim, end_time, fps=30, fig=None, ax=None, show=True):
         init_func=init,
     )
 
-    if show:
+    if show:  # pragma: no cover
         plt.show()
 
     return anim
