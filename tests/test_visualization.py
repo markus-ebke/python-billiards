@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 import sys
 
+import numpy as np
 import pytest
+from pytest import approx
 
 import billiards
 from billiards import visualization
@@ -16,6 +18,41 @@ except ImportError:
 hasmpl = pytest.mark.skipif(
     "matplotlib" not in sys.modules, reason="requires the Matplotlib library"
 )
+
+
+@hasmpl
+def test_collection():
+    pos = np.asarray([[0.0, 0.0], [4.0, 1.0], [10.0, 8.0]])
+    radii = [1.0, 4.0, 0.0]
+
+    box_min = [-1.0, -3.0]
+    box_max = [10.0, 8.0]
+
+    fig = mpl.pyplot.figure(figsize=(8, 6), dpi=100)
+    fig.set_tight_layout(True)
+    ax = fig.add_subplot(1, 1, 1, aspect="equal", adjustable="datalim")
+
+    # test BallCollection
+    balls = visualization.BallCollection(
+        centers=pos,
+        radii=radii,
+        transOffset=ax.transData,
+        edgecolor="black",
+        linewidth=1,
+        zorder=0,
+    )
+    ball_bbox = balls.get_datalim(ax.transData).get_points()
+    assert ball_bbox[0] == approx(box_min)
+    assert ball_bbox[1] == approx(box_max)
+
+    # test BallPatchCollection
+    balls_patches = visualization.BallPatchCollection(
+        centers=pos, radii=radii, edgecolor="black", linewidth=1, zorder=0,
+    )
+    ax.add_collection(balls_patches)
+    patches_bbox = balls_patches.get_datalim(ax.transData).get_points()
+    assert patches_bbox[0] == approx(box_min)
+    assert patches_bbox[1] == approx(box_max)
 
 
 @hasmpl

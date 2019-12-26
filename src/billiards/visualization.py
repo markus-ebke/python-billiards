@@ -15,32 +15,62 @@ except ImportError as ex:  # pragma: no cover
 
 
 class BallCollection(Collection):
-    """Balls in data coordinates, simplified from EllipseCollection."""
+    """A collection of balls (in data coordinates, like EllipseCollection)."""
 
-    def __init__(self, radius, **kwargs):
-        """Create balls from given parameters."""
+    def __init__(self, centers, radii, transOffset, **kwargs):
+        """Create balls with given centers and radii."""
+        self.radii = np.asarray(radii)
+
+        kwargs["offsets"] = centers
+        kwargs["transOffset"] = transOffset
         Collection.__init__(self, **kwargs)
-        self.radius = np.asarray(radius)
-        self.set_transform(transforms.IdentityTransform())
-        self._paths = [Path.unit_circle()]
 
-    def _set_transforms(self):
-        self._transforms = np.zeros((len(self.radius), 3, 3))
-        self._transforms[:, 0, 0] = self.radius
-        self._transforms[:, 1, 1] = self.radius
+        self._unit_circle = Path.unit_circle()
+        self._paths = [self._unit_circle]
+
+    def _set_transforms(self, transData):
+        self._transforms = np.zeros((len(self.radii), 3, 3))
+        self._transforms[:, 0, 0] = self.radii
+        self._transforms[:, 1, 1] = self.radii
         self._transforms[:, 2, 2] = 1.0
 
-        transData = self.axes.transData
         trafo = transData.get_affine()
         m = trafo.get_matrix().copy()
         m[:2, 2:] = 0
         self.set_transform(transforms.Affine2D(m))
 
+    def get_datalim(self, transData):
+        """Get bounding box of the collection in data coordinates."""
+        self._set_transforms(transData)
+        transform = self.get_transform()
+        self._paths = [transform.transform_path(self._unit_circle)]
+        return Collection.get_datalim(self, transData)
+
     @allow_rasterization
     def draw(self, renderer):
         """Set transform, then draw."""
-        self._set_transforms()
+        self._set_transforms(self.axes.transData)
+        self._paths = [self._unit_circle]
         Collection.draw(self, renderer)
+
+
+class BallPatchCollection(Collection):
+    """A collection of ball patches (in data coordinates).
+
+    Will be slower than BallPatchCollection, but can be used for comparison.
+
+    """
+
+    def __init__(self, centers, radii, **kwargs):
+        """Create balls with given centers and radii."""
+        Collection.__init__(self, **kwargs)
+
+        unit_circle = Path.unit_circle()
+        paths = []
+        for c, r in zip(centers, radii):
+            transform = transforms.Affine2D().scale(r).translate(*c)
+            paths.append(transform.transform_path(unit_circle))
+        self._paths = paths
 
 
 def _plot_frame(sim, fig, ax):
@@ -55,18 +85,18 @@ def _plot_frame(sim, fig, ax):
     # simplify variables
     pos = sim.balls_position
     vel = sim.balls_velocity
-    radii = sim.balls_radius
 
     # draw balls as circles
     balls = BallCollection(
-        radii,
-        offsets=pos,
+        centers=pos,
+        radii=sim.balls_radius,
         transOffset=ax.transData,
         edgecolor="black",
         linewidth=1,
         zorder=0,
     )
     ax.add_collection(balls)
+    ax.autoscale_view()
 
     # indicate positions via scatter plot
     scatter = ax.scatter(pos[:, 0], pos[:, 1], s=20, color="black")
