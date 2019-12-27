@@ -31,13 +31,13 @@ Import the library and setup an empty billiard world:
 .. doctest::
 
     >>> import billiards
-    >>> bil = billiards.Billiard()
+    >>> bld = billiards.Billiard()
 
 Add one ball at position (2, 0) with velocity (4, 0):
 
 .. doctest::
 
-    >>> idx = bil.add_ball((2, 0), (4, 0), radius=1)
+    >>> idx = bld.add_ball((2, 0), (4, 0), radius=1)
     >>> print(idx)
     0
 
@@ -47,12 +47,12 @@ To see where the ball is at time = 10 units:
 
 .. doctest::
 
-    >>> bil.evolve(end_time=10.0)
-    >>> print("({}, {})".format(*bil.balls_position[idx]))
+    >>> bld.evolve(end_time=10.0)
+    >>> print("({}, {})".format(*bld.balls_position[idx]))
     (42.0, 0.0)
-    >>> print("({}, {})".format(*bil.balls_velocity[idx]))
+    >>> print("({}, {})".format(*bld.balls_velocity[idx]))
     (4.0, 0.0)
-    >>> billiards.visualize.plot(bil, show=False)
+    >>> billiards.visualize.plot(bld, show=False)
     <Figure size 800x600 with 1 Axes>
 
 
@@ -63,20 +63,20 @@ Now add another ball that will collide with the first one:
 
 .. doctest::
 
-    >>> bil.add_ball((50, 18), (0, -9), radius=1, mass=2)
+    >>> bld.add_ball((50, 18), (0, -9), radius=1, mass=2)
     1
-    >>> print("t={:.7}, idx1={}, idx2={}".format(*bil.toi_next))
+    >>> print("t={:.7}, idx1={}, idx2={}".format(*bld.toi_next))
     t=11.79693, idx1=0, idx2=1
-    >>> bil.evolve(14.0)
-    >>> print(bil.time)
+    >>> bld.evolve(14.0)
+    >>> print(bld.time)
     14.0
-    >>> print(bil.balls_position)
+    >>> print(bld.balls_position)
     [[ 46.25029742 -26.4368308 ]
      [ 55.87485129  -4.7815846 ]]
-    >>> print(bil.balls_velocity)
+    >>> print(bld.balls_velocity)
     [[ -1.33333333 -12.        ]
      [  2.66666667  -3.        ]]
-    >>> billiards.visualize.plot(bil)
+    >>> billiards.visualize.plot(bld)
     <Figure size 800x600 with 1 Axes>
 
 

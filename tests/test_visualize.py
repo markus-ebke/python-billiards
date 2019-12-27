@@ -58,30 +58,30 @@ def test_collection():
 @hasmpl
 def test_plot():
     # custom Newton's cradle
-    sim = billiards.Billiard()
-    sim.add_ball((-3, 0), (1, 1 / 2), 1)
-    sim.add_ball((0, 0), (0, 0), 1)
-    sim.add_ball((3, 0), (0, 0), 1)
-    sim.add_ball((5, 0), (0, 0), 1)
-    sim.add_ball((7, 3), (0, -1 / 2), 0)
+    bld = billiards.Billiard()
+    bld.add_ball((-3, 0), (1, 1 / 2), 1)
+    bld.add_ball((0, 0), (0, 0), 1)
+    bld.add_ball((3, 0), (0, 0), 1)
+    bld.add_ball((5, 0), (0, 0), 1)
+    bld.add_ball((7, 3), (0, -1 / 2), 0)
 
-    sim.evolve(4)
+    bld.evolve(4)
 
-    fig = visualize.plot(sim, show=False)
+    fig = visualize.plot(bld, show=False)
     assert isinstance(fig, mpl.figure.Figure)
 
 
 @hasmpl
 def test_animate():
     # custom Newton's cradle
-    sim = billiards.Billiard()
-    sim.add_ball((-3, 0), (1, 1 / 2), 1)
-    sim.add_ball((0, 0), (0, 0), 1)
-    sim.add_ball((3, 0), (0, 0), 1)
-    sim.add_ball((5, 0), (0, 0), 1)
-    sim.add_ball((7, 3), (0, -1 / 2), 0)
+    bld = billiards.Billiard()
+    bld.add_ball((-3, 0), (1, 1 / 2), 1)
+    bld.add_ball((0, 0), (0, 0), 1)
+    bld.add_ball((3, 0), (0, 0), 1)
+    bld.add_ball((5, 0), (0, 0), 1)
+    bld.add_ball((7, 3), (0, -1 / 2), 0)
 
-    anim = visualize.animate(sim, end_time=1, fps=60, show=False)
+    anim = visualize.animate(bld, end_time=1, fps=60, show=False)
     assert isinstance(anim, mpl.animation.FuncAnimation)
 
     drawn_artists = anim._func(1)

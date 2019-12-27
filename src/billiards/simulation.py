@@ -152,12 +152,12 @@ class Billiard(object):
 
         """
         while self.toi_next[0] <= end_time:
-            self.step()
+            self.bounce()
 
         assert end_time < self.toi_next[0]
         self._move(end_time)
 
-    def step(self):
+    def bounce(self):
         """Advance to the next collision and handle it."""
         t, idx1, idx2 = self.toi_next
 

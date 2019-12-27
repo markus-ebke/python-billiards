@@ -73,7 +73,7 @@ class BallPatchCollection(Collection):
         self._paths = paths
 
 
-def _plot_frame(sim, fig, ax):
+def _plot_frame(bld, fig, ax):
     # setup figure and axes if needed
     if fig is None:
         fig = plt.figure(figsize=(8, 6), dpi=100)
@@ -83,13 +83,13 @@ def _plot_frame(sim, fig, ax):
         ax = fig.add_subplot(1, 1, 1, aspect="equal", adjustable="datalim")
 
     # simplify variables
-    pos = sim.balls_position
-    vel = sim.balls_velocity
+    pos = bld.balls_position
+    vel = bld.balls_velocity
 
     # draw balls as circles
     balls = BallCollection(
         centers=pos,
-        radii=sim.balls_radius,
+        radii=bld.balls_radius,
         transOffset=ax.transData,
         edgecolor="black",
         linewidth=1,
@@ -116,17 +116,17 @@ def _plot_frame(sim, fig, ax):
 
     # show the current simulation time
     time_text = ax.text(
-        0.02, 0.95, "time = {:.2f}s".format(sim.time), transform=ax.transAxes
+        0.02, 0.95, "time = {:.2f}s".format(bld.time), transform=ax.transAxes
     )
 
     return fig, ax, balls, scatter, quiver, time_text
 
 
-def plot(sim, fig=None, ax=None, show=True):
+def plot(bld, fig=None, ax=None, show=True):
     """Plot the given billiard for the current moment.
 
     Args:
-        sim: A billiard simulation.
+        bld: A billiard simulation.
         fig (optional): Figure used for drawing.
             Defaults to None in which case a new figure will be created.
         ax (optional): Axes used for drawing.
@@ -141,7 +141,7 @@ def plot(sim, fig=None, ax=None, show=True):
         and fig.savefig("savename.png").
 
     """
-    fig, ax, balls, scatter, quiver, time_text = _plot_frame(sim, fig, ax)
+    fig, ax, balls, scatter, quiver, time_text = _plot_frame(bld, fig, ax)
 
     if show:  # pragma: no cover
         plt.show()
@@ -149,11 +149,11 @@ def plot(sim, fig=None, ax=None, show=True):
     return fig
 
 
-def animate(sim, end_time, fps=30, fig=None, ax=None, show=True):
+def animate(bld, end_time, fps=30, fig=None, ax=None, show=True):
     """Animate the billiard plot.
 
     Args:
-        sim: A billiard simulation.
+        bld: A billiard simulation.
         end_time: Animate from t=0 to t=end_time.
         fps (optional): Frames per second of the animation.
             Defaults to 30.
@@ -171,7 +171,7 @@ def animate(sim, end_time, fps=30, fig=None, ax=None, show=True):
             use show=False and anim.save("savename.mp4").
 
     """
-    fig, ax, balls, scatter, quiver, time_text = _plot_frame(sim, fig, ax)
+    fig, ax, balls, scatter, quiver, time_text = _plot_frame(bld, fig, ax)
 
     def init():
         balls.set_offsets(np.empty(shape=(0, 2)))
@@ -184,16 +184,16 @@ def animate(sim, end_time, fps=30, fig=None, ax=None, show=True):
         return (balls, scatter, quiver, time_text)
 
     def animate(i):
-        sim.evolve(i / fps)
-        pos = sim.balls_position
-        vel = sim.balls_velocity
+        bld.evolve(i / fps)
+        pos = bld.balls_position
+        vel = bld.balls_velocity
 
         balls.set_offsets(pos)
         scatter.set_offsets(pos)
         quiver.set_offsets(pos)
         quiver.set_UVC(vel[:, 0], vel[:, 1])
 
-        time_text.set_text("time = {:.2f}s".format(sim.time))
+        time_text.set_text("time = {:.2f}s".format(bld.time))
 
         return (balls, scatter, quiver, time_text)
 
