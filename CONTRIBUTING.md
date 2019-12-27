@@ -75,10 +75,10 @@ Then
    ```
    Now you can make your changes locally.
 
-5. If you changed code in visualize.py, regenerate the images for the documentation with
+5. If you changed code in visualize.py, regenerate the images and videos for the documentation with
    ```shell
    $ cd docs/
-   $ python3 create_images.py
+   $ python3 create_visualizations.py
    ```
 
 6. When you're done making changes, run the autoformatter, linter, tests and doc builder with [tox](https://tox.readthedocs.io/en/latest/install.html) in one command:
