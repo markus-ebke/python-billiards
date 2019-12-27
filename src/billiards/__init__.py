@@ -10,7 +10,7 @@ __version__ = "0.2.0"
 
 
 # Local
-from . import physics, simulation, visualization
+from . import physics, simulation, visualize
 from .simulation import Billiard
 
-__all__ = ["simulation", "physics", "visualization", "Billiard"]
+__all__ = ["simulation", "physics", "visualize", "Billiard"]

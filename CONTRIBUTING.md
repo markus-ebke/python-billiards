@@ -75,7 +75,7 @@ Then
    ```
    Now you can make your changes locally.
 
-5. If you changed the visualization files, regenerate the images for the documentation with
+5. If you changed code in visualize.py, regenerate the images for the documentation with
    ```shell
    $ cd docs/
    $ python3 create_images.py

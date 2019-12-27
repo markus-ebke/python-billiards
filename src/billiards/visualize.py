@@ -10,7 +10,7 @@ try:
     from matplotlib.animation import FuncAnimation
     import matplotlib.pyplot as plt
 except ImportError as ex:  # pragma: no cover
-    print("Cannot use billiards.visualization, matplotlib is not installed.")
+    print("Cannot use billiards.visualize, matplotlib is not installed.")
     raise ex
 
 

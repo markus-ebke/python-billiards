@@ -7,7 +7,7 @@ import pytest
 from pytest import approx
 
 import billiards
-from billiards import visualization
+from billiards import visualize
 
 try:
     import matplotlib as mpl
@@ -33,7 +33,7 @@ def test_collection():
     ax = fig.add_subplot(1, 1, 1, aspect="equal", adjustable="datalim")
 
     # test BallCollection
-    balls = visualization.BallCollection(
+    balls = visualize.BallCollection(
         centers=pos,
         radii=radii,
         transOffset=ax.transData,
@@ -46,7 +46,7 @@ def test_collection():
     assert ball_bbox[1] == approx(box_max)
 
     # test BallPatchCollection
-    balls_patches = visualization.BallPatchCollection(
+    balls_patches = visualize.BallPatchCollection(
         centers=pos, radii=radii, edgecolor="black", linewidth=1, zorder=0,
     )
     ax.add_collection(balls_patches)
@@ -67,7 +67,7 @@ def test_plot():
 
     sim.evolve(4)
 
-    fig = visualization.plot(sim, show=False)
+    fig = visualize.plot(sim, show=False)
     assert isinstance(fig, mpl.figure.Figure)
 
 
@@ -81,7 +81,7 @@ def test_animate():
     sim.add_ball((5, 0), (0, 0), 1)
     sim.add_ball((7, 3), (0, -1 / 2), 0)
 
-    anim = visualization.animate(sim, end_time=1, fps=60, show=False)
+    anim = visualize.animate(sim, end_time=1, fps=60, show=False)
     assert isinstance(anim, mpl.animation.FuncAnimation)
 
     drawn_artists = anim._func(1)

@@ -45,7 +45,7 @@ To see where the ball is at time = 10 units:
 (42.0, 0.0)
 >>> print("({}, {})".format(*bil.balls_velocity[idx]))
 (4.0, 0.0)
->>> billiards.visualization.plot(bil)
+>>> billiards.visualize.plot(bil)
 ```
 ![alt text](docs/_images/quickstart_1.png "One ball")
 
@@ -64,7 +64,7 @@ t=11.79693, idx1=0, idx2=1
 >>> print(bil.balls_velocity)
 [[ -1.33333333 -12.        ]
  [  2.66666667  -3.        ]]
->>> billiards.visualization.plot(bil)
+>>> billiards.visualize.plot(bil)
 ```
 ![alt text](docs/_images/quickstart_2.png "Two balls after collision")
 
