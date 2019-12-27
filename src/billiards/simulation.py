@@ -30,7 +30,7 @@ class Billiard(object):
 
     def __init__(self):
         """Create an empty world."""
-        self.time = 0
+        self.time = 0.0
         self.num = 0
 
         # ball properties
@@ -44,7 +44,7 @@ class Billiard(object):
         self.toi_min = []
         self.toi_next = (INF, -1, 0)
 
-    def add_ball(self, pos, vel, radius=0, mass=1):
+    def add_ball(self, pos, vel, radius=0.0, mass=1.0):
         """Add a ball at the given position with the given velocity.
 
         Note that balls with zero radius act like point particles and two balls
@@ -71,8 +71,8 @@ class Billiard(object):
         # add ball properties
         self.balls_position = np.append(self.balls_position, [pos], axis=0)
         self.balls_velocity = np.append(self.balls_velocity, [vel], axis=0)
-        self.balls_radius.append(radius)
-        self.balls_mass.append(mass)
+        self.balls_radius.append(float(radius))
+        self.balls_mass.append(float(mass))
 
         # update ball count and calculate index
         self.num += 1
@@ -152,12 +152,12 @@ class Billiard(object):
 
         """
         while self.toi_next[0] <= end_time:
-            self.step()
+            self.bounce()
 
         assert end_time < self.toi_next[0]
         self._move(end_time)
 
-    def step(self):
+    def bounce(self):
         """Advance to the next collision and handle it."""
         t, idx1, idx2 = self.toi_next
 

@@ -20,6 +20,14 @@ billiards\.simulation module
     :undoc-members:
     :show-inheritance:
 
+billiards\.visualize module
+-------------------------------
+
+.. automodule:: billiards.visualize
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

@@ -5,14 +5,17 @@ verify_ssl = true
 
 [dev-packages]
 bump2version = "*"
-billiards = {editable = true,path = "."}
+billiards = {editable = true,extras = ["visualize"],path = "."}
 grip = "*"
+matplotlib = "*"
+numpy = "*"
 setuptools = ">=39.2"
 pytest = "*"
 tox = "*"
 
 [packages]
 numpy = "*"
+matplotlib = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3.7"

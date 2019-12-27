@@ -49,7 +49,7 @@ If you are proposing a feature:
 
 ## Development
 
-Before you start make sure that you have Python version>=3.5.
+Before you start make sure that you have Python version>=3.7.
 Then
 1. Fork [billiards](https://github.com/markus-ebke/python-billiards) (look for the "Fork" button).
 2. Clone your fork locally:
@@ -69,25 +69,36 @@ Then
    $ python setup.py develop
    ```
 
-4. Create a branch for local development (use the [git-flow model](https://nvie.com/posts/a-successful-git-branching-model/)):
+4. Create a branch for local development (follow the [git-flow model](https://nvie.com/posts/a-successful-git-branching-model/)):
    ```shell
-   $ git checkout -b feature/name-of-your-feature
+   $ git flow feature start <name-of-your-feature>
    ```
-   Now you can make your changes locally.
+   or (if you don't have git-flow) branch of from `develop` manually:
+   ```shell
+   $ git checkout -b feature/<name-of-your-feature> develop
+   ```
+   Now you can start on your new feature, bugfix, spaceship, etc.
 
-5. When you're done making changes, run the autoformatter, linter, tests and doc builder with [tox](https://tox.readthedocs.io/en/latest/install.html) in one command:
+5. If you changed code in visualize.py, regenerate the images and videos for the documentation with
+   ```shell
+   $ cd docs/
+   $ python3 create_visualizations.py
+   ```
+
+6. When you're done making changes, run the autoformatter, linter, tests and doc builder with [tox](https://tox.readthedocs.io/en/latest/install.html) in one command:
    ```shell
    $ tox
    ```
-   It will
-     - use [isort](https://pypi.org/project/isort/) and [black](https://pypi.org/project/black/) for automatic code formatting
-     - [flake8](https://pypi.org/project/flake8/) as linter
+   It will use
+     - [isort](https://pypi.org/project/isort/) and [black](https://pypi.org/project/black/) for automatic code formatting
+     - [flake8](https://pypi.org/project/flake8/) as linter for code
      - [pydocstyle](https://pypi.org/project/pydocstyle/) and [doc8](https://pypi.org/project/doc8/) as linters for documentation
      - [pytest](https://pypi.org/project/pytest/) with [pytest-cov](https://pypi.org/project/pytest-cov/) to run tests and collect test coverage
+     - [coverage](https://pypi.org/project/coverage/) to create a report in the _htmlcov_ folder
      - [sphinx](https://pypi.org/project/Sphinx/) to build the documentation in the _build/docs_ folder
 
-   Note that tox will run the tests for Python 3.5, 3.6 and 3.7.
-   If there are no python interpreters for these versions on your system, the tests will fail.
+   Note that tox will run the tests for Python 3.7 and 3.8.
+   If you don't have python interpreters for these versions on your system, the tests will fail.
 
    Did you know that you can preview markdown with [grip](https://pypi.org/project/grip/)?
    While modifing `README.md` you can preview the changes in your browser:
@@ -99,14 +110,15 @@ Then
    $ grip -b CONTRIBUTING.md
    ```
 
-6. Commit your changes and push your branch to GitHub:
+7. Commit your changes and push your branch to GitHub:
    ```shell
    $ git add .
    $ git commit -m "Your detailed description of your changes"
    $ git push origin feature/name-of-your-feature
    ```
+   Helpful: [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/)
 
-7. Submit a pull request through the GitHub website.
+8. Submit a pull request through the GitHub website.
 
 
 ### Pull Request Guidelines
@@ -116,7 +128,7 @@ If you need some code review or feedback while you're developing the code just m
 For merging, you should:
 1. Include passing tests (run tox).
 2. Update the documentation if you extend the API or add functionality, etc.
-   If you add functions or classes use the docstring.
+   If you add functions or classes use a docstring.
 3. Add a note at the top of `CHANGELOG.md` about the changes.
 4. Add yourself to the _Author_ section in the `README.md` file.
 
@@ -138,17 +150,29 @@ If you want to use only one of them:
 $ tox -e codestyle
 ```
 
+
 ## Notes for the Maintainer
+
 - Create the `requirements_dev.txt` from the Pipfile with
   ```shell
   $ pipenv lock --requirements --dev > requirements_dev.txt
   ```
-  but delete the `-e .` line because pip19.1 [can't do editable installs with ``pyproject.toml`` files](https://github.com/pypa/pip/issues/6375) (the [recommended way](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode) is `$ python setup.py develop`).
+  but delete the `.[visualize]` line because pip19.1 [can't do editable installs with ``pyproject.toml`` files](https://github.com/pypa/pip/issues/6375) (the [recommended way](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode) is `$ python setup.py develop`).
 
-- Use `major.minor.patch` version numbering and use [bump2version](https://pypi.org/project/bump2version/) to change it.
-  Make sure all changes are committed (and `CHANGELOG.md` updated), then use
+- To make a new release, first create a release branch with git-flow:
+  ```shell
+  $ git flow release start <major.minor.patch>
+  ```
+  where the `major.minor.patch` version number is **one version higher** than the version in `setup.cfg`.
+  Make and comit some last changes if necessary (and update `CHANGELOG.md`).
+  Then use [bump2version](https://pypi.org/project/bump2version/) to change the version number in the files:
   ```shell
   $ bump2version minor
+  ```
+  (alternative: `major` or `patch`).
+  Finish the release and push to Github:
+  ```shell
+  $ git flow release finish <major.minor.patch>
   $ git push --tags
   ```
-  to increase the minor version number (alternative: `major` or `patch`).
+
