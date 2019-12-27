@@ -47,7 +47,7 @@ To see where the ball is at time = 10 units:
 (4.0, 0.0)
 >>> billiards.visualize.plot(bil)
 ```
-![alt text](docs/_static/quickstart_1.svg "One ball")
+![alt text](docs/_images/quickstart_1.svg "One ball")
 
 Now add another ball that will collide with the first one:
 ```python
@@ -66,7 +66,7 @@ t=11.79693, idx1=0, idx2=1
  [  2.66666667  -3.        ]]
 >>> billiards.visualize.plot(bil)
 ```
-![alt text](docs/_static/quickstart_2.svg "Two balls after collision")
+![alt text](docs/_images/quickstart_2.svg "Two balls after collision")
 
 The collision changed the course of both balls!
 Note that the collision is elastic, i.e. it preserves the total kinetic energy.

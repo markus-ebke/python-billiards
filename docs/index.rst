@@ -56,7 +56,7 @@ To see where the ball is at time = 10 units:
     <Figure size 800x600 with 1 Axes>
 
 
-.. image:: _static/quickstart_1.svg
+.. image:: _images/quickstart_1.svg
     :alt: One ball
 
 Now add another ball that will collide with the first one:
@@ -80,7 +80,7 @@ Now add another ball that will collide with the first one:
     <Figure size 800x600 with 1 Axes>
 
 
-.. image:: _static/quickstart_2.svg
+.. image:: _images/quickstart_2.svg
     :alt: Two balls after collision
 
 The collision changed the course of both balls!
