@@ -16,11 +16,11 @@ This type of dynamical system is also known as [dynamical billiards](https://en.
 Clone the repository from GitHub and install the package with setuptools:
 ```shell
 $ git clone https://github.com/markus-ebke/billiards.git
-$ python setup.py install
+$ pip install .[visualize]
 ```
+This will also let you create pictures and videos of your billiard.
 
-Note that _billiards_ depends on _numpy_, setuptools will install it
-automatically.
+Note that _billiards_ depends on _numpy_ (and _matplotlib_ for visualization), setuptools will install it automatically.
 
 Import the library and setup an empty billiard world:
 
@@ -45,7 +45,9 @@ To see where the ball is at time = 10 units:
 (42.0, 0.0)
 >>> print("({}, {})".format(*bil.balls_velocity[idx]))
 (4.0, 0.0)
+>>> billiards.visualization.plot(bil)
 ```
+![alt text](docs/_images/quickstart_1.png "One ball")
 
 Now add another ball that will collide with the first one:
 ```python
@@ -62,7 +64,9 @@ t=11.79693, idx1=0, idx2=1
 >>> print(bil.balls_velocity)
 [[ -1.33333333 -12.        ]
  [  2.66666667  -3.        ]]
+>>> billiards.visualization.plot(bil)
 ```
+![alt text](docs/_images/quickstart_2.png "Two balls after collision")
 
 The collision changed the course of both balls!
 Note that the collision is elastic, i.e. it preserves the total kinetic energy.

@@ -75,7 +75,13 @@ Then
    ```
    Now you can make your changes locally.
 
-5. When you're done making changes, run the autoformatter, linter, tests and doc builder with [tox](https://tox.readthedocs.io/en/latest/install.html) in one command:
+5. If you changed the visualization files, regenerate the images for the documentation with
+   ```shell
+   $ cd docs/
+   $ python3 create_images.py
+   ```
+
+6. When you're done making changes, run the autoformatter, linter, tests and doc builder with [tox](https://tox.readthedocs.io/en/latest/install.html) in one command:
    ```shell
    $ tox
    ```
@@ -99,14 +105,14 @@ Then
    $ grip -b CONTRIBUTING.md
    ```
 
-6. Commit your changes and push your branch to GitHub:
+7. Commit your changes and push your branch to GitHub:
    ```shell
    $ git add .
    $ git commit -m "Your detailed description of your changes"
    $ git push origin feature/name-of-your-feature
    ```
 
-7. Submit a pull request through the GitHub website.
+8. Submit a pull request through the GitHub website.
 
 
 ### Pull Request Guidelines
@@ -138,12 +144,14 @@ If you want to use only one of them:
 $ tox -e codestyle
 ```
 
+
 ## Notes for the Maintainer
+
 - Create the `requirements_dev.txt` from the Pipfile with
   ```shell
   $ pipenv lock --requirements --dev > requirements_dev.txt
   ```
-  but delete the `-e .` line because pip19.1 [can't do editable installs with ``pyproject.toml`` files](https://github.com/pypa/pip/issues/6375) (the [recommended way](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode) is `$ python setup.py develop`).
+  but delete the `.[visualize]` line because pip19.1 [can't do editable installs with ``pyproject.toml`` files](https://github.com/pypa/pip/issues/6375) (the [recommended way](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode) is `$ python setup.py develop`).
 
 - Use `major.minor.patch` version numbering and use [bump2version](https://pypi.org/project/bump2version/) to change it.
   Make sure all changes are committed (and `CHANGELOG.md` updated), then use
