@@ -21,10 +21,10 @@ Quickstart
 Clone the repository from GitHub and install the package with setuptools::
 
     $ git clone https://github.com/markus-ebke/billiards.git
-    $ python setup.py install
+    $ pip install .[visualize]
 
-Note that ``billiards`` depends on ``numpy``, setuptools will install it
-automatically.
+Note that ``billiards`` depends on ``numpy`` (and matplotlib for
+visualization), setuptools will install it automatically.
 
 Import the library and setup an empty billiard world:
 
@@ -52,7 +52,12 @@ To see where the ball is at time = 10 units:
     (42.0, 0.0)
     >>> print("({}, {})".format(*bil.balls_velocity[idx]))
     (4.0, 0.0)
+    >>> billiards.visualize.plot(bil, show=False)
+    <Figure size 800x600 with 1 Axes>
 
+
+.. image:: _images/quickstart_1.svg
+    :alt: One ball
 
 Now add another ball that will collide with the first one:
 
@@ -71,7 +76,12 @@ Now add another ball that will collide with the first one:
     >>> print(bil.balls_velocity)
     [[ -1.33333333 -12.        ]
      [  2.66666667  -3.        ]]
+    >>> billiards.visualize.plot(bil)
+    <Figure size 800x600 with 1 Axes>
 
+
+.. image:: _images/quickstart_2.svg
+    :alt: Two balls after collision
 
 The collision changed the course of both balls!
 Note that the collision is elastic, i.e. it preserves the total kinetic energy.
