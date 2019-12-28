@@ -14,10 +14,12 @@ def test_time():
 
     assert bld.time == 0.0
 
-    bld.evolve(1.0)
+    ret = bld.evolve(1.0)
+    assert ret == []
     assert bld.time == 1.0
 
-    bld.evolve(42.0)
+    ret = bld.evolve(42.0)
+    assert ret == []
     assert bld.time == 42.0
 
 
@@ -83,7 +85,8 @@ def test_movement():
 
     # move
     time = 42.0
-    bld.evolve(time)
+    ret = bld.evolve(time)
+    assert ret == []
 
     for idx in range(10):
         # movement in y-direction
@@ -142,8 +145,10 @@ def test_simple_collision():
     bld.add_ball((50, 18), (0, -9), radius=1, mass=2)
     assert bld.toi_next == (approx(11.79693), 0, 1)
 
-    bld.evolve(14.0)
+    collisions = bld.evolve(14.0)
     assert bld.time == 14
+    assert len(collisions) == 1
+    assert collisions[0] == (approx(11.79693), 0, 1)
     assert tuple(bld.balls_position[0]) == (approx(46.2503), approx(-26.43683))
     assert tuple(bld.balls_position[1]) == (approx(55.8748), approx(-4.78158))
     assert tuple(bld.balls_velocity[0]) == (approx(-1.333333), approx(-12))
@@ -162,7 +167,9 @@ def test_newton_cradle():
     assert bld.toi_next == (1.0, 0, 1)
 
     # first collision
-    bld.evolve(1.0)
+    collisions = bld.evolve(1.0)
+    assert len(collisions) == 1
+    assert collisions[0] == (1.0, 0, 1)
     assert tuple(bld.balls_position[0]) == (-2, 0)
     assert tuple(bld.balls_velocity[0]) == (0, 0)
     assert tuple(bld.balls_position[1]) == (0, 0)
@@ -170,7 +177,10 @@ def test_newton_cradle():
     assert bld.toi_next == (2.0, 1, 3)
 
     # second and third collision and then some more time
-    bld.evolve(11.0)
+    collisions = bld.evolve(11.0)
+    assert len(collisions) == 2
+    assert collisions[0] == (2.0, 1, 3)
+    assert collisions[1] == (2.0, 2, 3)
     assert tuple(bld.balls_position[1]) == (1, 0)
     assert tuple(bld.balls_velocity[1]) == (0, 0)
     assert tuple(bld.balls_position[2]) == (5 + (11 - 2) * 1, 0)

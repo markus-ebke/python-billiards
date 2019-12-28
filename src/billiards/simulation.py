@@ -150,15 +150,31 @@ class Billiard(object):
         Args:
             end_time: Time until which the billiard should be simulated.
 
+        Returns:
+            list: List of collisions, each item is a (float, int, int).triplet
+            where the first number is the time of impact and the next two
+            integers are the indices of the balls that collided.
+
         """
+        collisions = []
         while self.toi_next[0] <= end_time:
-            self.bounce()
+            coll = self.bounce()
+            collisions.append(coll)
 
         assert end_time < self.toi_next[0]
         self._move(end_time)
 
+        return collisions
+
     def bounce(self):
-        """Advance to the next collision and handle it."""
+        """Advance to the next collision and handle it.
+
+        Returns:
+            float: time of impact of the just handled collision.
+            int: index of one ball that collided.
+            int: index of the other ball
+
+        """
         t, idx1, idx2 = self.toi_next
 
         # advance to the next collision
@@ -195,6 +211,8 @@ class Billiard(object):
             self.toi_min[i] = toi_idx
 
         self.toi_next = min((t, i, j) for j, (t, i) in enumerate(self.toi_min))
+
+        return (t, idx1, idx2)
 
     def _move(self, time):
         # just update position, no collision handling here

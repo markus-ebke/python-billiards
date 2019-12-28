@@ -81,7 +81,8 @@ def test_animate():
     bld.add_ball((5, 0), (0, 0), 1)
     bld.add_ball((7, 3), (0, -1 / 2), 0)
 
-    anim = visualize.animate(bld, end_time=1, fps=60, show=False)
+    fig, anim = visualize.animate(bld, end_time=1, fps=60, show=False)
+    assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(anim, mpl.animation.FuncAnimation)
 
     drawn_artists = anim._func(1)

@@ -48,6 +48,7 @@ To see where the ball is at time = 10 units:
 .. doctest::
 
     >>> bld.evolve(end_time=10.0)
+    []
     >>> print("({}, {})".format(*bld.balls_position[idx]))
     (42.0, 0.0)
     >>> print("({}, {})".format(*bld.balls_velocity[idx]))
@@ -68,6 +69,7 @@ Now add another ball that will collide with the first one:
     >>> print("t={:.7}, idx1={}, idx2={}".format(*bld.toi_next))
     t=11.79693, idx1=0, idx2=1
     >>> bld.evolve(14.0)
+    [(11.796930766973276, 0, 1)]
     >>> print(bld.time)
     14.0
     >>> print(bld.balls_position)

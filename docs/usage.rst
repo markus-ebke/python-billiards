@@ -27,7 +27,7 @@ Place 5 balls in a row and give the leftmost ball a push to the right:
     >>> bld.add_ball((9.3, 0), (0, 0), 1)
     4
     >>> billiards.visualize.animate(bld, end_time=5)
-    <matplotlib.animation.FuncAnimation object at 0x...>
+    (<Figure size 800x600 with 1 Axes>, <matplotlib.animation.FuncAnimation object at 0x...>)
 
 .. raw:: html
 

@@ -137,8 +137,8 @@ def plot(bld, fig=None, ax=None, show=True):
         show (optional): Use pyplot.show() to show the animation.
 
     Returns:
-        fig: matplotlib.figure.Figure object, to save the plot use show=False
-        and fig.savefig("savename.png").
+        matplotlib.figure.Figure: Figure used for drawing, to save the plot use
+        show=False and fig.savefig("savename.png").
 
     """
     fig, ax, balls, scatter, quiver, time_text = _plot_frame(bld, fig, ax)
@@ -151,6 +151,9 @@ def plot(bld, fig=None, ax=None, show=True):
 
 def animate(bld, end_time, fps=30, fig=None, ax=None, show=True):
     """Animate the billiard plot.
+
+    Note that you have to assign the returned anim object to a variable,
+    otherwise it gets garbage collected and the animation does not update.
 
     Args:
         bld: A billiard simulation.
@@ -167,8 +170,9 @@ def animate(bld, end_time, fps=30, fig=None, ax=None, show=True):
         show (optional): Use pyplot.show() to show the animation.
 
     Returns:
-        anim: matplotlib.animation.FuncAnimation object, to save the animation
-            use show=False and anim.save("savename.mp4").
+        matplotlib.figure.Figure: Figure used for drawing.
+        matplotlib.animation.FuncAnimation: Animation object, to save the
+        animation use show=False and anim.save("savename.mp4").
 
     """
     fig, ax, balls, scatter, quiver, time_text = _plot_frame(bld, fig, ax)
@@ -209,4 +213,4 @@ def animate(bld, end_time, fps=30, fig=None, ax=None, show=True):
     if show:  # pragma: no cover
         plt.show()
 
-    return anim
+    return (fig, anim)
