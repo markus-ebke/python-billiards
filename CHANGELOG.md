@@ -1,5 +1,7 @@
 # Changelog
 
+- Add examples
+
 **v0.3.0**
 - Add visualizations with matplotlib (plot and animate)
 
