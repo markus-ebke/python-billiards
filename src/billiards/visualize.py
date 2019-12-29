@@ -9,8 +9,11 @@ try:
     from matplotlib.collections import Collection
     from matplotlib.animation import FuncAnimation
     import matplotlib.pyplot as plt
+
+    import pyglet
+    from pyglet import gl
 except ImportError as ex:  # pragma: no cover
-    print("Cannot use billiards.visualize, matplotlib is not installed.")
+    print("Cannot use billiards.visualize, matplotlib or pyglet is not found.")
     raise ex
 
 
@@ -116,7 +119,7 @@ def _plot_frame(bld, fig, ax):
 
     # show the current simulation time
     time_text = ax.text(
-        0.02, 0.95, "time = {:.2f}s".format(bld.time), transform=ax.transAxes
+        0.02, 0.95, "Time: {:.3f}".format(bld.time), transform=ax.transAxes
     )
 
     return fig, ax, balls, scatter, quiver, time_text
@@ -175,6 +178,20 @@ def animate(bld, end_time, fps=30, fig=None, ax=None, show=True):
         animation use show=False and anim.save("savename.mp4").
 
     """
+    frames = int(fps * end_time)
+
+    # precompute the simulation
+    time = []
+    positions = []
+    velocities = []
+    for i in range(frames):
+        bld.evolve(i / fps)
+
+        time.append(bld.time)
+        positions.append(bld.balls_position.copy())
+        velocities.append(bld.balls_velocity.copy())
+
+    # setup plot
     fig, ax, balls, scatter, quiver, time_text = _plot_frame(bld, fig, ax)
 
     def init():
@@ -187,30 +204,163 @@ def animate(bld, end_time, fps=30, fig=None, ax=None, show=True):
 
         return (balls, scatter, quiver, time_text)
 
+    # animate will play the precomputed simulation
     def animate(i):
-        bld.evolve(i / fps)
-        pos = bld.balls_position
-        vel = bld.balls_velocity
+        t = time[i]
+        pos = positions[i]
+        vel = velocities[i]
 
         balls.set_offsets(pos)
         scatter.set_offsets(pos)
         quiver.set_offsets(pos)
         quiver.set_UVC(vel[:, 0], vel[:, 1])
 
-        time_text.set_text("time = {:.2f}s".format(bld.time))
+        time_text.set_text("time = {:.2f}s".format(t))
 
         return (balls, scatter, quiver, time_text)
 
     anim = FuncAnimation(
-        fig,
-        animate,
-        frames=int(fps * end_time),
-        interval=1000 / fps,
-        blit=True,
-        init_func=init,
+        fig, animate, frames, interval=1000 / fps, blit=True, init_func=init,
     )
 
     if show:  # pragma: no cover
         plt.show()
 
     return (fig, anim)
+
+
+def _circle_model(radius, num_points=16):
+    """Vertices and order in which to draw lines for a circle."""
+    # vertices on the circle
+    angles = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
+    xy = (np.cos(angles), np.sin(angles))
+    vertices = radius * np.stack(xy, axis=1)
+
+    # indices for drawing lines
+    indices = []
+    for i in range(num_points):
+        indices.extend([i, i + 1])
+    indices[-1] = 0
+
+    return vertices, indices
+
+
+def interact(bld, fullscreen=False):  # pragma: no cover
+    """Interact with the billiard simulation.
+
+    Args:
+        bld: A billiard simulation.
+        fullscreen (optional): Set window to fullscreen, defaults to False.
+
+    """
+    # create window
+    window = pyglet.window.Window(width=800, height=600, visible=False)
+    if fullscreen:
+        window.set_fullscreen()
+
+    # OpenGL settings for high quality line drawing
+    gl.glEnable(gl.GL_BLEND)
+    gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+    gl.glEnable(gl.GL_LINE_SMOOTH)
+    gl.glHint(pyglet.gl.GL_LINE_SMOOTH_HINT, gl.GL_NICEST)
+    gl.glLineWidth(2)
+
+    # add balls to pyglet batch for drawing and vlist for updating
+    balls_batch = pyglet.graphics.Batch()
+    balls_model = []
+    for idx in range(bld.num):
+        vertices, indices = _circle_model(bld.balls_radius[idx])
+
+        vlist = balls_batch.add_indexed(
+            len(vertices), gl.GL_LINES, None, indices, "v2f/stream"
+        )
+        balls_model.append([vertices, vlist])
+
+    # for recording statistics
+    frame = 0
+    elapsed = 0.0
+    bounces = []
+
+    # display statistics
+    gui_batch = pyglet.graphics.Batch()
+    frame_template = "Frame: {} ({:.2f} s)"
+    frame_label = pyglet.text.Label(
+        text=frame_template, x=2, y=window.height - 20, batch=gui_batch
+    )
+    time_template = "dt: {:.2f} ms, fps: {:.1f}"
+    time_label = pyglet.text.Label(
+        text=time_template, x=2, y=window.height - 40, batch=gui_batch
+    )
+    bld_template = "Time: {:.3f}, bounces: {}"
+    bld_label = pyglet.text.Label(
+        text=bld_template, x=2, y=window.height - 60, batch=gui_batch
+    )
+
+    # window coordinate system
+    center = np.asarray([window.width, window.height]) / 2
+    zoom = 10
+
+    # interaction
+    paused = False
+
+    def update(dt):
+        nonlocal frame, elapsed
+        frame += 1
+        elapsed += dt
+
+        if not paused:
+            # simulate with fixed timestep
+            collisions = bld.evolve(bld.time + 1 / 60)
+            bounces.append(len(collisions))
+
+        # update ball vertices
+        for idx, (vertices, vlist) in enumerate(balls_model):
+            pos = bld.balls_position[idx]
+            verts = zoom * (vertices + pos) + center
+            vlist.vertices[:] = verts.flatten()
+
+        # draw statistics
+        fps = pyglet.clock.get_fps()
+        frame_label.text = frame_template.format(frame, elapsed)
+        time_label.text = time_template.format(dt * 1000, fps)
+        bld_label.text = bld_template.format(bld.time, bounces[-1])
+
+    key = pyglet.window.key
+
+    @window.event
+    def on_key_press(symbol, modifiers):
+        nonlocal paused, center, zoom
+        speed = window.height / 20
+        mag = 2 ** 0.5
+
+        if symbol == key.SPACE:
+            paused = not paused
+            print("Pause" if paused else "Unpause")
+        elif symbol == key.W:
+            center[1] -= speed
+        elif symbol == key.S:
+            center[1] += speed
+        elif symbol == key.A:
+            center[0] += speed
+        elif symbol == key.D:
+            center[0] -= speed
+        elif symbol == key.Q:
+            zoom *= mag
+        elif symbol == key.E:
+            zoom /= mag
+
+    @window.event
+    def on_draw():
+        window.clear()
+        balls_batch.draw()
+        gui_batch.draw()
+
+    # shedule updates at 60 fps or as fast as the screen updates
+    if window.vsync:
+        pyglet.clock.schedule(update)  # will be called only once per frame
+    else:
+        pyglet.clock.schedule_interval(update, 1 / 60)
+
+    # show window, start simulation
+    window.set_visible()
+    pyglet.app.run()

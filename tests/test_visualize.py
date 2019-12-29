@@ -11,6 +11,7 @@ from billiards import visualize
 
 try:
     import matplotlib as mpl
+    import matplotlib.pyplot as plt
 except ImportError:
     pass
 
@@ -28,7 +29,7 @@ def test_collection():
     box_min = [-1.0, -3.0]
     box_max = [10.0, 8.0]
 
-    fig = mpl.pyplot.figure(figsize=(8, 6), dpi=100)
+    fig = plt.figure(figsize=(8, 6), dpi=100)
     fig.set_tight_layout(True)
     ax = fig.add_subplot(1, 1, 1, aspect="equal", adjustable="datalim")
 
@@ -55,31 +56,37 @@ def test_collection():
     assert patches_bbox[1] == approx(box_max)
 
 
-@hasmpl
-def test_plot():
-    # custom Newton's cradle
+@pytest.fixture
+def newtons_cradle(num_balls=5):
     bld = billiards.Billiard()
-    bld.add_ball((-3, 0), (1, 1 / 2), 1)
-    bld.add_ball((0, 0), (0, 0), 1)
-    bld.add_ball((3, 0), (0, 0), 1)
-    bld.add_ball((5, 0), (0, 0), 1)
-    bld.add_ball((7, 3), (0, -1 / 2), 0)
 
-    bld.evolve(4)
+    bld.add_ball((-2, 0), (1, 0), 1)
+    for i in range(1, num_balls):
+        bld.add_ball((2 * i, 0), (0, 0), radius=1)
+
+    return bld
+
+
+@hasmpl
+def test_plot_frame(newtons_cradle):
+    bld = newtons_cradle
+
+    ret = visualize._plot_frame(bld, None, None)
+    fig, ax, balls, scatter, quiver, time_text = ret
+    assert isinstance(fig, mpl.figure.Figure)
+
+
+@hasmpl
+def test_plot(newtons_cradle):
+    bld = newtons_cradle
 
     fig = visualize.plot(bld, show=False)
     assert isinstance(fig, mpl.figure.Figure)
 
 
 @hasmpl
-def test_animate():
-    # custom Newton's cradle
-    bld = billiards.Billiard()
-    bld.add_ball((-3, 0), (1, 1 / 2), 1)
-    bld.add_ball((0, 0), (0, 0), 1)
-    bld.add_ball((3, 0), (0, 0), 1)
-    bld.add_ball((5, 0), (0, 0), 1)
-    bld.add_ball((7, 3), (0, -1 / 2), 0)
+def test_animate(newtons_cradle):
+    bld = newtons_cradle
 
     fig, anim = visualize.animate(bld, end_time=1, fps=60, show=False)
     assert isinstance(fig, mpl.figure.Figure)
@@ -87,6 +94,16 @@ def test_animate():
 
     drawn_artists = anim._func(1)
     assert len(drawn_artists) == 4
+
+
+def test_circle_model():
+    n = 16
+    vertices, indices = visualize._circle_model(5, num_points=n)
+    assert isinstance(vertices, np.ndarray)
+    assert vertices.shape == (n, 2)
+    assert np.hypot(vertices[:, 0], vertices[:, 1]) == approx(5)
+
+    assert len(indices) == 2 * n
 
 
 if __name__ == "__main__":

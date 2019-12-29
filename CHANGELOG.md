@@ -1,5 +1,6 @@
 # Changelog
 
+- Add interaction with simulations via pyglet
 - Add examples
 
 **v0.3.0**
