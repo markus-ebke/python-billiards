@@ -1,8 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import numpy as np
 import pytest
+from pytest import approx
 
-from billiards.obstacles import Disk
+from billiards.obstacles import Disk, circle_model
+
+
+def test_circle_model():
+    r, n = 5.0, 16
+    vertices, indices = circle_model(r, num_points=n)
+
+    assert isinstance(vertices, np.ndarray)
+    assert vertices.shape == (n, 2)
+    assert np.hypot(vertices[:, 0], vertices[:, 1]) == approx(r)
+
+    assert len(indices) == 2 * n
 
 
 def test_disk():

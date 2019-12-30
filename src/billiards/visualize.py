@@ -2,6 +2,8 @@
 """Visualize a billiard using Matplotlib."""
 import numpy as np
 
+from .obstacles import circle_model
+
 try:
     from matplotlib.artist import allow_rasterization
     import matplotlib.transforms as transforms
@@ -13,7 +15,7 @@ try:
     import pyglet
     from pyglet import gl
 except ImportError as ex:  # pragma: no cover
-    print("Cannot use billiards.visualize, matplotlib or pyglet is not found.")
+    print("Can't use billiards.visualize, matplotlib or pyglet not available.")
     raise ex
 
 
@@ -85,19 +87,16 @@ def _plot_frame(bld, fig, ax):
     if ax is None:
         ax = fig.add_subplot(1, 1, 1, aspect="equal", adjustable="datalim")
 
+    for obs in bld.obstacles:
+        obs.plot(ax, facecolor="C2", edgecolor="C2")
+
     # simplify variables
     pos = bld.balls_position
     vel = bld.balls_velocity
+    radii = bld.balls_radius
 
     # draw balls as circles
-    balls = BallCollection(
-        centers=pos,
-        radii=bld.balls_radius,
-        transOffset=ax.transData,
-        edgecolor="black",
-        linewidth=1,
-        zorder=0,
-    )
+    balls = BallCollection(pos, radii, transOffset=ax.transData, zorder=0)
     ax.add_collection(balls)
     ax.autoscale_view()
 
@@ -229,22 +228,6 @@ def animate(bld, end_time, fps=30, fig=None, ax=None, show=True):
     return (fig, anim)
 
 
-def _circle_model(radius, num_points=16):
-    """Vertices and order in which to draw lines for a circle."""
-    # vertices on the circle
-    angles = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
-    xy = (np.cos(angles), np.sin(angles))
-    vertices = radius * np.stack(xy, axis=1)
-
-    # indices for drawing lines
-    indices = []
-    for i in range(num_points):
-        indices.extend([i, i + 1])
-    indices[-1] = 0
-
-    return vertices, indices
-
-
 def interact(bld, fullscreen=False):  # pragma: no cover
     """Interact with the billiard simulation.
 
@@ -265,11 +248,25 @@ def interact(bld, fullscreen=False):  # pragma: no cover
     gl.glHint(pyglet.gl.GL_LINE_SMOOTH_HINT, gl.GL_NICEST)
     gl.glLineWidth(2)
 
+    # batch for drawing obstacles
+    obs_batch = pyglet.graphics.Batch()
+    obs_vlists = []
+    for obs in bld.obstacles:
+        vertices, indices, mode = obs.model()
+        vlist = obs_batch.add_indexed(
+            len(vertices),
+            mode,
+            None,
+            indices,
+            ("v2f/static", vertices.flatten()),
+        )
+        obs_vlists.append(vlist)
+
     # add balls to pyglet batch for drawing and vlist for updating
     balls_batch = pyglet.graphics.Batch()
     balls_model = []
     for idx in range(bld.num):
-        vertices, indices = _circle_model(bld.balls_radius[idx])
+        vertices, indices = circle_model(bld.balls_radius[idx])
 
         vlist = balls_batch.add_indexed(
             len(vertices), gl.GL_LINES, None, indices, "v2f/stream"
@@ -297,8 +294,8 @@ def interact(bld, fullscreen=False):  # pragma: no cover
     )
 
     # window coordinate system
-    center = np.asarray([window.width, window.height]) / 2
-    zoom = 10
+    center = [0.0, 0.0]
+    zoom = 0.1
 
     # interaction
     paused = False
@@ -313,11 +310,10 @@ def interact(bld, fullscreen=False):  # pragma: no cover
             collisions = bld.evolve(bld.time + 1 / 60)
             bounces.append(len(collisions))
 
-        # update ball vertices
-        for idx, (vertices, vlist) in enumerate(balls_model):
-            pos = bld.balls_position[idx]
-            verts = zoom * (vertices + pos) + center
-            vlist.vertices[:] = verts.flatten()
+            # update ball vertices
+            for idx, (vertices, vlist) in enumerate(balls_model):
+                verts = vertices + bld.balls_position[idx]
+                vlist.vertices[:] = verts.flatten()
 
         # draw statistics
         fps = pyglet.clock.get_fps()
@@ -330,20 +326,20 @@ def interact(bld, fullscreen=False):  # pragma: no cover
     @window.event
     def on_key_press(symbol, modifiers):
         nonlocal paused, center, zoom
-        speed = window.height / 20
+        speed = 100 * zoom
         mag = 2 ** 0.5
 
         if symbol == key.SPACE:
             paused = not paused
             print("Pause" if paused else "Unpause")
         elif symbol == key.W:
-            center[1] -= speed
-        elif symbol == key.S:
             center[1] += speed
+        elif symbol == key.S:
+            center[1] -= speed
         elif symbol == key.A:
-            center[0] += speed
-        elif symbol == key.D:
             center[0] -= speed
+        elif symbol == key.D:
+            center[0] += speed
         elif symbol == key.Q:
             zoom *= mag
         elif symbol == key.E:
@@ -352,7 +348,37 @@ def interact(bld, fullscreen=False):  # pragma: no cover
     @window.event
     def on_draw():
         window.clear()
+
+        cx, cy = center
+        width, height = window.get_size()
+
+        viewport = window.get_viewport_size()
+        gl.glViewport(0, 0, max(1, viewport[0]), max(1, viewport[1]))
+
+        # draw balls and obstacles
+        gl.glMatrixMode(gl.GL_PROJECTION)
+        gl.glLoadIdentity()
+        gl.glOrtho(
+            cx - zoom * width,
+            cx + zoom * width,
+            cy - zoom * height,
+            cy + zoom * height,
+            -1,
+            1,
+        )
+
+        gl.glMatrixMode(gl.GL_MODELVIEW)
+        gl.glLoadIdentity()
+        obs_batch.draw()
         balls_batch.draw()
+
+        # draw GUI
+        gl.glMatrixMode(gl.GL_PROJECTION)
+        gl.glLoadIdentity()
+        gl.glOrtho(0, max(1, width), 0, max(1, height), -1, 1)
+
+        gl.glMatrixMode(gl.GL_MODELVIEW)
+        gl.glLoadIdentity()
         gui_batch.draw()
 
     # shedule updates at 60 fps or as fast as the screen updates

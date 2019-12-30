@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys
-
 import numpy as np
 import pytest
 from pytest import approx
@@ -13,15 +11,15 @@ try:
     import matplotlib as mpl
     import matplotlib.pyplot as plt
 except ImportError:
-    pass
+    has_mpl = False
+else:
+    has_mpl = True
 
 
-hasmpl = pytest.mark.skipif(
-    "matplotlib" not in sys.modules, reason="requires the Matplotlib library"
-)
+with_mpl = pytest.mark.skipif(not has_mpl, reason="requires matplotlib")
 
 
-@hasmpl
+@with_mpl
 def test_collection():
     pos = np.asarray([[0.0, 0.0], [4.0, 1.0], [10.0, 8.0]])
     radii = [1.0, 4.0, 0.0]
@@ -34,22 +32,13 @@ def test_collection():
     ax = fig.add_subplot(1, 1, 1, aspect="equal", adjustable="datalim")
 
     # test BallCollection
-    balls = visualize.BallCollection(
-        centers=pos,
-        radii=radii,
-        transOffset=ax.transData,
-        edgecolor="black",
-        linewidth=1,
-        zorder=0,
-    )
+    balls = visualize.BallCollection(pos, radii, transOffset=ax.transData)
     ball_bbox = balls.get_datalim(ax.transData).get_points()
     assert ball_bbox[0] == approx(box_min)
     assert ball_bbox[1] == approx(box_max)
 
     # test BallPatchCollection
-    balls_patches = visualize.BallPatchCollection(
-        centers=pos, radii=radii, edgecolor="black", linewidth=1, zorder=0,
-    )
+    balls_patches = visualize.BallPatchCollection(pos, radii)
     ax.add_collection(balls_patches)
     patches_bbox = balls_patches.get_datalim(ax.transData).get_points()
     assert patches_bbox[0] == approx(box_min)
@@ -67,7 +56,7 @@ def newtons_cradle(num_balls=5):
     return bld
 
 
-@hasmpl
+@with_mpl
 def test_plot_frame(newtons_cradle):
     bld = newtons_cradle
 
@@ -76,7 +65,7 @@ def test_plot_frame(newtons_cradle):
     assert isinstance(fig, mpl.figure.Figure)
 
 
-@hasmpl
+@with_mpl
 def test_plot(newtons_cradle):
     bld = newtons_cradle
 
@@ -84,7 +73,18 @@ def test_plot(newtons_cradle):
     assert isinstance(fig, mpl.figure.Figure)
 
 
-@hasmpl
+@with_mpl
+def test_plot_obstacles():
+    obs = [
+        billiards.obstacles.Disk((0, 0), 10),
+    ]
+    bld = billiards.Billiard(obstacles=obs)
+
+    fig = visualize.plot(bld, show=False)
+    assert isinstance(fig, mpl.figure.Figure)
+
+
+@with_mpl
 def test_animate(newtons_cradle):
     bld = newtons_cradle
 
@@ -94,16 +94,6 @@ def test_animate(newtons_cradle):
 
     drawn_artists = anim._func(1)
     assert len(drawn_artists) == 4
-
-
-def test_circle_model():
-    n = 16
-    vertices, indices = visualize._circle_model(5, num_points=n)
-    assert isinstance(vertices, np.ndarray)
-    assert vertices.shape == (n, 2)
-    assert np.hypot(vertices[:, 0], vertices[:, 1]) == approx(5)
-
-    assert len(indices) == 2 * n
 
 
 if __name__ == "__main__":
