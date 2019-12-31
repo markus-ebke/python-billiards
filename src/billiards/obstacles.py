@@ -3,7 +3,7 @@
 """Description of unmovable obstacles in the billiard world."""
 import numpy as np
 
-from .physics import elastic_collision, time_of_impact
+from .physics import INF, elastic_collision, time_of_impact
 
 try:
     import matplotlib as mpl
@@ -142,4 +142,91 @@ class Disk(Obstacle):
         """Vertices, indices and drawing mode for OpenGL drawing the disk."""
         vertices, indices = circle_model(self.radius)
         vertices += self.center
+        return (vertices, indices, gl.GL_LINES)
+
+
+class InfiniteWall(Obstacle):
+    """An infinite wall where balls can collide only from one side."""
+
+    def __init__(self, start_point, end_point, inside="left"):
+        """Create an infinite wall through two points.
+
+        The inside of the billiard is on the left (or the right) going from
+        start along the line to end.
+
+        Args:
+            start_point: x and y coordinates of the lines starting point.
+            end_point: x and y of the end point.
+            inside: Either "left" or "right" of the line, defaults to "left".
+
+        """
+        self.start_point = np.asarray(start_point)
+        self.end_point = np.asarray(end_point)
+
+        dx, dy = self.end_point - self.start_point
+        if dx == 0.0 and dy == 0.0:
+            raise ValueError("this is not a line")
+
+        # normal = vector perpendicular to the wall, used for collision
+        self._normal = np.asarray([-dy, dx])  # normal on the left
+        self._normal = self._normal / np.linalg.norm(self._normal)
+
+        if inside == "right":
+            self._normal *= -1  # switch normal to the other side
+        elif not inside == "left":
+            # if inside is not "right", then it MUST be "left"
+            msg = "inside must be \"left\" or \"right\", not {}"
+            raise ValueError(msg.format(inside))
+
+    def calc_toi(self, pos, vel, radius):
+        """Calculate the velocity of a ball after colliding with the wall."""
+        # headway: speed towards the wall, is positive if the ball moves from
+        # inside to outside (i.e. on a collision course)
+        headway = -np.dot(vel, self._normal)
+        if headway <= 0:
+            # ball does not get closer to the wall, no collision
+            return INF
+
+        # size of the gap between the perimeter of the ball and the wall, is
+        # negative if the ball is not completely on the inside
+        dist = np.dot(pos - self.start_point, self._normal)
+        gap = dist - radius
+
+        t = gap / headway  # time of impact: size of gap / speed of closing
+        if t < -1e-10:
+            # If t is negative, then the ball overlaps with the wall. This
+            # doesn't count as an impact, but if t is close to zero, then a
+            # collision might have happened and we miss it just because of
+            # rounding errors
+            return INF
+        else:
+            return t
+
+    def collide(self, pos, vel, radius):
+        """Calculate the velocity of a ball after colliding with the wall."""
+        headway = -np.dot(vel, self._normal)
+        assert headway > 0  # if the ball is colliding, it can't move away
+
+        bla = 2 * (headway * self._normal)
+
+        return vel + bla
+
+    def plot(self, ax, **kwargs):
+        """Draw the wall onto the given matplotlib axes."""
+        sx, sy = self.start_point
+        ex, ey = self.end_point
+
+        # rename "edgecolor" to "color"
+        color = kwargs.pop("edgecolor", None)
+        if color is not None:
+            kwargs["color"] = color
+
+        kwargs.pop("facecolor", None)  # 1-dim lines don't have a face :(
+
+        ax.plot([sx, ex], [sy, ey], **kwargs)
+
+    def model(self):
+        """Vertices, indices and drawing mode for OpenGL drawing the wall."""
+        vertices = np.asarray([self.start_point, self.end_point])
+        indices = [0, 1]
         return (vertices, indices, gl.GL_LINES)
