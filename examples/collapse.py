@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-A cloud of billiard balls collapses, but they keep colliding with each other.
-"""
+"""A cloud of billiard balls collapses, but the balls keep colliding."""
 import numpy as np
 
 import billiards
@@ -10,10 +8,12 @@ from billiards import Billiard
 
 # global settings
 num_balls = 200  # increase this if your computer can handle it
-np.random.seed(0)  # fixed for deterministic starting conditions
+np.random.seed(0)  # fix random state for reproducibility
+
+# setup the billiard table
+bld = Billiard()
 
 # add random balls
-bld = Billiard()
 for i in range(num_balls):
     # create ball that moves towards the origin from a random starting point
     pos = np.random.normal(0, scale=1, size=2)  # fuzzy origin
