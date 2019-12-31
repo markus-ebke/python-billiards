@@ -23,6 +23,11 @@ def test_circle_model():
 def test_disk():
     d = Disk((0, 0), 1)
 
+    # check properties
+    assert tuple(d.center) == (0, 0)
+    assert d.radius == 1
+
+    # time of impact and collision (same as for balls)
     assert d.calc_toi((-10, 0), (1, 0), 1) == 8.0
     assert tuple(d.collide((-2, 0), (1, 0), 1)) == (-1, 0)
 

@@ -15,8 +15,18 @@ except ImportError:
 else:
     has_mpl = True
 
-
 with_mpl = pytest.mark.skipif(not has_mpl, reason="requires matplotlib")
+
+"""
+try:
+    from pyglet import gl
+except ImportError:
+    has_pyglet = False
+else:
+    has_pyglet = True
+
+with_pyglet = pytest.mark.skipif(not has_pyglet, reason="requires pyglet")
+"""
 
 
 @with_mpl
@@ -45,25 +55,9 @@ def test_collection():
     assert patches_bbox[1] == approx(box_max)
 
 
-@pytest.fixture
-def newtons_cradle(num_balls=5):
-    left, right = -4, 2 * num_balls + 3
-    obs = [
-        billiards.obstacles.InfiniteWall((left, -2), (left, 2), "right"),
-        billiards.obstacles.InfiniteWall((right, -2), (right, 2))
-    ]
-    bld = billiards.Billiard(obstacles=obs)
-
-    bld.add_ball((-2, 0), (1, 0), 1)
-    for i in range(1, num_balls):
-        bld.add_ball((2 * i, 0), (0, 0), radius=1)
-
-    return bld
-
-
 @with_mpl
-def test_plot_frame(newtons_cradle):
-    bld = newtons_cradle
+def test_plot_frame(create_newtons_cradle):
+    bld = create_newtons_cradle(5)
 
     ret = visualize._plot_frame(bld, None, None)
     fig, ax, balls, scatter, quiver, time_text = ret
@@ -71,8 +65,8 @@ def test_plot_frame(newtons_cradle):
 
 
 @with_mpl
-def test_plot(newtons_cradle):
-    bld = newtons_cradle
+def test_plot(create_newtons_cradle):
+    bld = create_newtons_cradle(5)
 
     fig = visualize.plot(bld, show=False)
     assert isinstance(fig, mpl.figure.Figure)
@@ -91,15 +85,48 @@ def test_plot_obstacles():
 
 
 @with_mpl
-def test_animate(newtons_cradle):
-    bld = newtons_cradle
+def test_animate(create_newtons_cradle):
+    bld = create_newtons_cradle(5)
 
     fig, anim = visualize.animate(bld, end_time=1, fps=60, show=False)
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(anim, mpl.animation.FuncAnimation)
 
-    drawn_artists = anim._func(1)
-    assert len(drawn_artists) == 4
+    animated_artists = anim._func(1)
+    assert len(animated_artists) == 4
+
+
+# when running the test with tox, pyglet will raise an exception:
+# pyglet.canvas.xlib.NoSuchDisplayException: Cannot connect to "None"
+"""
+@with_pyglet
+def test_model():
+    # check disk
+    d = billiards.obstacles.Disk((0, 0), 42)
+    vertices, indices, mode = d.model()
+
+    assert isinstance(vertices, np.ndarray)
+    assert vertices.shape[1] == 2
+
+    assert isinstance(indices, list)
+    assert len(indices) == 2 * vertices.shape[0]
+
+    assert isinstance(mode, int)
+    assert mode == gl.GL_LINES
+
+    # check infinite wall
+    w = billiards.obstacles.InfiniteWall((0, 0), (0, 10))
+    vertices, indices, mode = w.model()
+
+    assert isinstance(vertices, np.ndarray)
+    assert vertices.shape == (2, 2)
+
+    assert isinstance(indices, list)
+    assert len(indices) == 2
+
+    assert isinstance(mode, int)
+    assert mode == gl.GL_LINES
+"""
 
 
 if __name__ == "__main__":

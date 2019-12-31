@@ -138,7 +138,7 @@ class Disk(Obstacle):
         patch = mpl.patches.Circle(self.center, self.radius, **kwargs)
         ax.add_patch(patch)
 
-    def model(self):
+    def model(self):  # pragma: no cover
         """Vertices, indices and drawing mode for OpenGL drawing the disk."""
         vertices, indices = circle_model(self.radius)
         vertices += self.center
@@ -175,7 +175,7 @@ class InfiniteWall(Obstacle):
             self._normal *= -1  # switch normal to the other side
         elif not inside == "left":
             # if inside is not "right", then it MUST be "left"
-            msg = "inside must be \"left\" or \"right\", not {}"
+            msg = 'inside must be "left" or "right", not {}'
             raise ValueError(msg.format(inside))
 
     def calc_toi(self, pos, vel, radius):
@@ -225,7 +225,7 @@ class InfiniteWall(Obstacle):
 
         ax.plot([sx, ex], [sy, ey], **kwargs)
 
-    def model(self):
+    def model(self):  # pragma: no cover
         """Vertices, indices and drawing mode for OpenGL drawing the wall."""
         vertices = np.asarray([self.start_point, self.end_point])
         indices = [0, 1]

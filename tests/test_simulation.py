@@ -298,43 +298,45 @@ def test_obstacles():
     assert bld.obstacles_next == (INF, 0, None)
     assert tuple(bld.balls_velocity[0]) == (-1.0, 0.0)
 
+    # wrong type
+    with pytest.raises(TypeError):
+        Billiard(obstacles=[42])
 
-def test_newtons_cradle_with_obstacles():
-    left_wall = billiards.obstacles.Disk((-10, 0), radius=1)
-    right_wall = billiards.obstacles.Disk((10, 0), radius=1)
-    bld = Billiard(obstacles=[left_wall, right_wall])
 
-    assert len(bld.obstacles) == 2
-    assert bld.obstacles == [left_wall, right_wall]
-
-    # setup Newton's cradle with two balls
-    bld.add_ball((-3, 0), (1, 0), 1)
-    bld.add_ball((0, 0), (0, 0), 1)
+def test_newtons_cradle_with_obstacles(create_newtons_cradle):
+    bld = create_newtons_cradle(2)
+    left_wall, right_wall = bld.obstacles
 
     # check toi of ball-ball and ball-obstacle collisions
-    assert bld.toi_next == (1.0, 0, 1)
-    assert bld.obstacles_toi == [(11.0, right_wall), (INF, None)]
-    assert bld.obstacles_next == (11.0, 0, right_wall)
+    assert bld.toi_next == (3.0, 0, 1)
+    assert bld.obstacles_toi == [(9.0, right_wall), (INF, None)]
+    assert bld.obstacles_next == (9.0, 0, right_wall)
 
     # evolve until first ball-ball collision
-    collisions = bld.evolve(1.0)
+    collisions = bld.evolve(3.0)
     assert len(collisions) == 1
-    assert collisions[0] == (1.0, 0, 1)
+    assert collisions[0] == (3.0, 0, 1)
 
     # check again toi of ball-ball and ball-obstacle collisions
     assert bld.toi_next == (INF, -1, 0)
-    assert bld.obstacles_toi == [(INF, None), (9.0, right_wall)]
-    assert bld.obstacles_next == (9.0, 1, right_wall)
+    assert bld.obstacles_toi == [(INF, None), (7.0, right_wall)]
+    assert bld.obstacles_next == (7.0, 1, right_wall)
 
     # evolve until the second ball hits the right wall
-    collisions = bld.evolve(9.0)
+    collisions = bld.evolve(7.0)
     assert len(collisions) == 1
-    assert collisions[0] == (9.0, 1, right_wall)
+    assert collisions[0] == (7.0, 1, right_wall)
 
     # check again toi of ball-ball and ball-obstacle collisions
-    assert bld.toi_next == (9.0 + 8.0, 0, 1)
-    assert bld.obstacles_toi == [(INF, None), (9.0 + 8.0 + 8.0, left_wall)]
-    assert bld.obstacles_next == (9.0 + 8.0 + 8.0, 1, left_wall)
+    assert bld.toi_next == (11.0, 0, 1)
+    assert bld.obstacles_toi == [(INF, None), (16.0, left_wall)]
+    assert bld.obstacles_next == (16.0, 1, left_wall)
+
+    # evolve until the second ball hits the first which then hits the left wall
+    collisions = bld.evolve(14.0)
+    assert len(collisions) == 2
+    assert collisions[0] == (11.0, 0, 1)
+    assert collisions[1] == (14.0, 0, left_wall)
 
 
 if __name__ == "__main__":
