@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Description of unmovable obstacles in the billiard world."""
+"""Static obstacles on the billiard table."""
 import numpy as np
 
 from .physics import INF, elastic_collision, time_of_impact

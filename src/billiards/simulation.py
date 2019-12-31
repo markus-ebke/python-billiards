@@ -11,10 +11,11 @@ INF = float("inf")
 
 
 class Billiard(object):
-    """The billiard class represent a billiard world.
+    """The billiard class represent a billiard table.
 
-    By default the 2-dimensional world is infinite in every direction.
-    To populate it use the `add_ball` method.
+    By default the 2-dimensional table is infinite in every direction, but you
+    can place static obstacles on them. use the `add_ball` method to add some
+    billiard balls.
 
     Attributes:
         time: Current simulation time.
@@ -26,11 +27,14 @@ class Billiard(object):
         toi_table: Lower-triangular matrix (= nested lists) of time of impacts.
         toi_min: List of time-index pairs of the next collision for each ball.
         toi_next: Time-index-index triple for the next collision.
+        obstacles: List of obstacles on the table.
+        obstacles_toi: time-obstacle pairs for each ball.
+        obstacles_next: Time-index-obstacle pair of the next obstacle impact.
 
     """
 
     def __init__(self, obstacles=None):
-        """Create a billiard world with given obstacles but no balls.
+        """Setup a billiard table with the given obstacles but without balls.
 
         Args:
             obstacles: Iterable containing billiards.obstacle.Obstacle objects.
@@ -217,6 +221,10 @@ class Billiard(object):
     def evolve(self, end_time):
         """Advance the simulation until the given time is reached.
 
+        Will call bounce_ballball and bounce_ballobstacle repeatetly (which one
+        depends on self.toi_next and self.obstacles_next) until the end_time
+        is reached.
+
         Args:
             end_time: Time until which the billiard should be simulated.
 
@@ -252,17 +260,13 @@ class Billiard(object):
         """
         t, idx1, idx2 = self.toi_next
 
-        self._move(t)
-
         # get the balls that collide
         assert idx1 < idx2, (idx1, idx2)
         assert self.toi_min[idx2] == (t, idx1)
 
-        self.collide_balls(idx1, idx2)
-
         # advance to the next collision and handle it
-        # self._move(t)
-        # self.collide_balls(idx1, idx2)
+        self._move(t)
+        self.collide_balls(idx1, idx2)
 
         # update time of impact for the two balls
         self.toi_table[idx2][idx1] = INF
