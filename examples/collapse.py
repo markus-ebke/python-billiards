@@ -24,7 +24,7 @@ for i in range(num_balls):
     idx = bld.add_ball(pos, vel, radius=1)
 
 # start the animation, but zoom into the origin to see the cloud colliding
-fig, anim = billiards.visualize.animate(bld, end_time=20)
-ax = fig.gca()
-ax.set_xlim(-30, 30)
-ax.set_ylim(-30, 30)
+anim = billiards.visualize.animate(bld, end_time=15)
+ax = anim._fig.gca()
+ax.set_xlim(-40, 40)
+ax.set_ylim(-40, 40)

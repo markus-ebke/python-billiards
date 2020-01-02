@@ -37,5 +37,5 @@ for i in range(num_balls):
     bld.add_ball(pos, vel, radius=0)
 
 # start the animation
-fig, anim = billiards.visualize.animate(bld, end_time=10)
-fig.set_size_inches((6, 6))
+anim = billiards.visualize.animate(bld, end_time=10)
+anim._fig.set_size_inches((6, 6))

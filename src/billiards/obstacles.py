@@ -78,11 +78,12 @@ class Obstacle(object):  # pragma: no cover
         """
         raise NotImplementedError("subclasses should implement this!")
 
-    def plot(self, ax, **kwargs):
+    def plot(self, ax, color, **kwargs):
         """Draw the obstacle onto the given matplotlib axes.
 
         Args:
             ax: Axes to draw the obstacle on.
+            color: Color of the obstacle.
             **kwargs: Keyword arguments for plot.
 
         """
@@ -133,9 +134,11 @@ class Disk(Obstacle):
         vel1, vel2 = elastic_collision(self.center, (0, 0), 1, pos, vel, 0)
         return vel2
 
-    def plot(self, ax, **kwargs):
+    def plot(self, ax, color, **kwargs):
         """Draw the disk onto the given matplotlib axes."""
-        patch = mpl.patches.Circle(self.center, self.radius, **kwargs)
+        patch = mpl.patches.Circle(
+            self.center, self.radius, facecolor=color, **kwargs
+        )
         ax.add_patch(patch)
 
     def model(self):  # pragma: no cover
@@ -211,19 +214,12 @@ class InfiniteWall(Obstacle):
 
         return vel + bla
 
-    def plot(self, ax, **kwargs):
+    def plot(self, ax, color, **kwargs):
         """Draw the wall onto the given matplotlib axes."""
         sx, sy = self.start_point
         ex, ey = self.end_point
 
-        # rename "edgecolor" to "color"
-        color = kwargs.pop("edgecolor", None)
-        if color is not None:
-            kwargs["color"] = color
-
-        kwargs.pop("facecolor", None)  # 1-dim lines don't have a face :(
-
-        ax.plot([sx, ex], [sy, ey], **kwargs)
+        ax.plot([sx, ex], [sy, ey], color=color, **kwargs)
 
     def model(self):  # pragma: no cover
         """Vertices, indices and drawing mode for OpenGL drawing the wall."""

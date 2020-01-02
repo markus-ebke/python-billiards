@@ -41,35 +41,19 @@ def test_collection():
     fig.set_tight_layout(True)
     ax = fig.add_subplot(1, 1, 1, aspect="equal", adjustable="datalim")
 
-    # test BallCollection
-    balls = visualize.BallCollection(pos, radii, transOffset=ax.transData)
+    # test datalimit (used by ax.autoscale)
+    balls = visualize.CircleCollection(pos, radii, transOffset=ax.transData)
     ball_bbox = balls.get_datalim(ax.transData).get_points()
-    assert ball_bbox[0] == approx(box_min)
-    assert ball_bbox[1] == approx(box_max)
-
-    # test BallPatchCollection
-    balls_patches = visualize.BallPatchCollection(pos, radii)
-    ax.add_collection(balls_patches)
-    patches_bbox = balls_patches.get_datalim(ax.transData).get_points()
-    assert patches_bbox[0] == approx(box_min)
-    assert patches_bbox[1] == approx(box_max)
+    print(ball_bbox)
+    assert ball_bbox[0] == approx(box_min, rel=1e-3, abs=1e-3)
+    assert ball_bbox[1] == approx(box_max, rel=1e-3, abs=1e-3)
 
 
 @with_mpl
-def test_plot_frame(create_newtons_cradle):
-    bld = create_newtons_cradle(5)
-
-    ret = visualize._plot_frame(bld, None, None)
-    fig, ax, balls, scatter, quiver, time_text = ret
+def test_default_fig_and_ax():
+    fig, ax = visualize.default_fig_and_ax()
     assert isinstance(fig, mpl.figure.Figure)
-
-
-@with_mpl
-def test_plot(create_newtons_cradle):
-    bld = create_newtons_cradle(5)
-
-    fig = visualize.plot(bld, show=False)
-    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
 
 
 @with_mpl
@@ -80,7 +64,37 @@ def test_plot_obstacles():
     ]
     bld = billiards.Billiard(obstacles=obs)
 
-    fig = visualize.plot(bld, show=False)
+    fig, ax = visualize.default_fig_and_ax()
+    artists = visualize.plot_obstacles(bld, ax)
+    assert len(artists) == len(bld.obstacles)
+
+
+@with_mpl
+def test_plot_balls(create_newtons_cradle):
+    bld = create_newtons_cradle(5)
+
+    fig, ax = visualize.default_fig_and_ax()
+    ret = visualize.plot_balls(bld, ax)
+    assert len(ret) == 2
+    circles, points = ret
+    assert isinstance(circles, visualize.CircleCollection)
+    assert isinstance(points, mpl.collections.PathCollection)
+
+
+@with_mpl
+def test_plot_velocities(create_newtons_cradle):
+    bld = create_newtons_cradle(5)
+
+    fig, ax = visualize.default_fig_and_ax()
+    arrows = visualize.plot_velocities(bld, ax)
+    assert isinstance(arrows, mpl.quiver.Quiver)
+
+
+@with_mpl
+def test_plot(create_newtons_cradle):
+    bld = create_newtons_cradle(5)
+
+    fig = visualize.plot(bld)
     assert isinstance(fig, mpl.figure.Figure)
 
 
@@ -88,8 +102,7 @@ def test_plot_obstacles():
 def test_animate(create_newtons_cradle):
     bld = create_newtons_cradle(5)
 
-    fig, anim = visualize.animate(bld, end_time=1, fps=60, show=False)
-    assert isinstance(fig, mpl.figure.Figure)
+    anim = visualize.animate(bld, end_time=1, fps=60)
     assert isinstance(anim, mpl.animation.FuncAnimation)
 
     animated_artists = anim._func(1)

@@ -26,5 +26,4 @@ for i in range(num_balls):
     idx = bld.add_ball(pos, vel, radius=1)
 
 # start the simulation
-print("Play/pause: SPACE, move: WASD, zoom: Q and E, exit: ESC")
 billiards.visualize.interact(bld)

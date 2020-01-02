@@ -14,11 +14,18 @@ Basically the particles act like billiard balls.
 
 Features
 --------
-* Collision detection with time of impact calculation: No reliance on time steps, no tunneling of fast bullets! Collisions will be correctly identified and only the necessary ones will be handled.
-* Fast state updates thanks to `numpy <https://numpy.org/>`_ (especially if there are no collisions, see point above).
+* Collision detection with time of impact calculation: No reliance on time
+  steps, no tunneling of fast bullets! Collisions will be correctly identified
+  and only the necessary ones will be handled.
+* Fast state updates thanks to `numpy <https://numpy.org/>`_ (especially if
+  there are no collisions, see point above).
 * Static obstacles to construct a proper billiard table.
-* Balls with zero radius behave like point particles, useful for simulating `dynamical billiards <https://en.wikipedia.org/wiki/Dynamical_billiards>`_ (but this library is not optimized for simulating point particles).
-* Optional features: plotting and animation with `matplotlib <https://matplotlib.org/>`_, interaction with `pyglet <http://pyglet.org/>`_.
+* Balls with zero radius behave like point particles, useful for simulating
+  `dynamical billiards <https://en.wikipedia.org/wiki/Dynamical_billiards>`_
+  (but this library is not optimized for simulating point particles).
+* Optional features: plotting and animation with
+  `matplotlib <https://matplotlib.org/>`_, interaction with
+  `pyglet <http://pyglet.org/>`_.
 * Free software: GPLv3+ license
 
 

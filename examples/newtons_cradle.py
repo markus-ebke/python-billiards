@@ -25,4 +25,4 @@ for i in range(1, num_balls):
     bld.add_ball((2 * i, 0), (0, 0), radius=1)
 
 # start the animation
-fig, anim = billiards.visualize.animate(bld, end_time=3 * 4)  # period: 4
+anim = billiards.visualize.animate(bld, end_time=3 * 4)  # period: 4
