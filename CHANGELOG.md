@@ -1,5 +1,10 @@
 # Changelog
 
+**v0.4.0**
+- Add basic obstacles (disk and infinite wall)
+- Add interaction with simulations via pyglet
+- Add examples
+
 **v0.3.0**
 - Add visualizations with matplotlib (plot and animate)
 

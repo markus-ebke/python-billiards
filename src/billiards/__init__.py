@@ -6,11 +6,11 @@ You can import the ``Billiard`` class from here for convenience::
     from billiard import Billiard
 
 """
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 
 # Local
-from . import physics, simulation, visualize
+from . import obstacles, physics, simulation, visualize
 from .simulation import Billiard
 
-__all__ = ["simulation", "physics", "visualize", "Billiard"]
+__all__ = ["obstacles", "physics", "simulation", "visualize", "Billiard"]

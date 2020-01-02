@@ -20,7 +20,7 @@ project = "billiards"
 year = str(datetime.datetime.now().year)
 author = "Markus Ebke"
 copyright = "{}, {}".format(year, author)
-version = release = "0.3.0"
+version = release = "0.4.0"
 
 
 # -- General configuration ---------------------------------------------------

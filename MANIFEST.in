@@ -1,5 +1,6 @@
 graft src
 graft tests
+graft examples
 
 include LICENSE
 include README.md
@@ -9,3 +10,4 @@ include pyproject.toml
 include pytest.ini
 
 global-exclude *.py[cod] __pycache__/* *.so *.dylib
+exclude Notes.md

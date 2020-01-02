@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 from pytest import approx
 
+import billiards
 from billiards.simulation import Billiard
 
 INF = float("inf")
@@ -14,10 +15,12 @@ def test_time():
 
     assert bld.time == 0.0
 
-    bld.evolve(1.0)
+    ret = bld.evolve(1.0)
+    assert ret == []
     assert bld.time == 1.0
 
-    bld.evolve(42.0)
+    ret = bld.evolve(42.0)
+    assert ret == []
     assert bld.time == 42.0
 
 
@@ -83,7 +86,8 @@ def test_movement():
 
     # move
     time = 42.0
-    bld.evolve(time)
+    ret = bld.evolve(time)
+    assert ret == []
 
     for idx in range(10):
         # movement in y-direction
@@ -142,8 +146,10 @@ def test_simple_collision():
     bld.add_ball((50, 18), (0, -9), radius=1, mass=2)
     assert bld.toi_next == (approx(11.79693), 0, 1)
 
-    bld.evolve(14.0)
+    collisions = bld.evolve(14.0)
     assert bld.time == 14
+    assert len(collisions) == 1
+    assert collisions[0] == (approx(11.79693), 0, 1)
     assert tuple(bld.balls_position[0]) == (approx(46.2503), approx(-26.43683))
     assert tuple(bld.balls_position[1]) == (approx(55.8748), approx(-4.78158))
     assert tuple(bld.balls_velocity[0]) == (approx(-1.333333), approx(-12))
@@ -162,7 +168,9 @@ def test_newton_cradle():
     assert bld.toi_next == (1.0, 0, 1)
 
     # first collision
-    bld.evolve(1.0)
+    collisions = bld.evolve(1.0)
+    assert len(collisions) == 1
+    assert collisions[0] == (1.0, 0, 1)
     assert tuple(bld.balls_position[0]) == (-2, 0)
     assert tuple(bld.balls_velocity[0]) == (0, 0)
     assert tuple(bld.balls_position[1]) == (0, 0)
@@ -170,7 +178,10 @@ def test_newton_cradle():
     assert bld.toi_next == (2.0, 1, 3)
 
     # second and third collision and then some more time
-    bld.evolve(11.0)
+    collisions = bld.evolve(11.0)
+    assert len(collisions) == 2
+    assert collisions[0] == (2.0, 1, 3)
+    assert collisions[1] == (2.0, 2, 3)
     assert tuple(bld.balls_position[1]) == (1, 0)
     assert tuple(bld.balls_velocity[1]) == (0, 0)
     assert tuple(bld.balls_position[2]) == (5 + (11 - 2) * 1, 0)
@@ -267,6 +278,65 @@ def test_exceptional_balls():
     # collisions of two massless balls do not make sense
     with pytest.raises(FloatingPointError):
         bld.evolve(7.0)
+
+
+def test_obstacles():
+    disk = billiards.obstacles.Disk((0, 0), radius=1)
+    bld = Billiard(obstacles=[disk])
+
+    assert len(bld.obstacles) == 1
+    assert bld.obstacles[0] == disk
+
+    bld.add_ball((-10, 0), (1, 0), radius=1)
+    assert len(bld.obstacles_toi) == 1
+    assert bld.obstacles_toi[0] == (8.0, disk)
+    assert bld.obstacles_next == (8.0, 0, disk)
+
+    ret = bld.bounce_ballobstacle()
+    assert ret == (8.0, 0, disk)
+    assert bld.obstacles_toi[0] == (INF, None)
+    assert bld.obstacles_next == (INF, 0, None)
+    assert tuple(bld.balls_velocity[0]) == (-1.0, 0.0)
+
+    # wrong type
+    with pytest.raises(TypeError):
+        Billiard(obstacles=[42])
+
+
+def test_newtons_cradle_with_obstacles(create_newtons_cradle):
+    bld = create_newtons_cradle(2)
+    left_wall, right_wall = bld.obstacles
+
+    # check toi of ball-ball and ball-obstacle collisions
+    assert bld.toi_next == (3.0, 0, 1)
+    assert bld.obstacles_toi == [(9.0, right_wall), (INF, None)]
+    assert bld.obstacles_next == (9.0, 0, right_wall)
+
+    # evolve until first ball-ball collision
+    collisions = bld.evolve(3.0)
+    assert len(collisions) == 1
+    assert collisions[0] == (3.0, 0, 1)
+
+    # check again toi of ball-ball and ball-obstacle collisions
+    assert bld.toi_next == (INF, -1, 0)
+    assert bld.obstacles_toi == [(INF, None), (7.0, right_wall)]
+    assert bld.obstacles_next == (7.0, 1, right_wall)
+
+    # evolve until the second ball hits the right wall
+    collisions = bld.evolve(7.0)
+    assert len(collisions) == 1
+    assert collisions[0] == (7.0, 1, right_wall)
+
+    # check again toi of ball-ball and ball-obstacle collisions
+    assert bld.toi_next == (11.0, 0, 1)
+    assert bld.obstacles_toi == [(INF, None), (16.0, left_wall)]
+    assert bld.obstacles_next == (16.0, 1, left_wall)
+
+    # evolve until the second ball hits the first which then hits the left wall
+    collisions = bld.evolve(14.0)
+    assert len(collisions) == 2
+    assert collisions[0] == (11.0, 0, 1)
+    assert collisions[1] == (14.0, 0, left_wall)
 
 
 if __name__ == "__main__":
