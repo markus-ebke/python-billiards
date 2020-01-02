@@ -12,7 +12,7 @@ Basically the particles act like billiard balls.
 - Fast state updates thanks to [numpy](https://numpy.org/) (especially if there are no collisions, see point above).
 - Static obstacles to construct a proper billiard table.
 - Balls with zero radius behave like point particles, useful for simulating [dynamical billiards](https://en.wikipedia.org/wiki/Dynamical_billiards) (but this library is not optimized for simulating point particles).
-- Optional features: plotting and animation with [matplotlib](https://matplotlib.org/), interaction with [pyglet](http://pyglet.org/).
+- Optional features: plotting and animation with [matplotlib](https://matplotlib.org/), interaction with [pyglet](https://pyglet.org/).
 - Free software: GPLv3+ license.
 
 
@@ -85,8 +85,10 @@ Note that the collision is elastic, i.e. it preserves the total kinetic energy.
 
 Setup:
 ```python
+>>> from math import cos, pi, sin, sqrt
+>>> import numpy as np
 >>> import billiards
->>> from billiards.obstacle import InfiniteWall
+>>> from billiards.obstacle import Disk, InfiniteWall
 ```
 
 ### Pool
@@ -113,11 +115,11 @@ Arrange the balls in a pyramid shape:
 >>>         bld.add_ball((x, y), (0, 0), radius)
 ```
 
-Add the white ball and give it a push, then start the animation:
+Add the white ball and give it a push, then start the animation (see examples/pool.mp4):
 ```python
 >>> bld.add_ball((0.25 * length, width / 2), (length / 3, 0), radius)
->>> fig, anim = billiards.visualize.animate(bld, end_time=10)
->>> fig.set_size_inches((10, 5.5))
+>>> anim = billiards.visualize.animate(bld, end_time=10)
+>>> anim._fig.set_size_inches((10, 5.5))
 ```
 
 
@@ -137,19 +139,17 @@ Construct the billiard table: A square with a disk removed from its center.
 
 Place a few point particles randomly in the square but with uniform speed:
 ```python
->>> from math import cos, pi, sin
->>> import numpy as np
->>> for i in range(92):
+>>> for i in range(300):
 >>>     pos = np.random.uniform((-1, -1), (1, 1))
 >>>     angle = np.random.uniform(0, 2 * pi)
 >>>     vel = 0.2 * np.asarray([cos(angle), sin(angle)])
 >>>     bld.add_ball(pos, vel, radius=0)
 ```
 
-and watch the simulation
+and watch the simulation (see examples/sinai_billiard.mp4):
 ```python
->>> fig, anim = billiards.visualize.animate(bld, end_time=20)
->>> fig.set_size_inches((6, 6))
+>>> anim = billiards.visualize.animate(bld, end_time=20)
+>>> anim._fig.set_size_inches((6, 6))
 ```
 
 

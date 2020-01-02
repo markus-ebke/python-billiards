@@ -39,3 +39,4 @@ for i in range(num_balls):
 # start the animation
 anim = billiards.visualize.animate(bld, end_time=10)
 anim._fig.set_size_inches((6, 6))
+# anim.save("sinai_billiard.mp4")
