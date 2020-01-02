@@ -1,5 +1,6 @@
 # Changelog
 
+**v0.4.0**
 - Add basic obstacles (disk and infinite wall)
 - Add interaction with simulations via pyglet
 - Add examples

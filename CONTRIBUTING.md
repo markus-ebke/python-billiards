@@ -164,7 +164,7 @@ $ tox -e codestyle
   $ git flow release start <major.minor.patch>
   ```
   where the `major.minor.patch` version number is **one version higher** than the version in `setup.cfg`.
-  Make and comit some last changes if necessary (and update `CHANGELOG.md`).
+  Make and comit some last changes if necessary, update `CHANGELOG.md` and close off the topmost section with `**v<major.minor.patch>**`.
   Then use [bump2version](https://pypi.org/project/bump2version/) to change the version number in the files:
   ```shell
   $ bump2version minor
