@@ -1,27 +1,22 @@
 [[source]]
-name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
-
-[dev-packages]
-bump2version = "*"
-grip = "*"
-matplotlib = "*"
-numpy = "*"
-pyglet = "*"
-pytest = "*"
-setuptools = ">=39.2"
-tox = "*"
+name = "pypi"
 
 [packages]
 numpy = "*"
 matplotlib = "*"
 pyglet = "*"
 
-[requires]
-python_version = "3.7"
+[dev-packages]
+setuptools = ">=40.8.0"
+pytest = "*"
+pytest-cov = "*"
+bump2version = "*"
+grip = "*"
+pre-commit = "*"
+tox = "*"
+billiards = {editable = true, path = "."}
 
-[dev-packages.billiards]
-editable = true
-extras = [ "visualize",]
-path = "."
+[requires]
+python_version = "3"

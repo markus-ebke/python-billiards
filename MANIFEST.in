@@ -1,13 +1,12 @@
 graft src
 graft tests
 graft examples
+prune docs
 
 include LICENSE
 include README.md
 include CHANGELOG.md
-
 include pyproject.toml
-include pytest.ini
 
 global-exclude *.py[cod] __pycache__/* *.so *.dylib
-exclude Notes.md
+exclude .pre-commit-config.yaml

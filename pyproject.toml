@@ -1,3 +1,28 @@
 [build-system]
-requires = ["setuptools>=39.2", "wheel>=0.31.0"]
+# These are the assumed default build requirements from pip:
+# https://pip.pypa.io/en/stable/cli/pip/#pep-517-and-518-support
+requires = ["setuptools>=40.8.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.isort]
+profile = "black"
+src_paths = ["src", "tests", "examples"]
+default_section = "THIRDPARTY"
+known_first_party = "billiards"
+use_parentheses = true
+skip_glob = [".git", ".tox", ".eggs", ".pytest_cache", "build", "dist"]
+
+[tool.pydocstyle]
+convention = "google"
+
+[tool.doc8]
+ignore-path = [".git", ".tox", ".eggs", ".pytest_cache", "build", "dist"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py", "tests.py"]
+addopts = """
+	-ra --strict-markers --tb=short
+	--doctest-modules --doctest-glob=\\*.rst
+	--cov=billiards --cov-report=html
+"""
