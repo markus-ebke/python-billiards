@@ -23,7 +23,7 @@ class Billiard(object):
         balls_position: List of 2D position of the balls' centers.
         balls_velocity: List of 2D velocities of the balls.
         balls_radius: List of numbers that represent the radii of the balls.
-        balls_mass: List of number that represent the masses of the balls.
+        balls_mass: List of numbers that represent the masses of the balls.
         toi_table: Lower-triangular matrix (= nested lists) of time of impacts.
         toi_min: List of time-index pairs of the next collision for each ball.
         toi_next: Time-index-index triple for the next collision.
@@ -34,7 +34,7 @@ class Billiard(object):
     """
 
     def __init__(self, obstacles=None):
-        """Setup a billiard table with the given obstacles but without balls.
+        """Set up a billiard table with the given obstacles but without balls.
 
         Args:
             obstacles: Iterable containing billiards.obstacle.Obstacle objects.

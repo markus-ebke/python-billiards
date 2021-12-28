@@ -125,9 +125,7 @@ class Disk(Obstacle):
 
     def calc_toi(self, pos, vel, radius):
         """Calculate the velocity of a ball after colliding with the disk."""
-        return time_of_impact(
-            self.center, (0, 0), self.radius, pos, vel, radius
-        )
+        return time_of_impact(self.center, (0, 0), self.radius, pos, vel, radius)
 
     def collide(self, pos, vel, radius):
         """Calculate the velocity of a ball after colliding with the disk."""
@@ -136,9 +134,7 @@ class Disk(Obstacle):
 
     def plot(self, ax, color, **kwargs):
         """Draw the disk onto the given matplotlib axes."""
-        patch = mpl.patches.Circle(
-            self.center, self.radius, facecolor=color, **kwargs
-        )
+        patch = mpl.patches.Circle(self.center, self.radius, facecolor=color, **kwargs)
         ax.add_patch(patch)
 
     def model(self):  # pragma: no cover

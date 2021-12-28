@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Sinai billiard aka Lorentz gas
 
 The billiard table is a unit square where a disk in the center was removed.
@@ -29,7 +28,7 @@ obs = [
 bld = Billiard(obstacles=obs)
 
 # place a few point particles randomly in the square but with uniform speed
-for i in range(num_balls):
+for _i in range(num_balls):
     pos = np.random.uniform((-1, -1), (1, 1))
     angle = np.random.uniform(0, 2 * pi)
     vel = 0.2 * np.asarray([cos(angle), sin(angle)])

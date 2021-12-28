@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Newton's cradle
 
 A ball strikes the end of a straight row of stationary balls and, through

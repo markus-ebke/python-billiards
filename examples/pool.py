@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """First shot in a game of pool (note that there is no friction)
 
 Note that the breakup should be perfect (everything is perfectly placed within

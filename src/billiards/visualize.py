@@ -5,12 +5,12 @@ import numpy as np
 from .obstacles import circle_model
 
 try:
+    import matplotlib.path as mpath
+    import matplotlib.pyplot as plt
+    import matplotlib.transforms as mtransforms
     from matplotlib.animation import FuncAnimation
     from matplotlib.artist import allow_rasterization
     from matplotlib.collections import Collection
-    import matplotlib.transforms as mtransforms
-    import matplotlib.path as mpath
-    import matplotlib.pyplot as plt
 except ImportError:  # pragma: no cover
     print("Don't use billiards.visualize.plot, matplotlib not imported.")
 
@@ -105,7 +105,7 @@ class CircleCollection(Collection):  # pragma: no cover
                 offsets,
                 transOffset.frozen(),
             )
-            result = result.inverse_transformed(transData)
+            result = result.transformed(transData.inverted())
         else:
             result = mtransforms.Bbox.null()
         return result
@@ -287,7 +287,7 @@ def plot(bld, fig=None, ax=None):
     return fig
 
 
-def animate(bld, end_time, fps=30, fig=None, ax=None):
+def animate(bld, end_time, fps=30, fig=None, ax=None, **kwargs):
     """Animate the billiard plot.
 
     Note that you have to assign the returned anim object to a variable,
@@ -301,11 +301,12 @@ def animate(bld, end_time, fps=30, fig=None, ax=None):
         fig (optional): Figure used for drawing.
             Defaults to None in which case a new figure will be created.
         ax (optional): Axes used for drawing.
-            Defaults to None in which case a nex axes object will be created.
+            Defaults to None in which case a new axes object will be created.
             If an axes object is supplied, use
             ax.set_aspect(self, aspect="equal", adjustable="datalim")
             for correct aspect ratio.
-        show (optional): Use pyplot.show() to show the animation.
+        **kwargs (optional): other keyword arguments are passed to
+            matplotlib.animation.FuncAnimation.
 
     Returns:
         matplotlib.animation.FuncAnimation: An animation object, to save it as
@@ -343,10 +344,10 @@ def animate(bld, end_time, fps=30, fig=None, ax=None):
     draw_as_markers = np.logical_not(draw_as_circles)
 
     def init():
-        circles.set_offsets(np.empty(shape=(0, 2)))
-        points.set_offsets(np.empty(shape=(0, 2)))
-        arrows.set_offsets(np.empty(shape=(0, 2)))
-        arrows.set_UVC(np.empty(shape=(0, 1)), np.empty(shape=(0, 1)))
+        circles.set_offsets(np.empty(shape=(1, 2)))
+        points.set_offsets(np.empty(shape=(1, 2)))
+        arrows.set_offsets(np.empty(shape=(1, 2)))
+        arrows.set_UVC(np.empty(shape=(1, 1)), np.empty(shape=(1, 1)))
 
         time_text.set_text("")
 
@@ -368,7 +369,7 @@ def animate(bld, end_time, fps=30, fig=None, ax=None):
         return (circles, points, arrows, time_text)
 
     anim = FuncAnimation(
-        fig, animate, frames, interval=1000 / fps, blit=True, init_func=init,
+        fig, animate, frames, interval=1000 / fps, blit=True, init_func=init, **kwargs
     )
 
     REMEMBER_ANIM = anim
@@ -379,7 +380,7 @@ class BilliardWindow(Window):  # pragma: no cover
     """Custom window class for interacting with billiard simulations."""
 
     def __init__(self, bld, *args, **kwargs):
-        """Setup pyglet window."""
+        """Set up pyglet window."""
         super().__init__(*args, **kwargs)
         self.bld = bld
 
@@ -421,7 +422,11 @@ class BilliardWindow(Window):  # pragma: no cover
         for obs in self.bld.obstacles:
             vertices, indices, mode = obs.model()
             vlist = self.obs_batch.add_indexed(
-                len(vertices), mode, None, indices, "v2f/static",
+                len(vertices),
+                mode,
+                None,
+                indices,
+                "v2f/static",
             )
             vlist.vertices[:] = vertices.flatten()
             obs_models.append([vertices, vlist])
@@ -482,7 +487,7 @@ class BilliardWindow(Window):  # pragma: no cover
             ymax = max(ymax, model_ymax)
 
         # include every obstacle
-        for vertices, vlist in self.obs_batch.models:
+        for vertices, _vlist in self.obs_batch.models:
             include(vertices)
 
         # include every (proper) ball
@@ -553,7 +558,7 @@ class BilliardWindow(Window):  # pragma: no cover
             self.simaccel += 1
 
     def on_resize(self, width, height):
-        """Called when the window is resized."""
+        """Adjust window content when resized."""
         # update viewport aspect ratio
         self.aspect_ratio = width / height
 
@@ -637,13 +642,9 @@ class BilliardWindow(Window):  # pragma: no cover
 
         # update gui
         txt = "Time: {:6.3} (x{:.4}), bounces: {}"
-        self.label_bld.text = txt.format(
-            self.bld.time, self.simspeed, self.bounces[-1]
-        )
+        self.label_bld.text = txt.format(self.bld.time, self.simspeed, self.bounces[-1])
         txt = "Center: ({:.1f}, {:.1f}), extent: {:.4}"
-        self.label_coord.text = txt.format(
-            self.center[0], self.center[1], self.extent
-        )
+        self.label_coord.text = txt.format(self.center[0], self.center[1], self.extent)
         txt = "Frame: {}, fps: {:.1f} ({:.2f} ms)"
         self.label_update.text = txt.format(
             self.frame, pyglet.clock.get_fps(), dt * 1000
