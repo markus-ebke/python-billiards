@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Billiards top-level module.
 
 You can import the ``Billiard`` class from here for convenience::

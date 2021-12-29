@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath("../src/billiards"))
 project = "billiards"
 year = str(datetime.datetime.now().year)
 author = "Markus Ebke"
-copyright = "{}, {}".format(year, author)
+copyright = f"{year}, {author}"
 version = release = "0.4.0"
 
 

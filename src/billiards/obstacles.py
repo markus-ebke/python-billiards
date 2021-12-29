@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Static obstacles on the billiard table."""
 import numpy as np
 
@@ -41,7 +40,7 @@ def circle_model(radius, num_points=32):
     return vertices, indices
 
 
-class Obstacle(object):  # pragma: no cover
+class Obstacle:  # pragma: no cover
     """Obstacle base class.
 
     Subclasses must implement the calc_toi and collide methods. Optionally they

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """This module contains functions for collision detection and handling."""
 from math import sqrt
 

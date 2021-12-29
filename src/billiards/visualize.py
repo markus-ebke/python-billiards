@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Visualize a billiard table using matplotlib and pyglet."""
 import numpy as np
 
@@ -24,7 +23,7 @@ except Exception as ex:  # pragma: no cover
     # When testing with tox this happens:
     # pyglet.canvas.xlib.NoSuchDisplayException: Cannot connect to "None"
     # I don't know how to prevent it, except with this hacky except case
-    print("Something went wrong with pyglet: {}".format(type(ex).__name__))
+    print(f"Something went wrong with pyglet: {type(ex).__name__}")
     print(ex)  # print info
     Window = object  # mock window
 
@@ -281,7 +280,7 @@ def plot(bld, fig=None, ax=None):
     plot_velocities(bld, ax)
 
     # show the current simulation time
-    text = "Time: {:.3f}".format(bld.time)
+    text = f"Time: {bld.time:.3f}"
     ax.text(0.02, 0.95, text, transform=ax.transAxes)
 
     return fig
@@ -336,7 +335,7 @@ def animate(bld, end_time, fps=30, fig=None, ax=None, **kwargs):
     arrows = plot_velocities(bld, ax)
 
     # show the current simulation time
-    text = "Time: {:.3f}".format(bld.time)
+    text = f"Time: {bld.time:.3f}"
     time_text = ax.text(0.02, 0.95, text, transform=ax.transAxes)
 
     # draw point particles only as markers
@@ -364,7 +363,7 @@ def animate(bld, end_time, fps=30, fig=None, ax=None, **kwargs):
         arrows.set_offsets(pos)
         arrows.set_UVC(vel[:, 0], vel[:, 1])
 
-        time_text.set_text("time = {:.2f}s".format(t))
+        time_text.set_text(f"time = {t:.2f}s")
 
         return (circles, points, arrows, time_text)
 
@@ -520,7 +519,7 @@ class BilliardWindow(Window):  # pragma: no cover
 
         if symbol == key.SPACE:
             self.pause = not self.pause
-            print("Pause: {}".format(self.pause))
+            print(f"Pause: {self.pause}")
         elif symbol == key.W:
             self.move[1] += 1
         elif symbol == key.S:

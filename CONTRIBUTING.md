@@ -44,6 +44,7 @@ I suggest you follow these steps:
    ```
 
    This will run several checks automatically before every commit:
+   - [flynt](https://github.com/ikamensh/flynt) and [pyupgrade](https://github.com/asottile/pyupgrade) to upgrade python syntax (will modify files)
    - [isort](https://pypi.org/project/isort/), [black](https://pypi.org/project/black/) and [blacken-docs](https://github.com/asottile/blacken-docs) for automatic code formatting (will modify files)
    - [flake8](https://pypi.org/project/flake8/) as linter for code
    - [pydocstyle](https://pypi.org/project/pydocstyle/) (only for _src/billiards/_) and [doc8](https://pypi.org/project/doc8/) (only for _docs/_) as linters for documentation

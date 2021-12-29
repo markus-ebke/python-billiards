@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from math import cos, sin, sqrt
 
 import numpy as np

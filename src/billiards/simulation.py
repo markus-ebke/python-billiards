@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """The simulation module contains the main code for a billiard simulation."""
 from math import isinf
 
@@ -10,7 +9,7 @@ from .physics import elastic_collision, time_of_impact
 INF = float("inf")
 
 
-class Billiard(object):
+class Billiard:
     """The billiard class represent a billiard table.
 
     By default the 2-dimensional table is infinite in every direction, but you
