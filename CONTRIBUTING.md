@@ -130,11 +130,12 @@ Before merging, you should:
 
 
 
-## Notes for myself
+## Notes to Myself
 
-- Update the pre-commit hooks to their newest version:
+- Update packages and pre-commit hooks to their newest version:
 
    ```shell
+   pipenv update
    pre-commit autoupdate
    ```
 
@@ -149,8 +150,17 @@ Before merging, you should:
 
 - I used [markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint) when writing the readme and this file.
 
+- Create docs manually (i.e. without tox):
+
+   ```shell
+   cd docs/
+   pip install -r requirements.txt
+   make html
+   ```
+
 - To make a new release:
   - Go to master branch
+
   - Use [bump2version](https://pypi.org/project/bump2version/) to change the version number in the files:
 
   ```shell
@@ -170,3 +180,50 @@ Before merging, you should:
 
 - The _tox_ environment _metadata_ checks that the project can be correctly packaged, it runs [check-manifest](https://pypi.org/project/check-manifest/) (configuration settings in `tox.ini`) to make sure the important files are included.
   Note that I haven't figured out a good way to put this package on [PyPi](https://pypi.org/) (yet).
+
+
+
+### Lint and format with pre-commit
+
+- flynt  (f-string conversion)
+- pyupgrade --py37-plus
+- isort
+- black
+- blacken-docs
+- flake8 (with flake8-colors, flake8-bugbear, flake8-comprehensions)
+- pydocstyle (only for src, not for tests or examples)
+- docs8
+
+### Not included in pre-commit
+
+- pytest, coverage report
+- sphinx-build
+- check-manifest and $ python setup.py check --metadata --strict
+- tox
+- bumpversion
+
+### The current state of configuration files
+
+Tool name       | name.cfg/ini      | setup.cfg     | pyproject.toml
+----------------|-------------------|---------------|-----------------
+isort           | yes (preferred)   | yes           | yes (preferred)
+black           | no                | no            | yes
+flake8          | yes               | yes           | no
+pydocstyle      | yes               | yes           | yes
+doc8            | yes               | yes           | yes
+pytest          | yes               | no            | yes
+coverage        | yes               | no            | yes
+bumpversion     | yes               | yes           | no
+check-manifest  | no                | yes           | yes
+
+
+
+### Cleanup
+
+- Folders that can be safely removed: build, htmlcov, src/billiards.egg-info, .eggs, .pytest_cache, .tox
+
+- Delete .coverage file: $ coverage erase
+
+- Remove pipenv virtual environment: $ pipenv --rm
+
+- Find the virtualenv folder (~/.local/share/virtualenvs) and delete it as well

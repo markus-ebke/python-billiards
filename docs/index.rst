@@ -36,7 +36,10 @@ Features
    :maxdepth: 2
    :caption: API Reference
 
-   api_reference/modules
+   api_reference/billiards
+   api_reference/billiards_physics
+   api_reference/billiards_simulation
+   api_reference/billiards_visualize
 
 
 Indices and tables

@@ -1,4 +1,26 @@
-"""Visualize a billiard table using matplotlib and pyglet."""
+"""Visualize a billiard table using matplotlib and pyglet.
+
+With matplotlib (assuming ``bld`` is an instance of the ``Billiard`` class)::
+
+    import matplotlib.pyplot as plt
+
+    # show billiard balls, indicate their velocity with arrows and draw obstacles
+    billiards.visualize.plot(bld)
+    plt.show()
+
+    # show how the billiard evolves from bld.time to end_time
+    billiards.visualize.animate(bld, end_time=10)
+    plt.show()
+
+See also the functions ``plot_obstacles``, ``plot_balls`` and ``plot_velocities``
+for plotting only certain aspects of the billiard.
+
+With pyglet::
+
+    billiards.visualize.interact(bld)
+
+Instructions are printed to the console window.
+"""
 import numpy as np
 from tqdm import trange
 
@@ -379,8 +401,7 @@ def animate(
 
     # animate will play the precomputed simulation
     def animate(i):
-        t = time[i]
-        time_text.set_text(f"time = {t:.2f}s")
+        time_text.set_text(f"Time: {time[i]:.3f}")
 
         pos = positions[i]
         circles.set_offsets(pos[draw_as_circles])

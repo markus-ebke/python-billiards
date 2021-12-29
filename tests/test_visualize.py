@@ -109,10 +109,16 @@ def test_animate(create_newtons_cradle):
     animated_artists = anim._func(1)
     assert len(animated_artists) == 4
 
+    # clear frame to prevent this warning from matplotlib:
+    # UserWarning: Animation was deleted without rendering anything.
+    anim._init_draw()
+
     # from time = 1 to time = 2 at 30 fps => 31 frames (endpoints included)
     anim = visualize.animate(bld, end_time=2, fps=30)
     assert bld.time == 2
     assert anim.save_count == 31
+
+    anim._init_draw()  # prevent warning from matplotlib
 
 
 # when running the test with tox, pyglet will raise an exception:

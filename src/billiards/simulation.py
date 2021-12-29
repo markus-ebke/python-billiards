@@ -1,4 +1,9 @@
-"""The simulation module contains the main code for a billiard simulation."""
+"""The simulation module contains the main class for billiard simulations.
+
+Use it like::
+
+    from billiard import Billiard
+"""
 from math import isinf
 
 import numpy as np
@@ -10,11 +15,13 @@ INF = float("inf")
 
 
 class Billiard:
-    """The billiard class represent a billiard table.
+    """The Billiard class represents a billiard table.
 
-    By default the 2-dimensional table is infinite in every direction, but you
-    can place static obstacles on them. use the `add_ball` method to add some
-    billiard balls.
+    The 2-dimensional world is infinite in every direction and initialized with
+    a list of obstacles. Billiard balls are placed via the `add_ball` method.
+    Using Billiard.evolve the simulation is advanced to the given timestamp.
+    The other methods are used to detect and resolve collisions during the
+    execution of evolve.
 
     Attributes:
         time: Current simulation time.
@@ -33,7 +40,7 @@ class Billiard:
     """
 
     def __init__(self, obstacles=None):
-        """Set up a billiard table with the given obstacles but without balls.
+        """Set up a billiard table populated with the given obstacles.
 
         Args:
             obstacles: Iterable containing billiards.obstacle.Obstacle objects.
@@ -56,9 +63,9 @@ class Billiard:
         self.balls_mass = []
 
         # time of impact table for ball-ball collisions
-        self.toi_table = []
-        self.toi_min = []
-        self.toi_next = (INF, -1, 0)
+        self.toi_table = []  # time of impact for each ball-ball pair
+        self.toi_min = []  # next time of impact for each ball
+        self.toi_next = (INF, -1, 0)  # next ball-ball collision
 
         # check obstacles
         self.obstacles = []
@@ -71,16 +78,16 @@ class Billiard:
 
         # time of impact list for ball-obstacle collisions
         self.obstacles_toi = []  # next time of impact for each ball
-        self.obstacles_next = (INF, -1, None)  # next obstacle collision
+        self.obstacles_next = (INF, -1, None)  # next ball-obstacle collision
 
     def add_ball(self, pos, vel, radius=0.0, mass=1.0):
         """Add a ball at the given position with the given velocity.
 
-        Note that balls with zero radius act like point particles and two balls
-        with zero radius will never collide.
+        Note that balls with zero radii act like point particles and two balls
+        with zero radii will never collide.
 
         Balls with zero mass don't push other balls around, balls with infinite
-        mass are not pushed around themselves. If two balls with zero mass
+        mass are not pushed around by others. If two balls with zero mass
         collide this will raise a warning from numpy. If two balls with
         infinite mass collide only the first one is treated with infinite mass
         and the other one gets pushed around.
@@ -228,7 +235,7 @@ class Billiard:
             end_time: Time until which the billiard should be simulated.
 
         Returns:
-            list: List of collisions, each item is a (float, int, int).triplet
+            list: List of collisions, each item is a (float, int, int)-triplet
             where the first number is the time of impact and the next two
             integers are the indices of the balls that collided.
 

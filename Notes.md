@@ -17,7 +17,7 @@ Use twine (twine>=1.11.0 if readme in markdown), use `twine check` instead of `s
 https://packaging.python.org/guides/making-a-pypi-friendly-readme#validating-restructuredtext-markup
 
 ## More control of plot
-- Animate: draw path taken by balls
+- Animate: draw path taken by balls? (pictures will get messy quickly)
 - Improve CircleCollection.datalim (somehow rendering and get_path_collection_extents don't do the same thing with transform, transData and transOffset)
 
 ## More versatile visualize.interact
@@ -30,7 +30,6 @@ https://packaging.python.org/guides/making-a-pypi-friendly-readme#validating-res
 - How to write proper tests for matplotlib?
 - How to write proper tests for pyglet (or GUIs in general)?
 - Make pyglet work with tox, currently I can't access pyglet.gl.GL_LINES when I run the tests via tox (pyglet.canvas.xlib.NoSuchDisplayException: Cannot connect to "None"), see commented fragments in test_visualize.py and the .model methods in obstacle.
-- Rearrange config settings? Put pytest.ini in setup.cfg and everything else in tox.ini or use separate files for every tool?
 - Use TravisCI (and other internet services?)
 
 ## More obstacles
@@ -58,9 +57,9 @@ Make the balls fall "downwards" i.e.
 - Calculate time of impact for ball-obstacle collisions: I dont't know, it might be complicated since obstacles remain stationary (i.e. accelerate in gravity-following frame of reference)
 
 ## (Sliding) Friction and/or drag
-Imagine that the balls roll on a flat horizontal table convert in cloth (this will be inconsistent with gravity but that's OK.)
+Imagine that the balls roll on a flat horizontal table covered in cloth (this will be inconsistent with gravity but that's OK.)
 Friction is a force of size F = mu * mass with a direction opposite of velocity.
-We need to integrate a = mu to find the trajectory of the ball until it stops (this is a straight line which is reperameterised by a quadratic function).
+We need to integrate a = mu to find the trajectory of the ball until it stops (this is a straight line which is reparameterised by a quadratic function).
 Drag is a force similar to friction, but F is proportional to velocity^2 * size of ball, this is more complicated to integrate.
 We can still use time of impact calculation, but we need to take care of the reparameterisation.
 
