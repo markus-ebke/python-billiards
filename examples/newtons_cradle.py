@@ -5,6 +5,8 @@ A ball strikes the end of a straight row of stationary balls and, through
 conservation of momentum and energy (elastic collision), only the at the other
 end starts moving.
 """
+import matplotlib.pyplot as plt
+
 import billiards
 from billiards import Billiard
 
@@ -25,3 +27,4 @@ for i in range(1, num_balls):
 
 # start the animation
 anim = billiards.visualize.animate(bld, end_time=3 * 4)  # period: 4
+plt.show()

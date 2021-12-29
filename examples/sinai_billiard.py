@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Sinai billiard aka Lorentz gas
+"""Sinai billiard (aka Lorentz gas)
 
-The billiard table is a unit square where a disk in the center was removed.
+The billiard table is a square where a disk in the center was removed.
 The billiard balls are point particles that don't collide with each other.
 """
 from math import cos, pi, sin
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 import billiards
@@ -27,15 +28,19 @@ obs = [
 ]
 bld = Billiard(obstacles=obs)
 
-# place a few point particles randomly in the square but with uniform speed
+# distribute particles uniformly in the square, moving in random directions but
+# with the same speed
 for _i in range(num_balls):
     pos = np.random.uniform((-1, -1), (1, 1))
     angle = np.random.uniform(0, 2 * pi)
-    vel = 0.2 * np.asarray([cos(angle), sin(angle)])
+    vel = [cos(angle), sin(angle)]
 
     bld.add_ball(pos, vel, radius=0)
+
+bld.balls_velocity /= 5  # slow down
 
 # start the animation
 anim = billiards.visualize.animate(bld, end_time=10)
 anim._fig.set_size_inches((6, 6))
 # anim.save("sinai_billiard.mp4")
+plt.show()

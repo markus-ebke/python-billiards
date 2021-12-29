@@ -102,10 +102,17 @@ def test_animate(create_newtons_cradle):
     bld = create_newtons_cradle(5)
 
     anim = visualize.animate(bld, end_time=1, fps=60)
+    assert bld.time == 1
     assert isinstance(anim, mpl.animation.FuncAnimation)
+    assert anim.save_count == 61
 
     animated_artists = anim._func(1)
     assert len(animated_artists) == 4
+
+    # from time = 1 to time = 2 at 30 fps => 31 frames (endpoints included)
+    anim = visualize.animate(bld, end_time=2, fps=30)
+    assert bld.time == 2
+    assert anim.save_count == 31
 
 
 # when running the test with tox, pyglet will raise an exception:

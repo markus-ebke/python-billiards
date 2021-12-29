@@ -1,5 +1,6 @@
 """Visualize a billiard table using matplotlib and pyglet."""
 import numpy as np
+from tqdm import trange
 
 from .obstacles import circle_model
 
@@ -211,6 +212,7 @@ def plot_balls(bld, ax, color="C0", **kwargs):
         pos[draw_as_markers, 0],
         pos[draw_as_markers, 1],
         s=20,
+        marker="x",
         color=color,
         zorder=0,
         **kwargs,
@@ -219,17 +221,18 @@ def plot_balls(bld, ax, color="C0", **kwargs):
     return circles, points
 
 
-def plot_velocities(bld, ax, color="C1", **kwargs):
+def plot_velocities(bld, ax, color="C1", arrow_factor=1, **kwargs):
     """Plot velocites of the balls in the billiard.
 
     Args:
         bld: Billiard object.
         ax: matplotlib axes object.
         color (optional): Color of the arrows, default: "C1" (yellow).
+        arrow_factor (optional): Scale the length of the velocity arrows.
         **kwargs: Keyword arguments for Axes.quiver.
 
     Returns:
-        The output of axex.quiver.
+        The output of axes.quiver.
 
     """
     # simplify variables
@@ -244,7 +247,7 @@ def plot_velocities(bld, ax, color="C1", **kwargs):
         vel[:, 1],
         angles="xy",
         scale_units="xy",
-        scale=1,
+        scale=1 / arrow_factor,
         width=0.004,
         color=color,
         zorder=1,
@@ -254,7 +257,7 @@ def plot_velocities(bld, ax, color="C1", **kwargs):
     return arrows
 
 
-def plot(bld, fig=None, ax=None):
+def plot(bld, fig=None, ax=None, velocity_arrow_factor=1):
     """Plot the given billiard for the current moment.
 
     Args:
@@ -262,10 +265,15 @@ def plot(bld, fig=None, ax=None):
         fig (optional): Figure used for drawing.
             Defaults to None in which case a new figure will be created.
         ax (optional): Axes used for drawing.
-            Defaults to None in which case a nex axes object will be created.
+            Defaults to None in which case a new axes object will be created.
             If an axes object is supplied, use
             ax.set_aspect(self, aspect="equal", adjustable="datalim")
             for correct aspect ratio.
+        velocity_arrow_factor (optional): Scale the length of velocity arrows.
+            The default value is 1, meaning that in one time unit the particle
+            reaches the tip of the arrow. Larger values increase the length of
+            the arrows, smaller values will shrink them. A value of 0 disables
+            arrows.
 
     Returns:
         matplotlib.figure.Figure: The figure used for drawing, to save the
@@ -277,7 +285,8 @@ def plot(bld, fig=None, ax=None):
     # plot billiard obstacles and balls
     plot_obstacles(bld, ax)
     plot_balls(bld, ax)
-    plot_velocities(bld, ax)
+    if velocity_arrow_factor > 0:
+        plot_velocities(bld, ax, arrow_factor=velocity_arrow_factor)
 
     # show the current simulation time
     text = f"Time: {bld.time:.3f}"
@@ -286,15 +295,19 @@ def plot(bld, fig=None, ax=None):
     return fig
 
 
-def animate(bld, end_time, fps=30, fig=None, ax=None, **kwargs):
+def animate(
+    bld, end_time, fps=30, fig=None, ax=None, velocity_arrow_factor=1, **kwargs
+):
     """Animate the billiard plot.
 
-    Note that you have to assign the returned anim object to a variable,
-    otherwise it gets garbage collected and the animation does not update.
+    Advance the simulation in timesteps of size 1/fps until bld.time equals
+    end_time, in every iteration save a snapshot of the balls. A progressbar
+    indicates how many frames must be computed. After the simulation is done,
+    the animation is returned as a matplotlib animation object.
 
     Args:
         bld: A billiard simulation.
-        end_time: Animate from t=0 to t=end_time.
+        end_time: Animate from t=bld.time to t=end_time.
         fps (optional): Frames per second of the animation.
             Defaults to 30.
         fig (optional): Figure used for drawing.
@@ -304,23 +317,30 @@ def animate(bld, end_time, fps=30, fig=None, ax=None, **kwargs):
             If an axes object is supplied, use
             ax.set_aspect(self, aspect="equal", adjustable="datalim")
             for correct aspect ratio.
+        velocity_arrow_factor (optional): Scale the length of velocity arrows.
+            The default value is 1, meaning that in one time unit the particle
+            reaches the tip of the arrow. Larger values increase the length of
+            the arrows, smaller values will shrink them. A value of 0 disables
+            arrows.
         **kwargs (optional): other keyword arguments are passed to
             matplotlib.animation.FuncAnimation.
 
     Returns:
-        matplotlib.animation.FuncAnimation: An animation object, to save it as
-        a video use anim.save("savename.mp4").
+        matplotlib.animation.FuncAnimation: An animation object, to play the
+        animation use matplotlib.pyplot.show(), to save it as a video use
+        anim.save("savename.mp4").
 
     """
     global REMEMBER_ANIM
-    frames = int(fps * end_time)
+    start_time = bld.time
+    frames = int(fps * (end_time - start_time)) + 1  # include end_time frame
 
     # precompute the simulation
     time = []
     positions = []
     velocities = []
-    for i in range(frames):
-        bld.evolve(i / fps)
+    for i in trange(frames):
+        bld.evolve(start_time + i / fps)
 
         time.append(bld.time)
         positions.append(bld.balls_position.copy())
@@ -332,7 +352,8 @@ def animate(bld, end_time, fps=30, fig=None, ax=None, **kwargs):
     # plot billiard obstacle and balls
     plot_obstacles(bld, ax)
     circles, points = plot_balls(bld, ax)
-    arrows = plot_velocities(bld, ax)
+    if velocity_arrow_factor > 0:
+        arrows = plot_velocities(bld, ax, arrow_factor=velocity_arrow_factor)
 
     # show the current simulation time
     text = f"Time: {bld.time:.3f}"
@@ -343,35 +364,43 @@ def animate(bld, end_time, fps=30, fig=None, ax=None, **kwargs):
     draw_as_markers = np.logical_not(draw_as_circles)
 
     def init():
-        circles.set_offsets(np.empty(shape=(1, 2)))
-        points.set_offsets(np.empty(shape=(1, 2)))
-        arrows.set_offsets(np.empty(shape=(1, 2)))
-        arrows.set_UVC(np.empty(shape=(1, 1)), np.empty(shape=(1, 1)))
-
         time_text.set_text("")
 
-        return (circles, points, arrows, time_text)
+        circles.set_offsets(np.empty(shape=(1, 2)))
+        points.set_offsets(np.empty(shape=(1, 2)))
+
+        if velocity_arrow_factor > 0:
+            arrows.set_offsets(np.empty(shape=(1, 2)))
+            arrows.set_UVC(np.empty(shape=(1, 1)), np.empty(shape=(1, 1)))
+
+            return (time_text, circles, points, arrows)
+        else:
+            return (time_text, circles, points)
 
     # animate will play the precomputed simulation
     def animate(i):
         t = time[i]
-        pos = positions[i]
-        vel = velocities[i]
-
-        circles.set_offsets(pos[draw_as_circles])
-        points.set_offsets(pos[draw_as_markers])
-        arrows.set_offsets(pos)
-        arrows.set_UVC(vel[:, 0], vel[:, 1])
-
         time_text.set_text(f"time = {t:.2f}s")
 
-        return (circles, points, arrows, time_text)
+        pos = positions[i]
+        circles.set_offsets(pos[draw_as_circles])
+        points.set_offsets(pos[draw_as_markers])
 
+        if velocity_arrow_factor > 0:
+            arrows.set_offsets(pos)
+            vel = velocities[i]
+            arrows.set_UVC(vel[:, 0], vel[:, 1])
+
+            return (time_text, circles, points, arrows)
+        else:
+            return (time_text, circles, points)
+
+    kwargs.setdefault("cache_frame_data", False)  # to save memory
     anim = FuncAnimation(
         fig, animate, frames, interval=1000 / fps, blit=True, init_func=init, **kwargs
     )
 
-    REMEMBER_ANIM = anim
+    REMEMBER_ANIM = anim  # prevent garbage collection of anim object
     return anim
 
 

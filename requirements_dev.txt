@@ -1,5 +1,6 @@
 numpy
 matplotlib
+tqdm
 pyglet
 setuptools>=40.8.0
 pytest

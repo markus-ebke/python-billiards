@@ -18,11 +18,21 @@ print(fig_name)
 
 fig2_name = "_images/quickstart_2.svg"
 bld.add_ball((50, 18), (0, -9), radius=1, mass=2)
-bld.evolve(14.0)
-fig2 = billiards.visualize.plot(bld)
-fig2.savefig(fig2_name)
+fig = billiards.visualize.plot(bld)
+fig.savefig(fig2_name)
 print(fig2_name)
 
+v_squared = (bld.balls_velocity ** 2).sum(axis=1)
+print(f"Kinetic energy before: {(v_squared * bld.balls_mass).sum() / 2}")
+
+fig2_name = "_images/quickstart_3.svg"
+bld.evolve(14.0)
+fig = billiards.visualize.plot(bld)
+fig.savefig(fig2_name)
+print(fig2_name)
+
+v_squared = (bld.balls_velocity ** 2).sum(axis=1)
+print(f"Kinetic energy after: {(v_squared * bld.balls_mass).sum() / 2}")
 
 # Usage: Newton's cradle
 anim_name = "_static/newtons_cradle.mp4"
