@@ -2,49 +2,49 @@
 > A 2D physics engine for simulating dynamical billiards
 
 _billiards_ is a python library that implements a very simple physics engine:
-It simulates the movement of particles that live in two dimensions.
-When particles collide they behave like hard balls.
-Basically the particles act like billiard balls.
+It simulates the movement of hard, disk-shaped particles in a two-dimensional world filled with static obstacles.
+
 
 
 ## Features
-- Collision detection with time of impact calculation: No reliance on time steps, no tunneling of fast bullets! Collisions will be correctly identified and only the necessary ones will be handled.
-- Fast state updates thanks to [numpy](https://numpy.org/) (especially if there are no collisions, see point above).
+- Collision detection with time-of-impact calculation. No reliance on time steps, no tunneling of high-speed bullets!
+- Quick state updates thanks to [numpy](https://numpy.org/), especially if there are no collisions between the given start and end times.
 - Static obstacles to construct a proper billiard table.
-- Balls with zero radius behave like point particles, useful for simulating [dynamical billiards](https://en.wikipedia.org/wiki/Dynamical_billiards) (but this library is not optimized for simulating point particles).
+- Balls with zero radii behave like point particles, useful for simulating [dynamical billiards](https://en.wikipedia.org/wiki/Dynamical_billiards) (although this library is not optimized for point particles).
 - Optional features: plotting and animation with [matplotlib](https://matplotlib.org/), interaction with [pyglet](https://pyglet.org/).
 - Free software: GPLv3+ license.
 
 
-## Quickstart
 
-Clone the repository from GitHub and install the package with setuptools:
+## Quickstart
+Clone the repository from GitHub and install the package (requires _numpy_ and, for visualization, _matplotlib_ and _pyglet_):
 ```shell
-$ git clone https://github.com/markus-ebke/billiards.git
+$ git clone https://github.com/markus-ebke/python-billiards.git
 $ pip install .[visualize]
 ```
-This will also let you create pictures and videos of your billiard.
-
-Note that _billiards_ depends on _numpy_ (and _matplotlib_ for visualization), setuptools will install it automatically.
 
 Import the library and setup an empty billiard table:
 
-```python
+```pycon
+
 >>> import billiards
 >>> bld = billiards.Billiard()
+
 ```
 
 Add one ball at position (2, 0) with velocity (4, 0):
 
-```python
+```pycon
+
 >>> idx = bld.add_ball((2, 0), (4, 0), radius=1)
 >>> print(idx)
 0
+
 ```
 
 The `add_ball` method will return an index that we can use later to retrieve the data of this ball from the simulation.
 To see where the ball is at time = 10 units:
-```python
+```pycon
 >>> bld.evolve(end_time=10.0)
 []
 >>> print("({}, {})".format(*bld.balls_position[idx]))
@@ -57,7 +57,7 @@ To see where the ball is at time = 10 units:
 ![alt text](docs/_images/quickstart_1.svg "One ball")
 
 Now add another ball that will collide with the first one:
-```python
+```pycon
 >>> bld.add_ball((50, 18), (0, -9), radius=1, mass=2)
 1
 >>> print("t={:.7}, idx1={}, idx2={}".format(*bld.toi_next))
@@ -84,7 +84,7 @@ Note that the collision is elastic, i.e. it preserves the total kinetic energy.
 ## Examples
 
 Setup:
-```python
+```pycon
 >>> from math import cos, pi, sin, sqrt
 >>> import numpy as np
 >>> import billiards
@@ -94,7 +94,7 @@ Setup:
 ### Pool
 
 Setup the billiard table:
-```python
+```pycon
 >>> width, length = 112, 224
 bounds = [
     InfiniteWall((0, 0), (length, 0)),  # bottom side
@@ -106,7 +106,7 @@ bld = billiards.Billiard(obstacles=bounds)
 ```
 
 Arrange the balls in a pyramid shape:
-```python
+```pycon
 >>> radius = 2.85
 >>> for i in range(5):
 >>>     for j in range(i + 1):
@@ -116,7 +116,7 @@ Arrange the balls in a pyramid shape:
 ```
 
 Add the white ball and give it a push, then start the animation (see examples/pool.mp4):
-```python
+```pycon
 >>> bld.add_ball((0.25 * length, width / 2), (length / 3, 0), radius)
 >>> anim = billiards.visualize.animate(bld, end_time=10)
 >>> anim._fig.set_size_inches((10, 5.5))
@@ -126,7 +126,7 @@ Add the white ball and give it a push, then start the animation (see examples/po
 ### Sinai billiard
 
 Construct the billiard table: A square with a disk removed from its center.
-```python
+```pycon
 >>> obs = [
 >>>     InfiniteWall((-1, -1), (1, -1)),  # bottom side
 >>>     InfiniteWall((1, -1), (1, 1)),  # right side
@@ -138,7 +138,7 @@ Construct the billiard table: A square with a disk removed from its center.
 ```
 
 Place a few point particles randomly in the square but with uniform speed:
-```python
+```pycon
 >>> for i in range(300):
 >>>     pos = np.random.uniform((-1, -1), (1, 1))
 >>>     angle = np.random.uniform(0, 2 * pi)
@@ -147,7 +147,7 @@ Place a few point particles randomly in the square but with uniform speed:
 ```
 
 and watch the simulation (see examples/sinai_billiard.mp4):
-```python
+```pycon
 >>> anim = billiards.visualize.animate(bld, end_time=20)
 >>> anim._fig.set_size_inches((6, 6))
 ```
@@ -156,4 +156,3 @@ and watch the simulation (see examples/sinai_billiard.mp4):
 ## Authors
 
 - Markus Ebke - <https://github.com/markus-ebke>
-

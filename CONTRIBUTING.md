@@ -1,178 +1,171 @@
 # Contributing
 
-Contributions are welcome and they are greatly appreciated!
-Every little bit helps and credit will always be given.
+Contributions are always welcome and greatly appreciated!
+Here is how you can help:
 
+- Report bugs at <https://github.com/markus-ebke/python-billiards/issues>.
+    Please include your Python version, a list of steps to reproduce the bug and any details about your local setup that may be helpful in troubleshooting.
+- Suggest a feature: File an issue labeled with `enhancement` and explain in detail how the proposed feature would work.
+- Improve documentation: _billiards_ could always use more and clearer documentation, whether as part of the official docs, in docstrings, or even on the web in blog posts, articles, and such. You can also contribute example files.
+- Fix bugs or implement features: Have a look at the issues page or work on your own ideas. The section below explains how to setup everything for local development.
 
-## Types of Contributions
-
-You can contribute in many ways:
-
-
-### Report Bugs
-
-Report bugs at https://github.com/markus-ebke/python-billiards/issues.
-
-If you are reporting a bug, please include:
-
-* Your operating system name and version.
-* Any details about your local setup that might be helpful in troubleshooting.
-* Detailed steps to reproduce the bug.
-
-
-### Fix Bugs
-
-Look through the GitHub issues for bugs. Anything tagged with "bug" and "help wanted" is open to whoever wants to implement it.
-
-
-### Implement Features
-
-Look through the GitHub issues for features. Anything tagged with "enhancement" and "help wanted" is open to whoever wants to implement it.
-
-
-### Documentation Improvements
-
-billiards could always use more and clearer documentation, whether as part of the official billiards docs, in docstrings, or even on the web in blog posts, articles, and such.
-
-
-### Submit Feature Requests and Feedback
-
-The best way to send feedback is to file an issue at https://github.com/markus-ebke/python-billiards/issues.
-
-If you are proposing a feature:
-
-* Explain in detail how it would work.
-* Keep the scope as narrow as possible, to make it easier to implement.
-* Tag it with "enhancement" and "help wanted"
-* Remember that this is a volunteer-driven project, and that contributions are welcome :)
 
 
 ## Development
 
-Before you start make sure that you have Python version>=3.7.
-Then
-1. Fork [billiards](https://github.com/markus-ebke/python-billiards) (look for the "Fork" button).
-2. Clone your fork locally:
+Before you start make sure that you have Python version>=3.6.
+I suggest you follow these steps:
+
+1. Fork this project (via the button on the Github page) and clone your fork locally:
+
    ```shell
-   $ git clone git@github.com:your_name_here/python-billiards.git
-   ```
-3. Install your local copy into a virtual environment.
-   Assuming you have [pipenv](https://pypi.org/project/pipenv/) installed, this is how you set up your fork for local development:
-   ```shell
-   $ cd python-billiards
-   $ pipenv install --dev
-   ```
-   If you don't have pipenv you can use [venv](https://docs.python.org/3/library/venv.html) and [pip](https://pypi.org/project/pip/) instead.
-   Setup the virtual environment and then use the requirements-file with pip like this:
-   ```shell
-   $ pip install -r requirements_dev.txt
-   $ python setup.py develop
+   git clone https://github.com/<your_username>/python-billiards.git
    ```
 
-4. Create a branch for local development (follow the [git-flow model](https://nvie.com/posts/a-successful-git-branching-model/)):
-   ```shell
-   $ git flow feature start <name-of-your-feature>
-   ```
-   or (if you don't have git-flow) branch of from `develop` manually:
-   ```shell
-   $ git checkout -b feature/<name-of-your-feature> develop
-   ```
-   Now you can start on your new feature, bugfix, spaceship, etc.
+2. Install the local copy inside a virtual environment.
+   Using [pipenv](https://pypi.org/project/pipenv/) this is quite easy:
 
-5. If you changed code in visualize.py, regenerate the images and videos for the documentation with
    ```shell
-   $ cd docs/
-   $ python3 create_visualizations.py
+   cd python-billiards
+   pipenv install --dev
    ```
 
-6. When you're done making changes, run the autoformatter, linter, tests and doc builder with [tox](https://tox.readthedocs.io/en/latest/install.html) in one command:
-   ```shell
-   $ tox
-   ```
-   It will use
-     - [isort](https://pypi.org/project/isort/) and [black](https://pypi.org/project/black/) for automatic code formatting
-     - [flake8](https://pypi.org/project/flake8/) as linter for code
-     - [pydocstyle](https://pypi.org/project/pydocstyle/) and [doc8](https://pypi.org/project/doc8/) as linters for documentation
-     - [pytest](https://pypi.org/project/pytest/) with [pytest-cov](https://pypi.org/project/pytest-cov/) to run tests and collect test coverage
-     - [coverage](https://pypi.org/project/coverage/) to create a report in the _htmlcov_ folder
-     - [sphinx](https://pypi.org/project/Sphinx/) to build the documentation in the _build/docs_ folder
+   But you can also use [venv](https://docs.python.org/3/library/venv.html) or [virtualenv](https://virtualenv.pypa.io/en/latest) to create a virtual environment and then install the required packages with [pip](https://pypi.org/project/pip/) like this:
 
-   Note that tox will run the tests for Python 3.7 and 3.8.
-   If you don't have python interpreters for these versions on your system, the tests will fail.
-
-   Did you know that you can preview markdown with [grip](https://pypi.org/project/grip/)?
-   While modifing `README.md` you can preview the changes in your browser:
    ```shell
-   $ grip -b
-   ```
-   or for `CONTRIBUTING.md`:
-   ```shell
-   $ grip -b CONTRIBUTING.md
+   pip install -r requirements_dev.txt
+   python setup.py develop
    ```
 
-7. Commit your changes and push your branch to GitHub:
+3. Install the [pre-commit](https://pre-commit.com) git hook scripts with
+
    ```shell
-   $ git add .
-   $ git commit -m "Your detailed description of your changes"
-   $ git push origin feature/name-of-your-feature
+   pre-commit install
    ```
+
+   This will run several checks automatically before every commit:
+   - [isort](https://pypi.org/project/isort/), [black](https://pypi.org/project/black/) and [blacken-docs](https://github.com/asottile/blacken-docs) for automatic code formatting (will modify files)
+   - [flake8](https://pypi.org/project/flake8/) as linter for code
+   - [pydocstyle](https://pypi.org/project/pydocstyle/) (only for _src/billiards/_) and [doc8](https://pypi.org/project/doc8/) (only for _docs/_) as linters for documentation
+
+   You can also run them manually with
+
+   ```shell
+   pre-commit run --all-files
+   ```
+
+4. Create a branch for local development (I suggest to follow the [GitHub flow](https://guides.github.com/introduction/flow/) model):
+
+   ```shell
+   git checkout -b <name-of-your-feature>
+   ```
+
+   and now you can start on your new feature, bugfix, etc.
+
+5. Regularly run tests with [pytest](https://pypi.org/project/pytest/), note that this will also create a coverage report via [pytest-cov](https://pypi.org/project/pytest-cov/) (summary on the command line, _htmlcov/index.html_ for details).
+   Depending on the kind of changes you made, there are some additional steps you should take to keep everything consistent:
+
+   - If you changed code in `visualize.py`, please regenerate the images and videos for the documentation with
+
+      ```shell
+      cd docs/
+      python create_visualizations.py
+      ```
+
+   - While modifing the markdown files `README.md` or `CONTRIBUTING.md`, you can get a preview in your browser with [grip](https://pypi.org/project/grip/):
+
+      ```shell
+      grip -b
+      ```
+
+      or for `CONTRIBUTING.md`:
+
+      ```shell
+      grip -b CONTRIBUTING.md
+      ```
+
+   - If you changed docstrings or documentation files, check that the documentation generates correctly via [tox](https://tox.readthedocs.io/en/latest/install.html):
+
+      ```shell
+      tox -e docs
+      ```
+
+      This will install [sphinx](https://pypi.org/project/Sphinx/) in its own environment and build the documentation in the _build/docs_ folder.
+
+   - If you want to run the tests against other versions of Python that you have installed, use [tox](https://tox.readthedocs.io/en/latest/install.html).
+     The command
+
+      ```shell
+      tox -l
+      ```
+
+      will list all Python versions that _billiards_ should be able to support.
+
+6. Commit your changes and push your branch to GitHub:
+
+   ```shell
+   git add .
+   git commit -m "Write a description of your changes"
+   git push origin <name-of-your-feature>
+   ```
+
    Helpful: [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/)
 
-8. Submit a pull request through the GitHub website.
+7. Submit a pull request through the GitHub website and I will have a look!
 
 
-### Pull Request Guidelines
 
-If you need some code review or feedback while you're developing the code just make the pull request.
+## Pull Request Guidelines
 
-For merging, you should:
-1. Include passing tests (run tox).
-2. Update the documentation if you extend the API or add functionality, etc.
-   If you add functions or classes use a docstring.
+If you need some code review or feedback while you're developing the code, just make the pull request.
+
+Before merging, you should:
+
+1. Include tests and make sure they pass (run _pytest_ or _tox_).
+2. Update the documentation if you extended the API or added functionality, etc.
+   If you added functions or classes write a docstring (use the [Google style](https://google.github.io/styleguide/pyguide.html), [example](https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html)).
 3. Add a note at the top of `CHANGELOG.md` about the changes.
 4. Add yourself to the _Author_ section in the `README.md` file.
 
 
-### Tips
 
-To run a subset of tests:
-```shell
-$ pytest tests.test_myfeature
-```
+## Notes for myself
 
-To view all tox environments:
-```shell
-$ tox -l
-```
+- Update the pre-commit hooks to their newest version:
 
-If you want to use only one of them:
-```shell
-$ tox -e codestyle
-```
+   ```shell
+   pre-commit autoupdate
+   ```
 
+- The configuration settings are in `pyproject.toml`, except for _flake8_ (because they don't support `pyproject.toml` yet, see `tox.ini` instead)
 
-## Notes for the Maintainer
+- The `Pipfile.lock` is not included in git because the [official recommendation](https://pipenv.pypa.io/en/latest/basics/#general-recommendations-version-control) is
+  > Do not keep `Pipfile.lock` in version control if multiple versions of Python are being targeted.
 
-- Create the `requirements_dev.txt` from the Pipfile with
+  And _billiards_ is intended more as a libary and less as an application.
+
+- Don't include _billiards_ in `requirements_dev.txt`, because _pip19.1_ [can't do editable installs with ``pyproject.toml`` files](https://github.com/pypa/pip/issues/6375) (the [recommended way](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode) is `$ python setup.py develop`).
+
+- I used [markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint) when writing the readme and this file.
+
+- To make a new release:
+  - Go to master branch
+  - Use [bump2version](https://pypi.org/project/bump2version/) to change the version number in the files:
+
   ```shell
-  $ pipenv lock --requirements --dev > requirements_dev.txt
+  bump2version minor
   ```
-  but delete the `.[visualize]` line because pip19.1 [can't do editable installs with ``pyproject.toml`` files](https://github.com/pypa/pip/issues/6375) (the [recommended way](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode) is `$ python setup.py develop`).
 
-- To make a new release, first create a release branch with git-flow:
-  ```shell
-  $ git flow release start <major.minor.patch>
-  ```
-  where the `major.minor.patch` version number is **one version higher** than the version in `setup.cfg`.
-  Make and comit some last changes if necessary, update `CHANGELOG.md` and close off the topmost section with `**v<major.minor.patch>**`.
-  Then use [bump2version](https://pypi.org/project/bump2version/) to change the version number in the files:
-  ```shell
-  $ bump2version minor
-  ```
   (alternative: `major` or `patch`).
-  Finish the release and push to Github:
+
+  - Update `CHANGELOG.md` and close off the topmost section with `**v<major.minor.patch>**`.
+
+  - Commit and push to Github:
+
   ```shell
-  $ git flow release finish <major.minor.patch>
+  git commit
   $ git push --tags
   ```
 
+- The _tox_ environment _metadata_ checks that the project can be correctly packaged, it runs [check-manifest](https://pypi.org/project/check-manifest/) (configuration settings in `tox.ini`) to make sure the important files are included.
+  Note that I haven't figured out a good way to put this package on [PyPi](https://pypi.org/) (yet).

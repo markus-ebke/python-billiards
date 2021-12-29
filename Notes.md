@@ -44,8 +44,9 @@ Reference: DynamicalBilliards.jl
 Ball state: use ball_initial_time: 1d array of floats, ball_initial_position: (n, 2)-array of positions, ball_initial_velocity: (n, 2)-array of velocities
 In Billiards._move use
     ball_position = ball_initial_position + ball_initial_velocity * (time - ball_initial_time)
-Advantage: better floating point accuraccy and maybe easier collision detection (not so many move-calls that update all balls)
+Advantage: better floating point accuraccy and faster collision detection (not so many move-calls that update all balls)
 Disadvantage: no inplace addition (maybe slower) and more elaborate calculation for dt (array multiply and array subtract with casting instead of array multiply with casting) which is probably slower
+Can we use multiprocessing Pool for calculating collision times?
 
 ## Gravity
 Make the balls fall "downwards" i.e.
@@ -53,8 +54,8 @@ Make the balls fall "downwards" i.e.
 - In Billiard._move:
     self.balls_position += self.balls_velocity * dt + self.gravity / 2 * dt**2
     self.balls_velocity += self.gravity * dt
-- Calculate time of impact for ball-ball collisions: don't change anything because all balls fall the same way (if we switch to frame of reference that accelerates with gravity, then the balls are not accelerated anymore. Thanks Einstein!)
-- Calculate time of impact for ball-obstacle collisions: I dont't know, it might be complicated since obstacles remain stationary
+- Calculate time of impact for ball-ball collisions: don't change anything because all balls fall at the same rate (if we switch to frame of reference that accelerates with gravity, then the balls are not accelerated anymore. Thanks Einstein!)
+- Calculate time of impact for ball-obstacle collisions: I dont't know, it might be complicated since obstacles remain stationary (i.e. accelerate in gravity-following frame of reference)
 
 ## (Sliding) Friction and/or drag
 Imagine that the balls roll on a flat horizontal table convert in cloth (this will be inconsistent with gravity but that's OK.)
@@ -92,4 +93,3 @@ sphinx-apidoc -f -o {toxinidir}/docs/api_reference {toxinidir}/src/billiards
 .. image:: https://travis-ci.org/borntyping/cookiecutter-pypackage-minimal.png
    :target: https://travis-ci.org/borntyping/cookiecutter-pypackage-minimal
    :alt: Latest Travis CI build status
-

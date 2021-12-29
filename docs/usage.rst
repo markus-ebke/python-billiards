@@ -35,4 +35,3 @@ Place 5 balls in a row and give the leftmost ball a push to the right:
     <source src="_static/newtons_cradle.mp4" type="video/mp4">
     Your browser does not support the video tag.
     </video>
-
