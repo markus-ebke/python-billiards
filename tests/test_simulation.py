@@ -9,6 +9,10 @@ INF = float("inf")
 np.seterr(divide="raise")  # use pytest.raises to catch them
 
 
+def table_tolist(toi_table):
+    return [row.tolist() for row in toi_table]
+
+
 def test_time():
     bld = Billiard()
 
@@ -101,7 +105,7 @@ def test_toi_structure():
         bld.add_ball((i, 0), (0, 1))
 
         assert len(bld.toi_table) == i + 1
-        assert len(bld.toi_table[i]) == i
+        assert bld.toi_table[i].size == i
 
         assert len(bld.toi_min) == i + 1
 
@@ -116,14 +120,14 @@ def test_toi_contents():
 
     # add one more ball on collision course
     bld.add_ball((4, 0), (-1, 0), 1)
-    assert bld.toi_table[1] == [2.0]
+    assert bld.toi_table[1].tolist() == [2.0]
     assert bld.toi_min[1] == (2.0, 0)
     assert bld.toi_next == (2.0, 0, 1)
 
     # add a third ball that collides earlier with the first one and then with
     # the second one
     bld.add_ball((0, 4), (0, -2), 1)
-    assert bld.toi_table[2] == [1.0, approx(2.0)]
+    assert bld.toi_table[2].tolist() == [1.0, approx(2.0)]
     assert bld.toi_min[2] == (1.0, 0)
     assert bld.toi_next == (1.0, 0, 2)
 
@@ -189,7 +193,7 @@ def test_newton_cradle():
     assert tuple(bld.balls_velocity[3]) == (0, 0)
 
     # there are no other collisions
-    assert bld.toi_table == [[], [INF], [INF, INF], [INF, INF, INF]]
+    assert table_tolist(bld.toi_table) == [[], [INF], [INF, INF], [INF, INF, INF]]
     assert bld.toi_min == [(INF, -1), (INF, 0), (INF, 0), (INF, 0)]
     assert bld.toi_next == (INF, -1, 0)
 
@@ -201,28 +205,28 @@ def test_masses():
     bld.add_ball((-3, 0), (1, 0), 1, mass=0)  # massless
     bld.add_ball((0, 0), (0, 0), 1, mass=42)  # finite mass
     bld.add_ball((4, 0), (-1, 0), 1, mass=INF)  # infinite mass
-    assert bld.toi_table == [[], [1.0], [2.5, 2.0]]
+    assert table_tolist(bld.toi_table) == [[], [1.0], [2.5, 2.0]]
 
     bld.evolve(1.0)  # massless <-> finite mass collision
     assert tuple(bld.balls_position[0]) == (-2, 0)
     assert tuple(bld.balls_velocity[0]) == (-1, 0)
     assert tuple(bld.balls_position[1]) == (0, 0)
     assert tuple(bld.balls_velocity[1]) == (0, 0)
-    assert bld.toi_table == [[], [INF], [INF, 2.0]]
+    assert table_tolist(bld.toi_table) == [[], [INF], [INF, 2.0]]
 
     bld.evolve(2.0)  # finite mass <-> infinite mass collision
     assert tuple(bld.balls_position[1]) == (0, 0)
     assert tuple(bld.balls_velocity[1]) == (-2, 0)
     assert tuple(bld.balls_position[2]) == (2, 0)
     assert tuple(bld.balls_velocity[2]) == (-1, 0)
-    assert bld.toi_table == [[], [3.0], [INF, INF]]
+    assert table_tolist(bld.toi_table) == [[], [3.0], [INF, INF]]
 
     bld.evolve(3.0)  # again massless <-> finite mass collision
     assert tuple(bld.balls_position[0]) == (-4, 0)
     assert tuple(bld.balls_velocity[0]) == (-3, 0)
     assert tuple(bld.balls_position[1]) == (-2, 0)
     assert tuple(bld.balls_velocity[1]) == (-2, 0)
-    assert bld.toi_table == [[], [INF], [INF, INF]]
+    assert table_tolist(bld.toi_table) == [[], [INF], [INF, INF]]
 
 
 def test_exceptional_balls():
@@ -231,13 +235,13 @@ def test_exceptional_balls():
     # setup two point particles
     bld.add_ball((-3, 0), (1, 0), 0, mass=0)  # note: massless
     bld.add_ball((-2, 0), (0, 0), 0, mass=42)
-    assert bld.toi_table == [[], [INF]]  # no collision
+    assert table_tolist(bld.toi_table) == [[], [INF]]  # no collision
 
     # setup two balls with infinite masses
     bld.add_ball((0, 0), (0, 0), 1, mass=INF)
     bld.add_ball((100, 0), (-20, 0), 1, mass=INF)
-    assert bld.toi_table[2] == [2.0, INF]
-    assert bld.toi_table[3] == [
+    assert bld.toi_table[2].tolist() == [2.0, INF]
+    assert bld.toi_table[3].tolist() == [
         approx(102 / 21),
         approx(101 / 20),
         approx(98 / 20),
@@ -250,8 +254,8 @@ def test_exceptional_balls():
     assert tuple(bld.balls_velocity[0]) == (-1, 0)
     assert tuple(bld.balls_position[2]) == (0, 0)
     assert tuple(bld.balls_velocity[2]) == (0, 0)
-    assert bld.toi_table[:3] == [[], [INF], [INF, INF]]
-    assert bld.toi_table[3] == [
+    assert table_tolist(bld.toi_table[:3]) == [[], [INF], [INF, INF]]
+    assert bld.toi_table[3].tolist() == [
         approx(98 / 19),
         approx(101 / 20),
         approx(98 / 20),
@@ -264,14 +268,14 @@ def test_exceptional_balls():
     assert tuple(bld.balls_velocity[2]) == (0, 0)
     assert tuple(bld.balls_position[3]) == (approx(2 + 0.1 * 20), 0)
     assert tuple(bld.balls_velocity[3]) == (20, 0)
-    assert bld.toi_table[3] == [INF, INF, INF]
+    assert bld.toi_table[3].tolist() == [INF, INF, INF]
 
     assert tuple(bld.balls_position[0]) == (-4, 0)
     assert tuple(bld.balls_velocity[0]) == (-1, 0)
 
     # add one more massless ball that collides with the first one
     bld.add_ball((-6, 0), (0, 0), 1, mass=0)
-    assert bld.toi_table[4] == [approx(6.0), INF, INF, INF]
+    assert bld.toi_table[4].tolist() == [approx(6.0), INF, INF, INF]
     assert bld.toi_next == (approx(6.0), 0, 4)
 
     # collisions of two massless balls do not make sense

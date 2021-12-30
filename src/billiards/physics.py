@@ -30,13 +30,13 @@ def time_of_impact(pos1, vel1, radius1, pos2, vel2, radius2, t_eps=1e-10):
     pos_diff = np.subtract(pos2, pos1)
     vel_diff = np.subtract(vel2, vel1)
 
-    pos_dot_vel = np.dot(pos_diff, vel_diff)
+    pos_dot_vel = pos_diff.dot(vel_diff)
     if pos_dot_vel >= 0:
         # balls are moving apart, no impact
         return INF
 
-    pos_sqrd = np.dot(pos_diff, pos_diff)
-    vel_sqrd = np.dot(vel_diff, vel_diff)  # note: vel_sqrd != 0
+    pos_sqrd = pos_diff.dot(pos_diff)
+    vel_sqrd = vel_diff.dot(vel_diff)  # note: vel_sqrd != 0
     assert vel_sqrd > 0, vel_sqrd
 
     # time of impact is given as the solution of the quadratic equation
@@ -84,10 +84,10 @@ def elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2):
     pos_diff = np.subtract(pos2, pos1)
     vel_diff = np.subtract(vel2, vel1)
 
-    pos_dot_vel = np.dot(pos_diff, vel_diff)
+    pos_dot_vel = pos_diff.dot(vel_diff)
     assert pos_dot_vel < 0  # colliding balls do not move apart
 
-    dist_sqrd = np.dot(pos_diff, pos_diff)
+    dist_sqrd = pos_diff.dot(pos_diff)
 
     bla = 2 * (pos_dot_vel * pos_diff) / ((mass1 + mass2) * dist_sqrd)
     vel1 += mass2 * bla

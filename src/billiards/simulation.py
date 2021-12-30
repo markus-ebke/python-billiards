@@ -30,7 +30,7 @@ class Billiard:
         balls_velocity: List of 2D velocities of the balls.
         balls_radius: List of numbers that represent the radii of the balls.
         balls_mass: List of numbers that represent the masses of the balls.
-        toi_table: Lower-triangular matrix (= nested lists) of time of impacts.
+        toi_table: Lower-triangular matrix (= list of np.array) of time of impacts.
         toi_min: List of time-index pairs of the next collision for each ball.
         toi_next: Time-index-index triple for the next collision.
         obstacles: List of obstacles on the table.
@@ -115,12 +115,16 @@ class Billiard:
         idx = self.num - 1  # last added ball is at the end
 
         # calculate next time of impact
-        row = [self.calc_toi(j, idx) for j in range(idx)]
+        row_gen = (self.calc_toi(j, idx) for j in range(idx))
+        row = np.fromiter(row_gen, dtype=np.float64)
         self.toi_table.append(row)
 
-        toi_pairs = ((t, j) for (j, t) in enumerate(row))
-        toi_idx = min(toi_pairs, default=(INF, -1))
-        self.toi_min.append(toi_idx)
+        if row.size > 0:
+            toi_idx = row.argmin()
+            self.toi_min.append((row[toi_idx], toi_idx))
+        else:
+            # only one ball in the scene => no collisions with other balls
+            self.toi_min.append((INF, -1))  # use invalid index
 
         self.toi_next = min((t, j, i) for i, (t, j) in enumerate(self.toi_min))
 
@@ -290,13 +294,13 @@ class Billiard:
             self.toi_table[i][idx1] = self.calc_toi(i, idx1)
             self.toi_table[i][idx2] = self.calc_toi(i, idx2)
 
-        # update toi_min
-        for i in range(idx1, self.num):
+        # update toi_min, we skip i = 0 because self.toi_min[0] is always (INF, -1)
+        for i in range(idx1 if idx1 > 0 else 1, self.num):
             row = self.toi_table[i]
-            toi_pairs = ((t, j) for (j, t) in enumerate(row))
-            toi_idx = min(toi_pairs, default=(INF, -1))
-            self.toi_min[i] = toi_idx
+            toi_idx = row.argmin()
+            self.toi_min[i] = (row[toi_idx], toi_idx)
 
+        assert self.toi_min[0] == (INF, -1)  # first entry always invalid
         self.toi_next = min((t, i, j) for j, (t, i) in enumerate(self.toi_min))
 
         # update time of impact for the next ball-obstacle collision
@@ -332,13 +336,13 @@ class Billiard:
         for i in range(idx + 1, self.num):
             self.toi_table[i][idx] = self.calc_toi(i, idx)
 
-        # update toi_min
-        for i in range(idx, self.num):
+        # update toi_min, we skip i = 0 because self.toi_min[0] is always (INF, -1)
+        for i in range(idx if idx > 0 else 1, self.num):
             row = self.toi_table[i]
-            toi_pairs = ((t, j) for (j, t) in enumerate(row))
-            toi_idx = min(toi_pairs, default=(INF, -1))
-            self.toi_min[i] = toi_idx
+            toi_idx = row.argmin()
+            self.toi_min[i] = (row[toi_idx], toi_idx)
 
+        assert self.toi_min[0] == (INF, -1)  # first entry always invalid
         self.toi_next = min((t, i, j) for j, (t, i) in enumerate(self.toi_min))
 
         # update time of impact for the next ball-obstacle collision

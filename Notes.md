@@ -7,8 +7,6 @@ flake8-typing-imports(?)
 https://www.bernat.tech/the-state-of-type-hints-in-python/
 
 ## Improve documentation
-- More details in the module docstrings
-- Every module on its own page
 - spellchecker? (sphinxcontrib.spelling is deprecated, but see cookiecutter-pylibrary for setup)
 - Upload documentation to ReadTheDocs and extend README.md with badges and link to documentation
 
@@ -38,14 +36,6 @@ Reference: DynamicalBilliards.jl
 - Rectangle, polygon (built from finite lines)
 - Semicircle, Ellipse
 - Quick access to standard billiard shapes (rectangle, stadium, ...)?
-
-## Redesign ball updates
-Ball state: use ball_initial_time: 1d array of floats, ball_initial_position: (n, 2)-array of positions, ball_initial_velocity: (n, 2)-array of velocities
-In Billiards._move use
-    ball_position = ball_initial_position + ball_initial_velocity * (time - ball_initial_time)
-Advantage: better floating point accuraccy and faster collision detection (not so many move-calls that update all balls)
-Disadvantage: no inplace addition (maybe slower) and more elaborate calculation for dt (array multiply and array subtract with casting instead of array multiply with casting) which is probably slower
-Can we use multiprocessing Pool for calculating collision times?
 
 ## Gravity
 Make the balls fall "downwards" i.e.
