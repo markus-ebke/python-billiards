@@ -16,7 +16,7 @@ from billiards import Billiard
 from billiards.obstacles import InfiniteWall
 
 # global settings
-num_balls = 500  # increase this if your computer can handle it
+num_balls = 1000  # increase this if your computer can handle it
 random.seed(0)  # fix random state for reproducibility
 
 # setup the billiard table

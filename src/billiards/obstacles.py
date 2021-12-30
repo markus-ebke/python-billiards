@@ -211,10 +211,7 @@ class InfiniteWall(Obstacle):
 
     def plot(self, ax, color, **kwargs):
         """Draw the wall onto the given matplotlib axes."""
-        sx, sy = self.start_point
-        ex, ey = self.end_point
-
-        ax.plot([sx, ex], [sy, ey], color=color, **kwargs)
+        ax.axline(self.start_point, self.end_point, color=color, **kwargs)
 
     def model(self):  # pragma: no cover
         """Vertices, indices and drawing mode for OpenGL drawing the wall."""

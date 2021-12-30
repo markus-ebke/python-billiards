@@ -35,7 +35,7 @@ for i in range(5):
 bld.add_ball((0.25 * length, width / 2), (length / 3, 0), radius)
 
 # start the animation
-anim = billiards.visualize.animate(bld, end_time=10)
+anim = billiards.visualize.animate(bld, end_time=30)
 anim._fig.set_size_inches((10, 5.5))
 # anim.save("pool.mp4")
 plt.show()
