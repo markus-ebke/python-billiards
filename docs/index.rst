@@ -33,6 +33,7 @@ Features
 
    installation
    usage
+   examples
 
 .. toctree::
    :maxdepth: 2

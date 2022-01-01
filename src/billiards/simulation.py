@@ -3,6 +3,7 @@
 Use it like::
 
     from billiard import Billiard
+
 """
 from math import isinf
 
@@ -241,7 +242,9 @@ class Billiard:
         Returns:
             list: List of collisions, each item is a (float, int, int)-triplet
             where the first number is the time of impact and the next two
-            integers are the indices of the balls that collided.
+            integers are the indices of the balls that collided. If a ball
+            collided with an obstacle, the obstacle is returned as the third
+            element.
 
         """
         collisions = []

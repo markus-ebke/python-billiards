@@ -18,7 +18,7 @@ https://packaging.python.org/guides/making-a-pypi-friendly-readme#validating-res
 - Animate: draw path taken by balls? (pictures will get messy quickly)
 - Improve CircleCollection.datalim (somehow rendering and get_path_collection_extents don't do the same thing with transform, transData and transOffset)
 
-## More versatile visualize.interact
+## More versatile `visualize.interact`
 - Use mouse scroll wheel for zooming
 - Draw balls as solid disks, use colors like matplotlib (but for dark mode?)
 - Show/hide velocities as arrows starting at the balls center
@@ -36,6 +36,7 @@ Reference: DynamicalBilliards.jl
 - Rectangle, polygon (built from finite lines)
 - Semicircle, Ellipse
 - Quick access to standard billiard shapes (rectangle, stadium, ...)?
+- In README.md write "Static obstacles to construct billiard tables with arbitrary shapes"
 
 ## Gravity
 Make the balls fall "downwards" i.e.
@@ -53,6 +54,25 @@ We need to integrate a = mu to find the trajectory of the ball until it stops (t
 Drag is a force similar to friction, but F is proportional to velocity^2 * size of ball, this is more complicated to integrate.
 We can still use time of impact calculation, but we need to take care of the reparameterisation.
 
+## Resetable simulation
+When making a change to `bld.balls_position` or `bld.balls_velocity`, recompute toi tables (and reset bld.time to zero?)
+
+## Use logging instead of print
+When importing visualize without matplotlib/pyglet installed, print the error message with
+```
+import logging
+logging.warning("error message")
+```
+
+## Profile and speedup ball-obstacle toi calculation
+Replace Billiard.toi_obstacle with two numpy arrays: one for time of impact and one for index of obstacle.
+The benefit of numpy.ndarray for time of impact is that ndarray.argmin is faster than what we are doing now.
+
+## Rethink return values
+- `Billiard.add_ball` doesn't need to return the ball index, because it is always `Billiard.num - 1`
+- For consistency `Billiard.bounce_ballobstacle` should return (time, index-of-ball, index-of-obstacle)-triplets, then in `Billiard.evolve` we shift the obstacle index by `Billiard.num`.
+  Then the returned list items are always (float, int, int)-triplets, but it is still clear when we handled a ball-obstacle collision.
+
 
 
 # Notes about Stuff
@@ -63,6 +83,8 @@ Obstacles always have an inside and an outside, collision happens only when a ba
 Docstring style: https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html#example-google
 Billiards in Julia: https://juliadynamics.github.io/DynamicalBilliards.jl/dev/
 Collision handling: https://en.wikipedia.org/wiki/Elastic_collision#Two-dimensional_collision_with_two_moving_objects
+Use pipenv with tox? https://pipenv.pypa.io/en/latest/advanced/#tox-automation-project
+Add "allow_dirty = True" to bumpversion config?
 
 https://jeffknupp.com/blog/2013/08/16/open-sourcing-a-python-project-the-right-way/
 https://dbader.org/blog/write-a-great-readme-for-your-github-project
@@ -72,6 +94,7 @@ Makefile instead of tox: see cookiecutter-pypackage
 ## Unused commands
 python3 setup.py sdist bdist_wheel
 sphinx-apidoc -f -o {toxinidir}/docs/api_reference {toxinidir}/src/billiards
+pandoc README.md --from markdown --to rst -s -o README.rst
 
 
 ## Badges in Readme
