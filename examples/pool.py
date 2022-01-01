@@ -10,18 +10,17 @@ from math import sqrt
 import matplotlib.pyplot as plt
 
 import billiards
-from billiards import Billiard
-from billiards.obstacles import InfiniteWall
+from billiards import visualize
 
 # setup the billiard table
 width, length = 112, 224
 bounds = [
-    InfiniteWall((0, 0), (length, 0)),  # bottom side
-    InfiniteWall((length, 0), (length, width)),  # right side
-    InfiniteWall((length, width), (0, width)),  # top side
-    InfiniteWall((0, width), (0, 0)),  # left side
+    billiards.InfiniteWall((0, 0), (length, 0)),  # bottom side
+    billiards.InfiniteWall((length, 0), (length, width)),  # right side
+    billiards.InfiniteWall((length, width), (0, width)),  # top side
+    billiards.InfiniteWall((0, width), (0, 0)),  # left side
 ]
-bld = Billiard(obstacles=bounds)
+bld = billiards.Billiard(obstacles=bounds)
 
 # arrange the balls in a pyramid shape
 radius = 2.85
@@ -35,7 +34,7 @@ for i in range(5):
 bld.add_ball((0.25 * length, width / 2), (length / 3, 0), radius)
 
 # start the animation
-anim = billiards.visualize.animate(bld, end_time=30)
+anim = visualize.animate(bld, end_time=30)
 anim._fig.set_size_inches((10, 5.5))
 # anim.save("pool.mp4")
 plt.show()

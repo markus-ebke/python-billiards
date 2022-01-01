@@ -2,7 +2,8 @@
 
 With matplotlib (assuming ``bld`` is an instance of the ``Billiard`` class)::
 
-    import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt  # for plt.show()
+    from billiards import visualize
 
     # show billiard balls, indicate their velocity with arrows and draw obstacles
     billiards.visualize.plot(bld)

@@ -10,8 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import billiards
-from billiards import Billiard
-from billiards.obstacles import Disk, InfiniteWall
+from billiards import visualize
 
 # global settings
 disk_radius = 0.5  # radius of the disk in the middle
@@ -20,13 +19,13 @@ np.random.seed(0)  # fix random state for reproducibility
 
 # construct the billiard table
 obs = [
-    InfiniteWall((-1, -1), (1, -1)),  # bottom side
-    InfiniteWall((1, -1), (1, 1)),  # right side
-    InfiniteWall((1, 1), (-1, 1)),  # top side
-    InfiniteWall((-1, 1), (-1, -1)),  # left side
-    Disk((0, 0), radius=disk_radius),  # disk in the middle
+    billiards.InfiniteWall((-1, -1), (1, -1)),  # bottom side
+    billiards.InfiniteWall((1, -1), (1, 1)),  # right side
+    billiards.InfiniteWall((1, 1), (-1, 1)),  # top side
+    billiards.InfiniteWall((-1, 1), (-1, -1)),  # left side
+    billiards.Disk((0, 0), radius=disk_radius),  # disk in the middle
 ]
-bld = Billiard(obstacles=obs)
+bld = billiards.Billiard(obstacles=obs)
 
 # distribute particles uniformly in the square, moving in random directions but
 # with the same speed
@@ -40,7 +39,7 @@ for _i in range(num_balls):
 bld.balls_velocity /= 5  # slow down
 
 # start the animation
-anim = billiards.visualize.animate(bld, end_time=10)
+anim = visualize.animate(bld, end_time=10)
 anim._fig.set_size_inches((6, 6))
 # anim.save("sinai_billiard.mp4")
 plt.show()

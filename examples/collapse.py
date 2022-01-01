@@ -4,14 +4,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import billiards
-from billiards import Billiard
+from billiards import visualize
 
 # global settings
 num_balls = 200  # increase this if your computer can handle it
 np.random.seed(0)  # fix random state for reproducibility
 
-# setup the billiard table
-bld = Billiard()
+# setup an empty billiard table
+bld = billiards.Billiard()
 
 # add random balls
 for _i in range(num_balls):
@@ -24,7 +24,7 @@ for _i in range(num_balls):
     idx = bld.add_ball(pos, vel, radius=1)
 
 # start the animation, but zoom into the origin to see the cloud colliding
-anim = billiards.visualize.animate(bld, end_time=15)
+anim = visualize.animate(bld, end_time=15)
 ax = anim._fig.gca()
 ax.set_xlim(-40, 40)
 ax.set_ylim(-40, 40)

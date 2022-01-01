@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Static obstacles on the billiard table."""
+"""Static obstacles on the billiard table.
+
+You can import the obstacles from the top-level module::
+
+    from billiard import Disk, InfiniteWall
+
+"""
 import numpy as np
 
 from .physics import INF, elastic_collision, time_of_impact
