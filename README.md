@@ -2,134 +2,174 @@
 
 > A 2D physics engine for simulating dynamical billiards
 
-_billiards_ is a python library that implements a very simple physics engine:
-It simulates the movement of hard, disk-shaped particles in a two-dimensional world filled with static obstacles.
+**billiards** is a python library that implements a very simple physics engine:
+It simulates the movement and elastic collisions of hard, disk-shaped particles in a two-dimensional world.
 
 
 
 ## Features
 
-- Collision detection with time-of-impact calculation. No reliance on time steps, no tunneling of high-speed bullets!
-- Quick state updates thanks to [numpy](https://numpy.org/), especially if there are no collisions between the given start and end times.
+- Collisions are found and resolved *exactly*. No reliance on time steps, no tunneling of high-speed bullets!
+- Quick state updates thanks to [numpy](https://numpy.org), especially if there are no collisions between the given start and end times.
 - Static obstacles to construct a proper billiard table.
 - Balls with zero radii behave like point particles, useful for simulating [dynamical billiards](https://en.wikipedia.org/wiki/Dynamical_billiards) (although this library is not optimized for point particles).
-- Optional features: plotting and animation with [matplotlib](https://matplotlib.org/), interaction with [pyglet](https://pyglet.org/).
+- Optional features: plotting and animation with [matplotlib](https://matplotlib.org), interaction with [pyglet](http://pyglet.org).
 - Free software: GPLv3+ license.
 
 
 
-## Quickstart
+## Installation
 
-Clone the repository from GitHub and install the package (requires _numpy_ and, for visualization, _matplotlib_ and _pyglet_):
+**billiards** depends on [numpy](https://numpy.org).
+Additionally, billiard systems can be visualized with [matplotlib](https://matplotlib.org) and [pyglet](http://pyglet.org) (and [tqdm](https://tqdm.github.io) to display progress in `visualize.animate`).
+But this feature is optional.
+
+Clone the repository from GitHub and install the package:
 
 ```shell
 git clone https://github.com/markus-ebke/python-billiards.git
 pip install .[visualize]
 ```
 
-Import the library and setup an empty billiard table:
+
+
+## Usage
+
+All important classes (the billiard simulation and obstacles) are accessible from the top-level module.
+The visualization module must be imported separately and tries to load *matplotlib*, *tqdm* and *pyglet*.
 
 ```pycon
->>> import billiards
->>> bld = billiards.Billiard()
-
+>>> import billiards  # access to Billiard, Disk and InfiniteWall
+>>> from billiards import visualize  # for plot, animate and interact
+>>> import matplotlib.pyplot as plt  # for plt.show()
 ```
 
-Add one ball at position (2, 0) with velocity (4, 0):
+Let's compute the first few digits of π using a billiard simulation following the setup of Gregory Galperin.
+We need a billiard table with a vertical wall and two balls:
 
 ```pycon
->>> idx = bld.add_ball((2, 0), (4, 0), radius=1)
->>> print(idx)
+>>> obstacles = [billiards.obstacles.InfiniteWall((0, -1), (0, 1), inside="right")]
+>>> bld = billiards.Billiard(obstacles)
+>>> bld.add_ball((3, 0), (0, 0), radius=0.2, mass=1)  # returns index of new ball
 0
-
-```
-
-The `add_ball` method will return an index that we can use later to retrieve the data of this ball from the simulation.
-To see where the ball is at time = 10 units:
-
-```pycon
->>> bld.evolve(end_time=10.0)
-[]
->>> print("({}, {})".format(*bld.balls_position[idx]))
-(42.0, 0.0)
->>> print("({}, {})".format(*bld.balls_velocity[idx]))
-(4.0, 0.0)
->>> import matplotlib.pyplot as plt
->>> billiards.visualize.plot(bld)
-<Figure size 800x600 with 1 Axes>
->>> plt.show()
-```
-
-![One ball](docs/_images/quickstart_1.svg)
-
-Now add another ball in a collision course:
-
-```pycon
->>> bld.add_ball((50, 18), (0, -9), radius=1, mass=2)
+>>> bld.add_ball((6, 0), (-1, 0), radius=1, mass=100 ** 5)
 1
->>> print("t={:.7}, idx1={}, idx2={}".format(*bld.toi_next))
-t=11.79693, idx1=0, idx2=1
 ```
 
-![Two balls before a collision](docs/_images/quickstart_2.svg)
-
-The collision happens around t=11.8, let's see how the scene looks later:
+Using the _visualize_ module, let's see how this initial state looks:
 
 ```pycon
->>> bld.evolve(14.0)
-[(11.796930766973276, 0, 1)]
->>> print(bld.time)
-14.0
->>> print(bld.balls_position)
-[[ 46.25029742 -26.4368308 ]
- [ 55.87485129  -4.7815846 ]]
->>> print(bld.balls_velocity)
-[[ -1.33333333 -12.        ]
- [  2.66666667  -3.        ]]
->>> billiards.visualize.plot(bld)
+>>> visualize.plot(bld)
 <Figure size 800x600 with 1 Axes>
 >>> plt.show()
 ```
 
-![Two balls after the collision](docs/_images/quickstart_3.svg)
+![Initial state of Galperin's billiard](docs/_images/quickstart_1.svg)
 
-The collision changed the direction of both balls!
-Note that the upper ball is heavier and faster, so both balls are moving down now.
-The collision is elastic, i.e. it preserves the total kinetic energy:
+
+The _Billiard.evolve_ method simulates our billiard system from _bld.time_ until a given end time.
+It returns a list of collisions (ball-ball and ball-obstacle collisions).
 
 ```pycon
->>> (1 * 4.0**2) / 2 + (2 * (-9.0)**2) / 2  # kinetic energy = m v^2 / 2
-89.0
->>> v_squared = (bld.balls_velocity**2).sum(axis=1)
->>> (bld.balls_mass * v_squared).sum() / 2  # kinetic energy now
-89.0
+>>> bld.toi_next  # next ball-ball collision, its a (time, index, index)-triplet
+(1.8000000000000005, 0, 1)
+>>> total_collisions = 0
+>>> for i in [1, 2, 3, 4, 5]:
+...     total_collisions += len(bld.evolve(i))
+...     print(f"Until t = {bld.time}: {total_collisions} collisions")
+Until t = 1: 0 collisions
+Until t = 2: 1 collisions
+Until t = 3: 1 collisions
+Until t = 4: 4 collisions
+Until t = 5: 314152 collisions
 ```
 
-## Examples
+The first collision happened at time t = 1.8.
+Until t = 4 there were only 4 collisions, but then between t = 4 and t = 5 there were several thousands.
+Let's see how the situation looks now:
+
+```pycon
+>>> bld.time  # current time
+5
+>>> visualize.plot(bld)
+<Figure size 800x600 with 1 Axes>
+>>> plt.show()
+```
+
+![State at time t = 5](docs/_images/quickstart_2.svg)
+
+
+Let's advance the simulation to t = 16.
+As we can check, there won't be any other collisions after this time:
+
+```pycon
+>>> total_collisions += len(bld.evolve(16))
+>>> bld.balls_velocity  # nx2 numpy array where n is the number of balls
+array([[0.73463055, 0.        ],
+       [1.        , 0.        ]])
+>>> bld.toi_next  # next ball-ball collision
+(inf, -1, 0)
+>>> bld.obstacles_next  # next ball-obstacle collision
+(inf, 0, None)
+>>> visualize.plot(bld)
+<Figure size 800x600 with 1 Axes>
+>>> plt.show()
+```
+
+![State at time t = 16](docs/_images/quickstart_3.svg)
+
+
+Both balls are moving towards infinity, the smaller ball to slow to catch the larger one.
+What is the total number of collisions?
+
+```pycon
+>>> total_collisions
+314159
+>>> import math
+>>> math.pi
+3.141592653589793
+```
+
+The first six digits match!
+For an explanation why this happens, see Galperin's paper [Playing pool with π (the number π from a billiard point of view)](https://www.maths.tcd.ie/~lebed/Galperin.%20Playing%20pool%20with%20pi.pdf) or the series of youtube videos by [3Blue1Brown](https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw) starting with [The most unexpected answer to a counting puzzle](https://www.youtube.com/watch?v=HEfHFsfGXjs).
+
+Lastly, I want to point out that all collisions were elastic, i.e. they conserved the kinetic energy (within floating point accuracy):
+
+```pycon
+>>> 100 ** 5 * (-1) ** 2 / 2  # kinetic energy = m v^2 / 2 at the beginning
+5000000000.0
+>>> v_squared = (bld.balls_velocity ** 2).sum(axis=1)
+>>> (bld.balls_mass * v_squared).sum() / 2  # kinetic energy now
+4999999999.990375
+```
+
+The video [examples/pi_with_pool.mp4](examples/pi_with_pool.mp4) replays the whole billiard simulation (it was created using `visualize.animate`).
+
+
+
+## More Examples
 
 Setup:
 
 ```pycon
->>> from math import cos, pi, sin, sqrt
 >>> import matplotlib.pyplot as plt
->>> import numpy as np
 >>> import billiards
->>> from billiards.obstacle import Disk, InfiniteWall
+>>> from billiards import visualize
 ```
 
 
 
-### Pool
+### First shot in Pool (no friction)
 
 Construct the billiard table:
 
 ```pycon
 >>> width, length = 112, 224
 bounds = [
-    InfiniteWall((0, 0), (length, 0)),  # bottom side
-    InfiniteWall((length, 0), (length, width)),  # right side
-    InfiniteWall((length, width), (0, width)),  # top side
-    InfiniteWall((0, width), (0, 0))  # left side
+    billiards.InfiniteWall((0, 0), (length, 0)),  # bottom side
+    billiards.InfiniteWall((length, 0), (length, width)),  # right side
+    billiards.InfiniteWall((length, width), (0, width)),  # top side
+    billiards.InfiniteWall((0, width), (0, 0))  # left side
 ]
 bld = billiards.Billiard(obstacles=bounds)
 ```
@@ -137,6 +177,7 @@ bld = billiards.Billiard(obstacles=bounds)
 Arrange the balls in a pyramid shape:
 
 ```pycon
+>>> from math import sqrt
 >>> radius = 2.85
 >>> for i in range(5):
 >>>     for j in range(i + 1):
@@ -145,11 +186,11 @@ Arrange the balls in a pyramid shape:
 >>>         bld.add_ball((x, y), (0, 0), radius)
 ```
 
-Add the white ball and give it a push, then start the animation:
+Add the white ball and give it a push, then view the animation:
 
 ```pycon
 >>> bld.add_ball((0.25 * length, width / 2), (length / 3, 0), radius)
->>> anim = billiards.visualize.animate(bld, end_time=10)
+>>> anim = visualize.animate(bld, end_time=10)
 >>> anim._fig.set_size_inches((10, 5.5))
 >>> plt.show()
 ```
@@ -158,41 +199,64 @@ See [pool.mp4](./examples/pool.mp4)
 
 
 
-### Sinai billiard
+### Brownian motion
 
-Construct the billiard table: A square with a disk removed from its center.
+The billiard table is a square box:
 
 ```pycon
 >>> obs = [
->>>     InfiniteWall((-1, -1), (1, -1)),  # bottom side
->>>     InfiniteWall((1, -1), (1, 1)),  # right side
->>>     InfiniteWall((1, 1), (-1, 1)),  # top side
->>>     InfiniteWall((-1, 1), (-1, -1)),  # left side
->>>     billiards.obstacles.Disk((0, 0), radius=0.5)  # disk in the middle
+>>>     billiards.InfiniteWall((-1, -1), (1, -1)),  # bottom side
+>>>     billiards.InfiniteWall((1, -1), (1, 1)),  # right side
+>>>     billiards.InfiniteWall((1, 1), (-1, 1)),  # top side
+>>>     billiards.InfiniteWall((-1, 1), (-1, -1)),  # left side
+>>>     billiards.Disk((0, 0), radius=0.5)  # disk in the middle
 >>> ]
->>> bld = Billiard(obstacles=obs)
+>>> bld = billiards.Billiard(obstacles=obs)
 ```
 
-Distribute particles uniformly in the square, moving in random directions but with the same speed:
+Distribute small particles (atoms) uniformly in the square, moving in random directions but with the same speed:
 
 ```pycon
->>> for i in range(300):
->>>     pos = np.random.uniform((-1, -1), (1, 1))
->>>     angle = np.random.uniform(0, 2 * pi)
+>>> from math import cos, pi, sin
+>>> from random import uniform
+>>> for i in range(250):
+>>>     pos = [uniform(-1, 1), uniform(-1, 1)]
+>>>     angle = uniform(0, 2 * pi)
 >>>     vel = [cos(angle), sin(angle)]
->>>     bld.add_ball(pos, vel, radius=0)
->>> bld.balls_velocity /= 5  # slow down
+>>>     bld.add_ball(pos, vel, radius=0.01, mass=1)
 ```
 
-and watch the simulation
+Add a bigger ball (like a dust particle)
 
 ```pycon
->>> anim = billiards.visualize.animate(bld, end_time=20)
->>> anim._fig.set_size_inches((6, 6))
+bld.add_ball((0, 0), (0, 0), radius=0.1, mass=10)
+```
+
+and simulate until t = 50, recording the position of the bigger ball at each collision (this will take some time)
+
+```pycon
+>>> poslist = []
+>>> t_next = 0
+>>> while t_next < 50:
+>>>     bld.evolve(t_next)
+>>>     poslist.append(bld.balls_position[-1].copy())
+>>>     t_next = min(bld.toi_min[-1][0], bld.obstacles_toi[-1][0])
+>>> bld.evolve(50)
+>>> poslist.append(bld.balls_position[-1])
+```
+
+Plot the billiard and overlay the path of the particle
+
+```pycon
+>>> fig = visualize.plot(bld, velocity_arrow_factor=0)
+>>> fig.set_size_inches((7, 7))
+>>> ax = fig.gca()
+>>> poslist = np.asarray(poslist)
+>>> ax.plot(poslist[:, 0], poslist[:, 1], marker=".", color="red")
 >>> plt.show()
 ```
 
-See [sinai_billiard.mp4](./examples/sinai_billiard.mp4)
+![Brownian motion](docs/_images/brownian_motion.svg)
 
 
 

@@ -150,6 +150,12 @@ Before merging, you should:
 
 - I used [markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint) when writing the readme and this file.
 
+- Using pandoc, I converted the readme file to rst and copied some of the text to the documentation
+
+   ```shell
+   pandoc README.md --from markdown --to rst -s -o readme.rst
+   ```
+
 - Create docs manually (i.e. without tox):
 
    ```shell
