@@ -5,7 +5,7 @@ With matplotlib (assuming ``bld`` is an instance of the ``Billiard`` class)::
     import matplotlib.pyplot as plt  # for plt.show()
     from billiards import visualize
 
-    # show billiard balls, indicate their velocity with arrows and draw obstacles
+    # show billiard balls and indicate their velocity with arrows, draw obstacles
     billiards.visualize.plot(bld)
     plt.show()
 
@@ -22,8 +22,9 @@ With pyglet::
 
 Instructions are printed to the console window.
 """
+import warnings
+
 import numpy as np
-from tqdm import trange
 
 from .obstacles import circle_model
 
@@ -35,25 +36,33 @@ try:
     from matplotlib.artist import allow_rasterization
     from matplotlib.collections import Collection
 except ImportError:  # pragma: no cover
-    print("Don't use billiards.visualize.plot, matplotlib not imported.")
+    warnings.warn(
+        "Could not import matplotlib, "
+        "'visualize.plot' and 'visualize.animate' will not work."
+    )
+
+try:
+    from tqdm import trange
+except ImportError:  # pragma: no cover
+    trange = range
+    warnings.warn(
+        "Could not import tqdm, will not show progress in 'visualize.animate'."
+    )
 
 try:
     import pyglet
     from pyglet import gl
     from pyglet.window import Window, key
 except ImportError:  # pragma: no cover
-    print("Don't use billiards.visualize.interact, pyglet not imported.")
+    warnings.warn("Could not import pyglet, 'visualize.interact' will not work.")
 except Exception as ex:  # pragma: no cover
     # When testing with tox this happens:
     # pyglet.canvas.xlib.NoSuchDisplayException: Cannot connect to "None"
     # I don't know how to prevent it, except with this hacky except case
-    print(f"Something went wrong with pyglet: {type(ex).__name__}")
-    print(ex)  # print info
+    warnings.warn(
+        f"Imported pyglet, but then something went wrong: {type(ex).__name__}, {ex}"
+    )
     Window = object  # mock window
-
-
-# if the FuncAnimation object gets garbage collected, the animation stops
-REMEMBER_ANIM = None
 
 
 # don't use matplotlib.collections.CircleCollection because there the circle
@@ -326,7 +335,9 @@ def animate(
     Advance the simulation in timesteps of size 1/fps until bld.time equals
     end_time, in every iteration save a snapshot of the balls. A progressbar
     indicates how many frames must be computed. After the simulation is done,
-    the animation is returned as a matplotlib animation object.
+    the animation is returned as a matplotlib animation object. To play the
+    animation, assign it to a variable (to prevent it from garbage-collection)
+    and use matplotlib.pyplot.show().
 
     Args:
         bld: A billiard simulation.
@@ -354,7 +365,6 @@ def animate(
         anim.save("savename.mp4").
 
     """
-    global REMEMBER_ANIM
     start_time = bld.time
     frames = int(fps * (end_time - start_time)) + 1  # include end_time frame
 
@@ -422,7 +432,6 @@ def animate(
         fig, animate, frames, interval=1000 / fps, blit=True, init_func=init, **kwargs
     )
 
-    REMEMBER_ANIM = anim  # prevent garbage collection of anim object
     return anim
 
 

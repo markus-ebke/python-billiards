@@ -4,7 +4,9 @@ import pytest
 from pytest import approx
 
 import billiards
-from billiards import visualize
+
+with pytest.warns(UserWarning):
+    from billiards import visualize
 
 try:
     import matplotlib as mpl
