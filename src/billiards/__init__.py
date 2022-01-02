@@ -9,7 +9,7 @@ To use the visualize module, you need to import it separately::
     import billiard.visualize
 
 """
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 
 # Local
