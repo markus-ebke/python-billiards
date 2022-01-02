@@ -164,7 +164,21 @@ Before merging, you should:
    ```
 
 - To make a new release:
-  - Go to master branch
+  - Go to master branch:
+
+  ```shell
+  git checkout master
+  ```
+
+  - Merge develop branch into master:
+
+  ```shell
+  git merge develop
+  ```
+
+  - Update `CHANGELOG.md` and close off the topmost section with `**v<new_version>**`.
+
+  - Commit, message: `Updated CHANGELOG.md` or similar.
 
   - Use [bump2version](https://pypi.org/project/bump2version/) to change the version number in the files:
 
@@ -173,14 +187,19 @@ Before merging, you should:
   ```
 
   (alternative: `major` or `patch`).
+  This will create another commit and a tag with the new version number of the form `v<major.minor.patch>`.
 
-  - Update `CHANGELOG.md` and close off the topmost section with `**v<major.minor.patch>**`.
-
-  - Commit and push to Github:
+  - Push to Github:
 
   ```shell
   git commit
   $ git push --tags
+  ```
+
+  - Return to develop branch:
+
+  ```shell
+  git checkout develop
   ```
 
 - The *tox* environment *metadata* checks that the project can be correctly packaged, it runs [check-manifest](https://pypi.org/project/check-manifest/) (configuration settings in `tox.ini`) to make sure the important files are included.

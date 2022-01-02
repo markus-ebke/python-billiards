@@ -1,5 +1,6 @@
 # Changelog
 
+**v<new_version>**
 - Use numpy's `argmin`-function for finding next collision, billiards with many ball-ball collisions are now up to 3x faster!
 - Visualization improvements: Use progress bar in `animate`, scale/disable velocity indicators in `plot` and `animate`, plot `InfiniteWall` as an infinite line (duh! 🤦)
 - Rework documentation and include more examples: ideal gas in a box, compute pi from pool (now the standard example in README.md)

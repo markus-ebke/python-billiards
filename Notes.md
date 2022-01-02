@@ -84,7 +84,6 @@ The benefit of numpy.ndarray for time of impact is that ndarray.argmin is faster
 - Billiards in Julia: https://juliadynamics.github.io/DynamicalBilliards.jl/dev/
 - Collision handling: https://en.wikipedia.org/wiki/Elastic_collision#Two-dimensional_collision_with_two_moving_objects
 - Use pipenv with tox? https://pipenv.pypa.io/en/latest/advanced/#tox-automation-project
-- Add "allow_dirty = True" to bumpversion config?
 
 - https://jeffknupp.com/blog/2013/08/16/open-sourcing-a-python-project-the-right-way/
 - https://dbader.org/blog/write-a-great-readme-for-your-github-project
