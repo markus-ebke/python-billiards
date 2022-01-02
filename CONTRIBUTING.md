@@ -164,21 +164,17 @@ Before merging, you should:
    ```
 
 - To make a new release:
-  - Go to master branch:
+
+  - Update `CHANGELOG.md` and close off the topmost section with `**v<new_version>**` (write it exactly as stated here, later *bump2version* will replace `<new_version>` with the updated version number).
+
+  - Commit, message: `Updated CHANGELOG.md` or similar.
+
+  - Go to master branch and merge develop into master:
 
   ```shell
   git checkout master
-  ```
-
-  - Merge develop branch into master:
-
-  ```shell
   git merge develop
   ```
-
-  - Update `CHANGELOG.md` and close off the topmost section with `**v<new_version>**`.
-
-  - Commit, message: `Updated CHANGELOG.md` or similar.
 
   - Use [bump2version](https://pypi.org/project/bump2version/) to change the version number in the files:
 
