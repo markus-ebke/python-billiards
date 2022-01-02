@@ -75,29 +75,31 @@ The benefit of numpy.ndarray for time of impact is that ndarray.argmin is faster
 
 
 
-# Notes about Stuff
-Particles with no radius are point particles
-Particles with zero mass are massless and don't push others around
-Particles with infinite mass are not pushed around by other particles
-Obstacles always have an inside and an outside, collision happens only when a ball comes from the inside and moves towards the outside. This is because point particles on the obstacle
-Docstring style: https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html#example-google
-Billiards in Julia: https://juliadynamics.github.io/DynamicalBilliards.jl/dev/
-Collision handling: https://en.wikipedia.org/wiki/Elastic_collision#Two-dimensional_collision_with_two_moving_objects
-Use pipenv with tox? https://pipenv.pypa.io/en/latest/advanced/#tox-automation-project
-Add "allow_dirty = True" to bumpversion config?
+# Misc
+- Particles with no radius are point particles
+- Particles with zero mass are massless and don't push others around
+- Particles with infinite mass are not pushed around by other particles
+- Obstacles always have an inside and an outside, collision happens only when a ball comes from the inside and moves towards the outside. This is because point particles on the obstacle
+- Docstring style: https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html#example-google
+- Billiards in Julia: https://juliadynamics.github.io/DynamicalBilliards.jl/dev/
+- Collision handling: https://en.wikipedia.org/wiki/Elastic_collision#Two-dimensional_collision_with_two_moving_objects
+- Use pipenv with tox? https://pipenv.pypa.io/en/latest/advanced/#tox-automation-project
+- Add "allow_dirty = True" to bumpversion config?
 
-https://jeffknupp.com/blog/2013/08/16/open-sourcing-a-python-project-the-right-way/
-https://dbader.org/blog/write-a-great-readme-for-your-github-project
-CI: see cookiecutter-pylibrary
-Makefile instead of tox: see cookiecutter-pypackage
+- https://jeffknupp.com/blog/2013/08/16/open-sourcing-a-python-project-the-right-way/
+- https://dbader.org/blog/write-a-great-readme-for-your-github-project
+- CI: see cookiecutter-pylibrary
+- Makefile instead of tox: see cookiecutter-pypackage
 
 ## Unused commands
+```shell
 python3 setup.py sdist bdist_wheel
 sphinx-apidoc -f -o {toxinidir}/docs/api_reference {toxinidir}/src/billiards
 pandoc README.md --from markdown --to rst -s -o README.rst
+```
 
 
-## Badges in Readme
+## Badges in README.md
 .. image:: https://img.shields.io/pypi/v/billiards.svg
     :target: https://pypi.python.org/pypi/billiards
     :alt: Latest PyPI version
