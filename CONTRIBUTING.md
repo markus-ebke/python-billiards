@@ -192,14 +192,15 @@ Before merging, you should:
   - Push to Github:
 
   ```shell
-  git commit
-  $ git push --tags
+  git push --all
+  git push --tags
   ```
 
-  - Return to develop branch:
+  - Return to develop branch and merge master branch (to get current version number):
 
   ```shell
   git checkout develop
+  git merge master
   ```
 
 - The *tox* environment *metadata* checks that the project can be correctly packaged, it runs [check-manifest](https://pypi.org/project/check-manifest/) (configuration settings in `tox.ini`) to make sure the important files are included.
