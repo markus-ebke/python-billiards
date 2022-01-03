@@ -31,7 +31,7 @@ class Billiard:
         balls_velocity: List of 2D velocities of the balls.
         balls_radius: List of numbers that represent the radii of the balls.
         balls_mass: List of numbers that represent the masses of the balls.
-        toi_table: Lower-triangular matrix (= list of np.array) of time of impacts.
+        toi_table: Lower-triangular matrix (= list of np.ndarray) of time of impacts.
         toi_min: List of time-index pairs of the next collision for each ball.
         toi_next: Time-index-index triple for the next collision.
         obstacles: List of obstacles on the table.
@@ -65,7 +65,8 @@ class Billiard:
 
         # time of impact table for ball-ball collisions
         self.toi_table = []  # time of impact for each ball-ball pair
-        self.toi_min = []  # next time of impact for each ball
+        self.ball_toi = np.empty(shape=(0,), dtype=np.float64)
+        self.ball_idx = []
         self.toi_next = (INF, -1, 0)  # next ball-ball collision
 
         # check obstacles
@@ -78,7 +79,8 @@ class Billiard:
             self.obstacles.append(obs)
 
         # time of impact list for ball-obstacle collisions
-        self.obstacles_toi = []  # next time of impact for each ball
+        self.obstacles_toi = np.empty(shape=(0,), dtype=np.float64)
+        self.obstacles_obs = []  # next obstacle for each ball
         self.obstacles_next = (INF, -1, None)  # next ball-obstacle collision
 
     def add_ball(self, pos, vel, radius=0.0, mass=1.0):
@@ -116,23 +118,31 @@ class Billiard:
         idx = self.num - 1  # last added ball is at the end
 
         # calculate next time of impact
-        row_gen = (self.calc_toi(j, idx) for j in range(idx))
-        row = np.fromiter(row_gen, dtype=np.float64)
+        row_list = [self.calc_toi(j, idx) for j in range(idx)]
+        row = np.asarray(row_list, dtype=np.float64)  # new row in table is numpy array
         self.toi_table.append(row)
 
         if row.size > 0:
             toi_idx = row.argmin()
-            self.toi_min.append((row[toi_idx], toi_idx))
+            self.ball_toi = np.append(self.ball_toi, row[toi_idx])
+            self.ball_idx.append(toi_idx)
         else:
             # only one ball in the scene => no collisions with other balls
-            self.toi_min.append((INF, -1))  # use invalid index
+            self.ball_toi = np.append(self.ball_toi, INF)
+            self.ball_idx.append(-1)
 
-        self.toi_next = min((t, j, i) for i, (t, j) in enumerate(self.toi_min))
+        next_idx = self.ball_toi.argmin()
+        self.toi_next = (self.ball_toi[next_idx], self.ball_idx[next_idx], next_idx)
 
         # calculate time of impact for obstacles
-        self.obstacles_toi.append(self.calc_next_obstacle(idx))
-        self.obstacles_next = min(
-            (t, i, obs) for i, (t, obs) in enumerate(self.obstacles_toi)
+        t_min, obs_min = self.calc_next_obstacle(idx)
+        self.obstacles_toi = np.append(self.obstacles_toi, t_min)
+        self.obstacles_obs.append(obs_min)
+        ball_idx = self.obstacles_toi.argmin()
+        self.obstacles_next = (
+            self.obstacles_toi[ball_idx],
+            ball_idx,
+            self.obstacles_obs[ball_idx],
         )
 
         # sanity checks
@@ -141,7 +151,10 @@ class Billiard:
         assert len(self.balls_radius) == self.num
         assert len(self.balls_mass) == self.num
         assert len(self.toi_table) == self.num
-        assert len(self.obstacles_toi) == self.num
+        assert self.ball_toi.shape[0] == self.num
+        assert len(self.ball_idx) == self.num
+        assert self.obstacles_toi.shape[0] == self.num
+        assert len(self.obstacles_obs) == self.num
 
         return idx
 
@@ -275,7 +288,8 @@ class Billiard:
 
         # get the balls that collide
         assert idx1 < idx2, (idx1, idx2)
-        assert self.toi_min[idx2] == (t, idx1)
+        assert self.ball_toi[idx2] == t
+        assert self.ball_idx[idx2] == idx1
 
         # advance to the next collision and handle it
         self._move(t)
@@ -301,17 +315,27 @@ class Billiard:
         for i in range(idx1 if idx1 > 0 else 1, self.num):
             row = self.toi_table[i]
             toi_idx = row.argmin()
-            self.toi_min[i] = (row[toi_idx], toi_idx)
+            self.ball_toi[i] = row[toi_idx]
+            self.ball_idx[i] = toi_idx
 
-        assert self.toi_min[0] == (INF, -1)  # first entry always invalid
-        self.toi_next = min((t, i, j) for j, (t, i) in enumerate(self.toi_min))
+        assert self.ball_toi[0] == INF  # first entry always invalid
+        assert self.ball_idx[0] == -1
+        next_idx = self.ball_toi.argmin()
+        self.toi_next = (self.ball_toi[next_idx], self.ball_idx[next_idx], next_idx)
 
         # update time of impact for the next ball-obstacle collision
-        self.obstacles_toi[idx1] = self.calc_next_obstacle(idx1)
-        self.obstacles_toi[idx2] = self.calc_next_obstacle(idx2)
+        t_min, obs_min = self.calc_next_obstacle(idx1)
+        self.obstacles_toi[idx1] = t_min
+        self.obstacles_obs[idx1] = obs_min
+        t_min, obs_min = self.calc_next_obstacle(idx2)
+        self.obstacles_toi[idx2] = t_min
+        self.obstacles_obs[idx2] = obs_min
 
-        self.obstacles_next = min(
-            (t, i, obs) for i, (t, obs) in enumerate(self.obstacles_toi)
+        ball_idx = self.obstacles_toi.argmin()
+        self.obstacles_next = (
+            self.obstacles_toi[ball_idx],
+            ball_idx,
+            self.obstacles_obs[ball_idx],
         )
 
         return (t, idx1, idx2)
@@ -326,7 +350,8 @@ class Billiard:
 
         """
         t, idx, obs = self.obstacles_next
-        assert self.obstacles_toi[idx] == (t, obs)
+        assert self.obstacles_toi[idx] == t
+        assert self.obstacles_obs[idx] == obs
 
         # advance to the next collision and handle it
         self._move(t)
@@ -343,16 +368,24 @@ class Billiard:
         for i in range(idx if idx > 0 else 1, self.num):
             row = self.toi_table[i]
             toi_idx = row.argmin()
-            self.toi_min[i] = (row[toi_idx], toi_idx)
+            self.ball_toi[i] = row[toi_idx]
+            self.ball_idx[i] = toi_idx
 
-        assert self.toi_min[0] == (INF, -1)  # first entry always invalid
-        self.toi_next = min((t, i, j) for j, (t, i) in enumerate(self.toi_min))
+        assert self.ball_toi[0] == INF  # first entry always invalid
+        assert self.ball_idx[0] == -1
+        next_idx = self.ball_toi.argmin()
+        self.toi_next = (self.ball_toi[next_idx], self.ball_idx[next_idx], next_idx)
 
         # update time of impact for the next ball-obstacle collision
-        self.obstacles_toi[idx] = self.calc_next_obstacle(idx)
+        t_min, obs_min = self.calc_next_obstacle(idx)
+        self.obstacles_toi[idx] = t_min
+        self.obstacles_obs[idx] = obs_min
 
-        self.obstacles_next = min(
-            (t, i, obs) for i, (t, obs) in enumerate(self.obstacles_toi)
+        ball_idx = self.obstacles_toi.argmin()
+        self.obstacles_next = (
+            self.obstacles_toi[ball_idx],
+            ball_idx,
+            self.obstacles_obs[ball_idx],
         )
 
         return (t, idx, obs)

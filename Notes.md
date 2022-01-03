@@ -57,17 +57,6 @@ We can still use time of impact calculation, but we need to take care of the rep
 ## Resetable simulation
 When making a change to `bld.balls_position` or `bld.balls_velocity`, recompute toi tables (and reset bld.time to zero?)
 
-## Use logging instead of print
-When importing visualize without matplotlib/pyglet installed, print the error message with
-```
-import logging
-logging.warning("error message")
-```
-
-## Profile and speedup ball-obstacle toi calculation
-Replace Billiard.toi_obstacle with two numpy arrays: one for time of impact and one for index of obstacle.
-The benefit of numpy.ndarray for time of impact is that ndarray.argmin is faster than what we are doing now.
-
 ## Rethink return values
 - `Billiard.add_ball` doesn't need to return the ball index, because it is always `Billiard.num - 1`
 - For consistency `Billiard.bounce_ballobstacle` should return (time, index-of-ball, index-of-obstacle)-triplets, then in `Billiard.evolve` we shift the obstacle index by `Billiard.num`.
