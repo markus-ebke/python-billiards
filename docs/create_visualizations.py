@@ -20,6 +20,7 @@ bld.add_ball((3, 0), (0, 0), radius=0.2)
 bld.add_ball((6, 0), (-1, 0), radius=1, mass=100 ** 5)
 fig = visualize.plot(bld)
 fig.savefig(here / "_images/quickstart_1.svg")
+# plt.show()
 
 v_squared = (bld.balls_velocity ** 2).sum(axis=1)
 print(f"Kinetic energy before: {(v_squared * bld.balls_mass).sum() / 2}")
@@ -35,6 +36,7 @@ for i in [1, 2, 3, 4, 5]:
 print(bld.time)
 fig = visualize.plot(bld)
 fig.savefig(here / "_images/quickstart_2.svg")
+# plt.show()
 
 print()
 
@@ -46,6 +48,7 @@ print(bld.next_ball_obstacle_collision)
 print(total_collisions)
 fig = visualize.plot(bld)
 fig.savefig(here / "_images/quickstart_3.svg")
+# plt.show()
 
 v_squared = (bld.balls_velocity ** 2).sum(axis=1)
 print(f"Kinetic energy after: {(v_squared * bld.balls_mass).sum() / 2}")
@@ -66,8 +69,8 @@ bld = billiards.Billiard(obstacles=bounds)
 # distribute small particles (atoms) uniformly in the square, moving in random
 # directions but with the same speed
 for _i in range(250):
-    pos = np.random.uniform((-0.99, -0.99), (0.99, 0.99))
-    angle = np.random.uniform(0, 2 * pi)
+    pos = [random.uniform(-0.99, 0.99), random.uniform(-0.99, 0.99)]
+    angle = random.uniform(0, 2 * pi)
     vel = [cos(angle), sin(angle)]
 
     bld.add_ball(pos, vel, radius=0.01, mass=1)
@@ -79,6 +82,8 @@ bld.add_ball((0, 0), (0, 0), radius=0.1, mass=10)
 end_time = 50
 poslist = []
 t_next = 0
+# anim = visualize.animate(bld, end_time, velocity_arrow_factor=0)
+# plt.show()
 with tqdm(total=end_time) as pbar:
     while t_next < end_time:
         t_prev = t_next
@@ -96,7 +101,6 @@ ax = fig.gca()
 poslist = np.asarray(poslist)
 ax.plot(poslist[:, 0], poslist[:, 1], marker=".", color="red")
 plt.savefig(here / "_images/brownian_motion.svg")
-
 # plt.show()
 
 
