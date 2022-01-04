@@ -27,7 +27,7 @@ print(f"Kinetic energy before: {(v_squared * bld.balls_mass).sum() / 2}")
 print()
 
 # Quickstart - Iteration
-print(bld.toi_next)
+print(bld.next_collision)
 total_collisions = 0
 for i in [1, 2, 3, 4, 5]:
     total_collisions += len(bld.evolve(i))
@@ -41,8 +41,8 @@ print()
 # Quickstart - End Result
 total_collisions += len(bld.evolve(16))
 print(bld.balls_velocity)
-print(bld.toi_next)
-print(bld.obstacles_next)
+print(bld.next_ball_ball_collision)
+print(bld.next_ball_obstacle_collision)
 print(total_collisions)
 fig = visualize.plot(bld)
 fig.savefig(here / "_images/quickstart_3.svg")
@@ -84,7 +84,7 @@ with tqdm(total=end_time) as pbar:
         t_prev = t_next
         bld.evolve(t_next)
         poslist.append(bld.balls_position[-1].copy())
-        t_next = min(bld.toi_min[-1][0], bld.obstacles_toi[-1][0])
+        t_next = min(bld._balls_toi[-1], bld._obstacles_toi[-1])
         pbar.update(t_next - t_prev)
 bld.evolve(end_time)
 poslist.append(bld.balls_position[-1])

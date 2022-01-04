@@ -78,7 +78,7 @@ The *Billiard.evolve* method simulates our billiard system from
 
 .. doctest::
 
-   >>> bld.toi_next  # next ball-ball collision, its a (time, index, index)-triplet
+   >>> bld.next_collision  # (time, ball index, ball index or obstacle)-triplet
    (1.8000000000000005, 0, 1)
    >>> total_collisions = 0
    >>> for i in [1, 2, 3, 4, 5]:
@@ -117,9 +117,9 @@ any other collisions after this time:
    >>> bld.balls_velocity  # nx2 numpy array where n is the number of balls
    array([[0.73463055, 0.        ],
           [1.        , 0.        ]])
-   >>> bld.toi_next  # next ball-ball collision
+   >>> bld.next_ball_ball_collision  # next ball-ball collision
    (inf, -1, 0)
-   >>> bld.obstacles_next  # next ball-obstacle collision
+   >>> bld.next_ball_obstacle_collision  # next ball-obstacle collision
    (inf, 0, None)
    >>> visualize.plot(bld)
    <Figure size 800x600 with 1 Axes>

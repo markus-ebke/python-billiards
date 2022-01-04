@@ -71,7 +71,7 @@ The _Billiard.evolve_ method simulates our billiard system from _bld.time_ until
 It returns a list of collisions (ball-ball and ball-obstacle collisions).
 
 ```pycon
->>> bld.toi_next  # next ball-ball collision, its a (time, index, index)-triplet
+>>> bld.next_collision  # (time, ball index, ball index or obstacle)-triplet
 (1.8000000000000005, 0, 1)
 >>> total_collisions = 0
 >>> for i in [1, 2, 3, 4, 5]:
@@ -107,9 +107,9 @@ As we can check, there won't be any other collisions after this time:
 >>> bld.balls_velocity  # nx2 numpy array where n is the number of balls
 array([[0.73463055, 0.        ],
        [1.        , 0.        ]])
->>> bld.toi_next  # next ball-ball collision
+>>> bld.next_ball_ball_collision
 (inf, -1, 0)
->>> bld.obstacles_next  # next ball-obstacle collision
+>>> bld.next_ball_obstacle_collision
 (inf, 0, None)
 >>> visualize.plot(bld)
 <Figure size 800x600 with 1 Axes>
@@ -240,7 +240,7 @@ and simulate until t = 50, recording the position of the bigger ball at each col
 >>> while t_next < 50:
 >>>     bld.evolve(t_next)
 >>>     poslist.append(bld.balls_position[-1].copy())
->>>     t_next = min(bld.toi_min[-1][0], bld.obstacles_toi[-1][0])
+>>>     t_next = min(bld._balls_toi[-1], bld._obstacles_toi[-1])
 >>> bld.evolve(50)
 >>> poslist.append(bld.balls_position[-1])
 ```
