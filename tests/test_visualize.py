@@ -5,9 +5,6 @@ from pytest import approx
 
 import billiards
 
-with pytest.warns(UserWarning):
-    from billiards import visualize
-
 try:
     import matplotlib as mpl
     import matplotlib.pyplot as plt
@@ -18,16 +15,44 @@ else:
 
 with_mpl = pytest.mark.skipif(not has_mpl, reason="requires matplotlib")
 
-"""
+try:
+    import tqdm
+except ImportError:
+    has_tqdm = False
+else:
+    tqdm.trange  # try to access trange
+    has_tqdm = True
+
 try:
     from pyglet import gl
+    from pyglet.window import Window
 except ImportError:
     has_pyglet = False
+except Exception:
+    # with tox: pyglet.canvas.xlib.NoSuchDisplayException
+    has_pyglet = False
+    Window = object
 else:
     has_pyglet = True
+    gl.gl  # try to access some OpenGL subpackage
+    Window.WINDOW_STYLE_DEFAULT  # try to access some Window class property
 
 with_pyglet = pytest.mark.skipif(not has_pyglet, reason="requires pyglet")
-"""
+
+with pytest.warns(None) as captured_warning:
+    from billiards import visualize
+
+if not has_mpl or not has_tqdm or not has_pyglet:
+    if not captured_warning:
+        pytest.fail(
+            "Expected a warning because"
+            f"mpl: {has_mpl}, tqdm: {has_tqdm}, pyglet: {has_pyglet}"
+        )
+elif captured_warning:
+    pytest.fail(
+        "Expected no warning because"
+        f"mpl: {has_mpl}, tqdm: {has_tqdm}, pyglet: {has_pyglet}"
+    )
 
 
 @with_mpl
