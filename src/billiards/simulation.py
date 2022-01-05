@@ -5,6 +5,7 @@ Use it like::
     from billiard import Billiard
 
 """
+from collections.abc import Mapping
 from math import isinf
 
 import numpy as np
@@ -212,12 +213,13 @@ class Billiard:
 
         return self.time + t_min, obs_min
 
-    def collide_balls(self, idx1, idx2):
+    def collide_balls(self, idx1, idx2, ball_callbacks):
         """Update the velocities of two colliding balls in the simulation.
 
         Args:
             idx1: Index of one ball.
             idx2: Index of another ball.
+            ball_callbacks: Mapping from ball index to a callable.
 
         """
         p1 = self.balls_position[idx1]
@@ -234,16 +236,28 @@ class Billiard:
         elif isinf(m2):
             m1, m2 = (0, 1)
 
-        v1, v2 = elastic_collision(p1, v1, m1, p2, v2, m2)
-        self.balls_velocity[idx1] = v1
-        self.balls_velocity[idx2] = v2
+        # compute new velocites
+        vnew1, vnew2 = elastic_collision(p1, v1, m1, p2, v2, m2)
 
-    def collide_obstacle(self, idx, obs):
+        # call callback here, because updating self.balls_velocity will change v1 and v2
+        # note: no copy of vnew1 and nvew2 needed, because after we assign it we never
+        # use it again
+        if idx1 in ball_callbacks:
+            ball_callbacks[idx1](self.time, p1.copy(), v1.copy(), vnew1, idx2)
+        if idx2 in ball_callbacks:
+            ball_callbacks[idx2](self.time, p2.copy(), v2.copy(), vnew2, idx1)
+
+        # assign new velocities
+        self.balls_velocity[idx1] = vnew1
+        self.balls_velocity[idx2] = vnew2
+
+    def collide_obstacle(self, idx, obs, ball_callbacks):
         """Update velocity of a ball colliding with an obstacle.
 
         Args:
             idx: Index of the colliding ball.
             obs: The obstacle with which the ball collides.
+            ball_callbacks: Mapping from ball index to a callable.
 
         """
         pos = self.balls_position[idx]
@@ -251,46 +265,69 @@ class Billiard:
         radius = self.balls_radius[idx]
 
         new_vel = obs.collide(pos, vel, radius)
+
+        # call callback here, because updating self.balls_velocity will change vel
+        # note: no copy of new_vel needed, because after we assign it we never use it
+        # again
+        if idx in ball_callbacks:
+            ball_callbacks[idx](self.time, pos.copy(), vel.copy(), new_vel, obs)
+
+        # assign new velocity
         self.balls_velocity[idx] = new_vel
 
-    def evolve(self, end_time):
+    def evolve(self, end_time, time_callback=None, ball_callbacks=None):
         """Advance the simulation until the given time is reached.
 
-        Will call bounce_ballball and bounce_ballobstacle repeatetly (which one depends
-        on self.toi_next and self.obstacles_next) until the end_time is reached.
+        Will call bounce_ballball and bounce_ballobstacle repeatedly (which one depends
+        on self.next_ball_ball_collision and self.next_ball_obstacle_collision) until
+        the time = end_time is reached.
 
         Args:
             end_time: Time until which the billiard should be simulated.
+            time_callback (optional): Is called every collision with time as argument.
+            ball_callbacks (optional): Mapping from ball index to a callable. The
+                function is called at every collision of the indicated ball and should
+                have the signature func(time: float,
+                position: np.ndarray(shape=(2,), dtype=np.float64),
+                velocity before: np.ndarray(shape=(2,), dtype=np.float64),
+                velocity after: np.ndarray(shape=(2,), dtype=np.float64),
+                ball index: int or obstacle: billiard.obstacle.Obstacle)
 
         Returns:
-            list: List of collisions, each item is a (float, int, int)-triplet where the
-            first number is the time of impact and the next two integers are the indices
-            of the balls that collided. If a ball collided with an obstacle, the
-            obstacle is returned as the third element.
+            number of ball-ball and ball-obstacle collisions as a tuple.
 
         """
-        collisions = []
+        if ball_callbacks is None:
+            ball_callbacks = {}  # empty dict
+        elif not isinstance(ball_callbacks, Mapping):
+            raise TypeError(
+                "Argument 'ball_callbacks' must be a mapping, "
+                f"not a {type(ball_callbacks)}"
+            )
+
+        ball_collisions, obstacle_collisions = 0, 0
         while self.next_collision[0] <= end_time:
             # decide what kind of collision we are dealing with
             if self.next_ball_ball_collision[0] <= self.next_ball_obstacle_collision[0]:
-                coll = self.bounce_ballball()
+                self.bounce_ballball(ball_callbacks)
+                ball_collisions += 1
             else:
-                coll = self.bounce_ballobstacle()
+                self.bounce_ballobstacle(ball_callbacks)
+                obstacle_collisions += 1
 
-            collisions.append(coll)
+            if time_callback is not None:
+                time_callback(self.time)
 
         assert end_time < self.next_collision[0]
         self._move(end_time)
 
-        return collisions
+        return (ball_collisions, obstacle_collisions)
 
-    def bounce_ballball(self):
+    def bounce_ballball(self, ball_callbacks):
         """Advance to the next ball-ball collision and handle it.
 
-        Returns:
-            float: Time of impact of the just handled collision.
-            int: Index of one ball that collided.
-            int: Index of the other ball.
+        Args:
+            ball_callbacks: Mapping from ball index to a callable.
 
         """
         t, idx1, idx2 = self.next_ball_ball_collision
@@ -302,7 +339,7 @@ class Billiard:
 
         # advance to the next collision and handle it
         self._move(t)
-        self.collide_balls(idx1, idx2)
+        self.collide_balls(idx1, idx2, ball_callbacks)
 
         # update time of impact for the two balls
         self.toi_table[idx2][idx1] = INF
@@ -351,15 +388,11 @@ class Billiard:
             self._obstacles_obs[ball_idx],
         )
 
-        return (t, idx1, idx2)
-
-    def bounce_ballobstacle(self):
+    def bounce_ballobstacle(self, ball_callbacks):
         """Advance to the next ball-obstacle collision and handle it.
 
-        Returns:
-            float: Time of impact of the just handled collision.
-            int: Index of the ball that collided.
-            billiards.obstacle.Obstacle: Obstacle that the ball collided with.
+        Args:
+            ball_callbacks: Mapping from ball index to a callable.
 
         """
         t, idx, obs = self.next_ball_obstacle_collision
@@ -368,7 +401,7 @@ class Billiard:
 
         # advance to the next collision and handle it
         self._move(t)
-        self.collide_obstacle(idx, obs)
+        self.collide_obstacle(idx, obs, ball_callbacks)
 
         # update time of impact for ball-ball collisions
         for j in range(idx):
@@ -404,8 +437,6 @@ class Billiard:
             ball_idx,
             self._obstacles_obs[ball_idx],
         )
-
-        return (t, idx, obs)
 
     def _move(self, time):
         # just update position, no collision handling here

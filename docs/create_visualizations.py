@@ -31,7 +31,7 @@ print()
 print(bld.next_collision)
 total_collisions = 0
 for i in [1, 2, 3, 4, 5]:
-    total_collisions += len(bld.evolve(i))
+    total_collisions += sum(bld.evolve(i))
     print(f"Until t = {bld.time}: {total_collisions} collisions")
 print(bld.time)
 fig = visualize.plot(bld)
@@ -41,7 +41,7 @@ fig.savefig(here / "_images/quickstart_2.svg")
 print()
 
 # Quickstart - End Result
-total_collisions += len(bld.evolve(16))
+total_collisions += sum(bld.evolve(16))
 print(bld.balls_velocity)
 print(bld.next_ball_ball_collision)
 print(bld.next_ball_obstacle_collision)
@@ -54,7 +54,7 @@ v_squared = (bld.balls_velocity ** 2).sum(axis=1)
 print(f"Kinetic energy after: {(v_squared * bld.balls_mass).sum() / 2}")
 
 
-# global settings
+# Brownian motion
 random.seed(0)  # fix random state for reproducibility
 
 # the billiard table is a square box
@@ -76,30 +76,39 @@ for _i in range(250):
     bld.add_ball(pos, vel, radius=0.01, mass=1)
 
 # add a bigger ball (like a dust particle)
-bld.add_ball((0, 0), (0, 0), radius=0.1, mass=10)
+idx = bld.add_ball((0, 0), (0, 0), radius=0.1, mass=10)
 
 # simulate until t = 50, recording the position at each collision
 end_time = 50
 poslist = []
 t_next = 0
+
+poslist = [bld.balls_position[idx].copy()]  # record initial position
+
+
+def record(t, p, u, v, i_o):
+    poslist.append(p)
+
+
 # anim = visualize.animate(bld, end_time, velocity_arrow_factor=0)
 # plt.show()
 with tqdm(total=end_time) as pbar:
-    while t_next < end_time:
-        t_prev = t_next
-        bld.evolve(t_next)
-        poslist.append(bld.balls_position[-1].copy())
-        t_next = min(bld._balls_toi[-1], bld._obstacles_toi[-1])
-        pbar.update(t_next - t_prev)
-bld.evolve(end_time)
-poslist.append(bld.balls_position[-1])
+    t_prev = bld.time
+
+    def progress(t):
+        global t_prev
+        pbar.update(round(t) - t_prev)
+        t_prev = round(t)
+
+    bld.evolve(end_time, time_callback=progress, ball_callbacks={idx: record})
+poslist.append(bld.balls_position[idx].copy())  # record last position
 
 # plot the billiard and overlay the path of the particle
 fig = visualize.plot(bld, velocity_arrow_factor=0)
 fig.set_size_inches((7, 7))
 ax = fig.gca()
 poslist = np.asarray(poslist)
-ax.plot(poslist[:, 0], poslist[:, 1], marker=".", color="red")
+ax.plot(poslist[:, 0], poslist[:, 1], color="red")
 plt.savefig(here / "_images/brownian_motion.svg")
 # plt.show()
 

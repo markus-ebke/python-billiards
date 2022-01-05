@@ -165,13 +165,13 @@ Construct the billiard table:
 
 ```pycon
 >>> width, length = 112, 224
-bounds = [
-    billiards.InfiniteWall((0, 0), (length, 0)),  # bottom side
-    billiards.InfiniteWall((length, 0), (length, width)),  # right side
-    billiards.InfiniteWall((length, width), (0, width)),  # top side
-    billiards.InfiniteWall((0, width), (0, 0))  # left side
-]
-bld = billiards.Billiard(obstacles=bounds)
+>>> bounds = [
+...     billiards.InfiniteWall((0, 0), (length, 0)),  # bottom side
+...     billiards.InfiniteWall((length, 0), (length, width)),  # right side
+...     billiards.InfiniteWall((length, width), (0, width)),  # top side
+...     billiards.InfiniteWall((0, width), (0, 0))  # left side
+... ]
+>>> bld = billiards.Billiard(obstacles=bounds)
 ```
 
 Arrange the balls in a pyramid shape:
@@ -229,20 +229,17 @@ Distribute small particles (atoms) uniformly in the square, moving in random dir
 Add a bigger ball (like a dust particle)
 
 ```pycon
-bld.add_ball((0, 0), (0, 0), radius=0.1, mass=10)
+>>> idx = bld.add_ball((0, 0), (0, 0), radius=0.1, mass=10)
 ```
 
 and simulate until t = 50, recording the position of the bigger ball at each collision (this will take some time)
 
 ```pycon
->>> poslist = []
->>> t_next = 0
->>> while t_next < 50:
->>>     bld.evolve(t_next)
->>>     poslist.append(bld.balls_position[-1].copy())
->>>     t_next = min(bld._balls_toi[-1], bld._obstacles_toi[-1])
->>> bld.evolve(50)
->>> poslist.append(bld.balls_position[-1])
+>>> poslist = [bld.balls_position[idx].copy()]  # record initial position
+>>> def record(t, p, u, v, i_o):
+>>>     poslist.append(p)
+>>> bld.evolve(50, ball_callbacks={idx: record})
+>>> poslist.append(bld.balls_position[idx].copy())  # record last position
 ```
 
 Plot the billiard and overlay the path of the particle

@@ -686,7 +686,7 @@ class BilliardWindow(Window):  # pragma: no cover
         if not self.pause:
             # simulate with fixed timestep
             collisions = self.bld.evolve(self.bld.time + self.simspeed / 60)
-            self.bounces.append(len(collisions))
+            self.bounces.append(collisions)
 
             # update ball vertices
             for idx, (model_vertices, vlist) in enumerate(ball_models):

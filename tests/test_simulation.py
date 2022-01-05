@@ -19,11 +19,11 @@ def test_time():
     assert bld.time == 0.0
 
     ret = bld.evolve(1.0)
-    assert ret == []
+    assert ret == (0, 0)
     assert bld.time == 1.0
 
     ret = bld.evolve(42.0)
-    assert ret == []
+    assert ret == (0, 0)
     assert bld.time == 42.0
 
 
@@ -90,7 +90,7 @@ def test_movement():
     # move
     time = 42.0
     ret = bld.evolve(time)
-    assert ret == []
+    assert ret == (0, 0)
 
     for idx in range(10):
         # movement in y-direction
@@ -155,16 +155,38 @@ def test_simple_collision():
 
     # add another ball that will collide with the first one
     bld.add_ball((50, 18), (0, -9), radius=1, mass=2)
-    assert bld.next_ball_ball_collision == (approx(11.79693), 0, 1)
+    toi = approx(11.79693)
+    assert bld.next_ball_ball_collision == (toi, 0, 1)
 
-    collisions = bld.evolve(14.0)
+    # record ball collisions via callback function
+    collisions = []
+
+    def record(t, p, u, v, j):
+        nonlocal collisions
+        collisions.append((t, p.tolist(), u.tolist(), v.tolist(), j))
+
+    ret = bld.evolve(14.0, ball_callbacks={0: record, 1: record})
     assert bld.time == 14
-    assert len(collisions) == 1
-    assert collisions[0] == (approx(11.79693), 0, 1)
+    assert ret == (1, 0)
+    assert len(collisions) == 2
+    assert collisions[0] == (
+        toi,
+        [approx(49.18772), 0],
+        [4, 0],
+        [approx(-4 / 3), -12],
+        1,
+    )
+    assert collisions[1] == (
+        toi,
+        [50, approx(1.827623)],
+        [0, -9],
+        [approx(8 / 3), -3],
+        0,
+    )
     assert tuple(bld.balls_position[0]) == (approx(46.2503), approx(-26.43683))
     assert tuple(bld.balls_position[1]) == (approx(55.8748), approx(-4.78158))
-    assert tuple(bld.balls_velocity[0]) == (approx(-1.333333), approx(-12))
-    assert tuple(bld.balls_velocity[1]) == (approx(2.666667), approx(-3))
+    assert tuple(bld.balls_velocity[0]) == (approx(-4 / 3), -12)
+    assert tuple(bld.balls_velocity[1]) == (approx(8 / 3), -3)
 
 
 def test_newton_cradle():
@@ -179,9 +201,8 @@ def test_newton_cradle():
     assert bld.next_ball_ball_collision == (1.0, 0, 1)
 
     # first collision
-    collisions = bld.evolve(1.0)
-    assert len(collisions) == 1
-    assert collisions[0] == (1.0, 0, 1)
+    ret = bld.evolve(1.0)
+    assert ret == (1, 0)
     assert tuple(bld.balls_position[0]) == (-2, 0)
     assert tuple(bld.balls_velocity[0]) == (0, 0)
     assert tuple(bld.balls_position[1]) == (0, 0)
@@ -189,10 +210,8 @@ def test_newton_cradle():
     assert bld.next_ball_ball_collision == (2.0, 1, 3)
 
     # second and third collision and then some more time
-    collisions = bld.evolve(11.0)
-    assert len(collisions) == 2
-    assert collisions[0] == (2.0, 1, 3)
-    assert collisions[1] == (2.0, 2, 3)
+    ret = bld.evolve(11.0)
+    assert ret == (2, 0)
     assert tuple(bld.balls_position[1]) == (1, 0)
     assert tuple(bld.balls_velocity[1]) == (0, 0)
     assert tuple(bld.balls_position[2]) == (5 + (11 - 2) * 1, 0)
@@ -305,8 +324,16 @@ def test_obstacles():
     assert bld._obstacles_obs == [disk]
     assert bld.next_ball_obstacle_collision == (8.0, 0, disk)
 
-    ret = bld.bounce_ballobstacle()
-    assert ret == (8.0, 0, disk)
+    # record ball collisions via callback function
+    collisions = []
+
+    def record(t, p, u, v, o):
+        nonlocal collisions
+        collisions.append((t, p.tolist(), u.tolist(), v.tolist(), o))
+
+    bld.bounce_ballobstacle(ball_callbacks={0: record})
+    assert len(collisions) == 1
+    assert collisions[0] == (8.0, [-2.0, 0.0], [1.0, 0.0], [-1.0, 0.0], disk)
     assert bld._obstacles_toi.tolist() == [INF]
     assert bld._obstacles_obs == [None]
     assert bld.next_ball_obstacle_collision == (INF, 0, None)
@@ -330,8 +357,7 @@ def test_newtons_cradle_with_obstacles(create_newtons_cradle):
 
     # evolve until first ball-ball collision
     collisions = bld.evolve(3.0)
-    assert len(collisions) == 1
-    assert collisions[0] == (3.0, 0, 1)
+    assert collisions == (1, 0)
 
     # check again toi of ball-ball and ball-obstacle collisions
     assert bld.next_ball_ball_collision == (INF, -1, 0)
@@ -342,8 +368,7 @@ def test_newtons_cradle_with_obstacles(create_newtons_cradle):
 
     # evolve until the second ball hits the right wall
     collisions = bld.evolve(7.0)
-    assert len(collisions) == 1
-    assert collisions[0] == (7.0, 1, right_wall)
+    assert collisions == (0, 1)
 
     # check again toi of ball-ball and ball-obstacle collisions
     assert bld.next_ball_ball_collision == (11.0, 0, 1)
@@ -354,9 +379,45 @@ def test_newtons_cradle_with_obstacles(create_newtons_cradle):
 
     # evolve until the second ball hits the first which then hits the left wall
     collisions = bld.evolve(14.0)
-    assert len(collisions) == 2
-    assert collisions[0] == (11.0, 0, 1)
-    assert collisions[1] == (14.0, 0, left_wall)
+    assert collisions == (1, 1)
+
+
+def test_ball_callbacks(create_newtons_cradle):
+    bld = create_newtons_cradle(2)
+    left_wall, right_wall = bld.obstacles
+
+    # create recorder for time
+    times = []
+
+    def record_time(t):
+        nonlocal times
+        times.append(t)
+
+    # create recorders for every collision, but only save time and ball indices/obstacle
+    # note that every ball-ball collision will create two entries!
+    collisions = []
+
+    def record_i(i):
+        def record(t, p, u, v, j_o):
+            nonlocal collisions
+            collisions.append((t, i, j_o))
+
+        return record
+
+    callbacks = {i: record_i(i) for i in range(bld.num)}
+
+    # evolve until first ball-ball collision
+    ret = bld.evolve(15.0, time_callback=record_time, ball_callbacks=callbacks)
+    assert ret == (2, 2)
+    assert len(times) == 4
+    assert times == [3.0, 7.0, 11.0, 14.0]
+    assert len(collisions) == 2 * ret[0] + ret[1]
+    assert collisions[0] == (3.0, 0, 1)
+    assert collisions[1] == (3.0, 1, 0)
+    assert collisions[2] == (7.0, 1, right_wall)
+    assert collisions[3] == (11.0, 0, 1)
+    assert collisions[4] == (11.0, 1, 0)
+    assert collisions[5] == (14.0, 0, left_wall)
 
 
 if __name__ == "__main__":
