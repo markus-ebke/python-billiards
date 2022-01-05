@@ -59,9 +59,7 @@ except Exception as ex:  # pragma: no cover
     # When testing with tox this happens:
     # pyglet.canvas.xlib.NoSuchDisplayException: Cannot connect to "None"
     # I don't know how to prevent it, except with this hacky except case
-    warnings.warn(
-        f"Imported pyglet, but then something went wrong: {type(ex).__name__}, {ex}"
-    )
+    warnings.warn(f"Imported pyglet, but then something went wrong: {repr(ex)}")
     Window = object  # mock window
 
 
@@ -718,6 +716,9 @@ def interact(bld, fullscreen=False):  # pragma: no cover
         fullscreen (optional): Set window to fullscreen, defaults to False.
 
     """
+    if Window is object:
+        raise RuntimeError("Something went wrong with pyglet, see import warning")
+
     # print instructions
     print("Play/Pause: Space, move: WASD, zoom: QE, simspeed: RF, exit: Esc")
 

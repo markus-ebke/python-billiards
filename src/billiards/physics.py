@@ -87,10 +87,5 @@ def elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2):
     pos_dot_vel = pos_diff.dot(vel_diff)
     assert pos_dot_vel < 0  # colliding balls do not move apart
 
-    dist_sqrd = pos_diff.dot(pos_diff)
-
-    bla = 2 * (pos_dot_vel * pos_diff) / ((mass1 + mass2) * dist_sqrd)
-    vel1 += mass2 * bla
-    vel2 -= mass1 * bla
-
-    return vel1, vel2
+    impulse = 2 * (pos_dot_vel * pos_diff) / ((mass1 + mass2) * pos_diff.dot(pos_diff))
+    return vel1 + mass2 * impulse, vel2 - mass1 * impulse

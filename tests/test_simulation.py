@@ -382,9 +382,16 @@ def test_newtons_cradle_with_obstacles(create_newtons_cradle):
     assert collisions == (1, 1)
 
 
-def test_ball_callbacks(create_newtons_cradle):
+def test_callbacks(create_newtons_cradle):
     bld = create_newtons_cradle(2)
     left_wall, right_wall = bld.obstacles
+
+    # exception for wrong type
+    with pytest.raises(TypeError):
+        bld.evolve(15.0, ball_callbacks=lambda bla: bla)
+
+    with pytest.raises(TypeError):
+        bld.evolve(15.0, ball_callbacks=[lambda bla: bla])
 
     # create recorder for time
     times = []

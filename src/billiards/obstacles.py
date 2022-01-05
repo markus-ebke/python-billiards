@@ -134,8 +134,7 @@ class Disk(Obstacle):
 
     def collide(self, pos, vel, radius):
         """Calculate the velocity of a ball after colliding with the disk."""
-        vel1, vel2 = elastic_collision(self.center, (0, 0), 1, pos, vel, 0)
-        return vel2
+        return elastic_collision(self.center, (0, 0), 1, pos, vel, 0)[1]
 
     def plot(self, ax, color, **kwargs):
         """Draw the disk onto the given matplotlib axes."""
@@ -193,8 +192,7 @@ class InfiniteWall(Obstacle):
 
         # size of the gap between the perimeter of the ball and the wall, is
         # negative if the ball is not completely on the inside
-        dist = np.dot(pos - self.start_point, self._normal)
-        gap = dist - radius
+        gap = np.dot(pos - self.start_point, self._normal) - radius
 
         t = gap / headway  # time of impact: size of gap / speed of closing
         if t < -1e-10:
@@ -211,9 +209,7 @@ class InfiniteWall(Obstacle):
         headway = -np.dot(vel, self._normal)
         assert headway > 0  # if the ball is colliding, it can't move away
 
-        bla = 2 * (headway * self._normal)
-
-        return vel + bla
+        return vel + 2 * (headway * self._normal)
 
     def plot(self, ax, color, **kwargs):
         """Draw the wall onto the given matplotlib axes."""

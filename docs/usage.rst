@@ -82,7 +82,7 @@ The *Billiard.evolve* method simulates our billiard system from
    (1.8000000000000005, 0, 1)
    >>> total_collisions = 0
    >>> for i in [1, 2, 3, 4, 5]:
-   ...     total_collisions += len(bld.evolve(i))
+   ...     total_collisions += sum(bld.evolve(i))
    ...     print(f"Until t = {bld.time}: {total_collisions} collisions")
    ...
    Until t = 1: 0 collisions
@@ -113,7 +113,7 @@ any other collisions after this time:
 
 .. doctest::
 
-   >>> total_collisions += len(bld.evolve(16))
+   >>> total_collisions += sum(bld.evolve(16))
    >>> bld.balls_velocity  # nx2 numpy array where n is the number of balls
    array([[0.73463055, 0.        ],
           [1.        , 0.        ]])
