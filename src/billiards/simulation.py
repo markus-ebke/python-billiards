@@ -85,6 +85,13 @@ class Billiard:
         self._obstacles_obs = []  # impacted obstacle (or None) for each ball
         self.next_ball_obstacle_collision = (INF, -1, None)  # min of _obstacles_toi
 
+        # copy of time and ball positions at last collision
+        # used to avoid floating point issues if end_time given to evolve lies between
+        # two collisions, if evolve is called again (e.g. this happens repeatedly in
+        # visualize.animate) then we will resume from self._last_time
+        self._last_time = None
+        self._last_balls_position = None
+
     @property
     def next_collision(self):
         """Next collision as a (time, ball index, ball index or obstacle)-triplet."""
@@ -156,6 +163,10 @@ class Billiard:
             ball_idx,
             self._obstacles_obs[ball_idx],
         )
+
+        # copy time and ball position for the current state
+        self._last_time = self.time
+        self._last_balls_position = self.balls_position.copy()
 
         # sanity checks
         assert self.balls_position.shape == (self.num, 2)
@@ -305,6 +316,15 @@ class Billiard:
                 f"not a {type(ball_callbacks)}"
             )
 
+        # reset time to last collisions (if any), this avoids floating point issues if
+        # the simulation is stopped and resumed multiple times
+        if self._last_time is not None and self._last_time != self.time:
+            assert self._last_time < self.time
+            assert self._last_balls_position is not None
+            assert self.balls_position.shape == self._last_balls_position.shape
+            self.time = self._last_time
+            self.balls_position = self._last_balls_position
+
         ball_collisions, obstacle_collisions = 0, 0
         while self.next_collision[0] <= end_time:
             # decide what kind of collision we are dealing with
@@ -319,6 +339,10 @@ class Billiard:
                 time_callback(self.time)
 
         assert end_time < self.next_collision[0]
+
+        # copy time and ball position at last collision
+        self._last_time = self.time
+        self._last_balls_position = self.balls_position.copy()
         self._move(end_time)
 
         return (ball_collisions, obstacle_collisions)

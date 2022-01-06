@@ -312,7 +312,7 @@ def test_exceptional_balls():
 
 
 def test_obstacles():
-    disk = billiards.obstacles.Disk((0, 0), radius=1)
+    disk = billiards.Disk((0, 0), radius=1)
     bld = Billiard(obstacles=[disk])
 
     assert len(bld.obstacles) == 1
@@ -425,6 +425,50 @@ def test_callbacks(create_newtons_cradle):
     assert collisions[3] == (11.0, 0, 1)
     assert collisions[4] == (11.0, 1, 0)
     assert collisions[5] == (14.0, 0, left_wall)
+
+
+def test_step_consistency():
+    # Since billiards is a chaotic system, small deviations due to floating point issues
+    # can have a large effect on the final result. Here we make sure that computing the
+    # simulation in one go gives the same end result as stopping and resuming the
+    # simulation in multiple steps. If the end results were the deviate, then e.g. the
+    # result of visualize.animate could not be trusted
+
+    # the billiard table is a square box
+    bounds = [
+        billiards.InfiniteWall((-1, -1), (1, -1)),  # bottom side
+        billiards.InfiniteWall((1, -1), (1, 1)),  # right side
+        billiards.InfiniteWall((1, 1), (-1, 1)),  # top side
+        billiards.InfiniteWall((-1, 1), (-1, -1)),  # left side
+    ]
+
+    # define two billiards
+    bld_once = billiards.Billiard(obstacles=bounds)
+    bld_step = billiards.Billiard(obstacles=bounds)
+
+    # place a few balls with 'random' initial conditions
+    bld_once.add_ball((0, 0.2), (1, 2), radius=0.2)
+    bld_step.add_ball((0, 0.2), (1, 2), radius=0.2)
+    bld_once.add_ball((0, 0.5), (-1, 2), radius=0.2)
+    bld_step.add_ball((0, 0.5), (-1, 2), radius=0.2)
+    bld_once.add_ball((0, -0.8), (0, -1), radius=0.2)
+    bld_step.add_ball((0, -0.8), (0, -1), radius=0.2)
+    bld_once.add_ball((0.7, -0.8), (0, 0), radius=0.2)
+    bld_step.add_ball((0.7, -0.8), (0, 0), radius=0.2)
+
+    # this billiard deviates between t = 1 and t = 2 if we don't handle stopping and
+    # resuming properly
+    end_time = 10
+    bld_once.evolve(end_time)  # in one go
+
+    # stopping and resuming 30 times each second (as visualize.animate would do it)
+    for i in range(end_time):
+        for j in range(1, 31):
+            bld_step.evolve(i + j / 30)
+
+    # compare the end states, they should match exactly
+    diff = bld_once.balls_position - bld_step.balls_position
+    assert np.linalg.norm(diff, axis=1).max() == 0
 
 
 if __name__ == "__main__":
