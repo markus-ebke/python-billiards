@@ -55,12 +55,7 @@ Drag is a force similar to friction, but F is proportional to velocity^2 * size 
 We can still use time of impact calculation, but we need to take care of the reparameterisation.
 
 ## Resetable simulation
-When making a change to `bld.balls_position` or `bld.balls_velocity`, recompute toi tables (and reset bld.time to zero?)
-
-## Rethink return values
-- `Billiard.add_ball` doesn't need to return the ball index, because it is always `Billiard.num - 1`
-- For consistency `Billiard.bounce_ballobstacle` should return (time, index-of-ball, index-of-obstacle)-triplets, then in `Billiard.evolve` we shift the obstacle index by `Billiard.num`.
-  Then the returned list items are always (float, int, int)-triplets, but it is still clear when we handled a ball-obstacle collision.
+When making a change to `bld.balls_position` or `bld.balls_velocity`, recompute toi tables (whole table or just for a single ball if e.g. and index is given) and optionally reset bld.time to zero.
 
 
 

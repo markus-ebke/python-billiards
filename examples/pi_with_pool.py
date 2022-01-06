@@ -31,7 +31,7 @@ bld.add_ball((6, 0), (-1, 0), radius=1, mass=100 ** (digits - 1))
 # simulate until there are no more collisions and print the total number of collisions
 total_collisions = 0
 while not isinf(bld.next_collision[0]):
-    num_collisions = len(bld.evolve(bld.time + 1))
+    num_collisions = sum(bld.evolve(bld.time + 1))
     print(f"From t = {bld.time - 1:4} to t = {bld.time:4}: {num_collisions} collisions")
     total_collisions += num_collisions
 
