@@ -1,5 +1,11 @@
 # Changelog
 
+**v<new_version>**
+- Implement recalculation of internal time-of-impact tables, now changing the balls position, velocity or radius is possible in the middle of the simulation
+- Fix a floating point issue when stopping and resuming simulations (for complicated billiards the end result of `visualize.animate`, which calls `Billiard.evolve` multiple times, would be different from calling `Billiard.evolve` once)
+- Add callbacks to `Billiard.evolve` to keep track of simulation progress or to observe certain balls
+- Rename several Billiard attributes (API change!)
+
 **v0.5.0**
 - Use numpy's `argmin`-function for finding next collision, billiards with many ball-ball collisions are now up to 3x faster!
 - Visualization improvements: Use progress bar in `animate`, scale/disable velocity indicators in `plot` and `animate`, plot `InfiniteWall` as an infinite line (duh! 🤦)

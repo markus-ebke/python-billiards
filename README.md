@@ -75,7 +75,7 @@ It returns a list of collisions (ball-ball and ball-obstacle collisions).
 (1.8000000000000005, 0, 1)
 >>> total_collisions = 0
 >>> for i in [1, 2, 3, 4, 5]:
-...     total_collisions += len(bld.evolve(i))
+...     total_collisions += sum(bld.evolve(i))
 ...     print(f"Until t = {bld.time}: {total_collisions} collisions")
 Until t = 1: 0 collisions
 Until t = 2: 1 collisions
@@ -103,7 +103,7 @@ Let's advance the simulation to t = 16.
 As we can check, there won't be any other collisions after this time:
 
 ```pycon
->>> total_collisions += len(bld.evolve(16))
+>>> total_collisions += sum(bld.evolve(16))
 >>> bld.balls_velocity  # nx2 numpy array where n is the number of balls
 array([[0.73463055, 0.        ],
        [1.        , 0.        ]])
@@ -180,10 +180,10 @@ Arrange the balls in a pyramid shape:
 >>> from math import sqrt
 >>> radius = 2.85
 >>> for i in range(5):
->>>     for j in range(i + 1):
->>>         x = 0.75 * length + radius * sqrt(3) * i
->>>         y = width / 2 + radius * (2 * j - i)
->>>         bld.add_ball((x, y), (0, 0), radius)
+...     for j in range(i + 1):
+...         x = 0.75 * length + radius * sqrt(3) * i
+...         y = width / 2 + radius * (2 * j - i)
+...         bld.add_ball((x, y), (0, 0), radius)
 ```
 
 Add the white ball and give it a push, then view the animation:
@@ -195,7 +195,7 @@ Add the white ball and give it a push, then view the animation:
 >>> plt.show()
 ```
 
-See [pool.mp4](./examples/pool.mp4)
+See [examples/pool.mp4](./examples/pool.mp4)
 
 
 
@@ -205,12 +205,12 @@ The billiard table is a square box:
 
 ```pycon
 >>> obs = [
->>>     billiards.InfiniteWall((-1, -1), (1, -1)),  # bottom side
->>>     billiards.InfiniteWall((1, -1), (1, 1)),  # right side
->>>     billiards.InfiniteWall((1, 1), (-1, 1)),  # top side
->>>     billiards.InfiniteWall((-1, 1), (-1, -1)),  # left side
->>>     billiards.Disk((0, 0), radius=0.5)  # disk in the middle
->>> ]
+...     billiards.InfiniteWall((-1, -1), (1, -1)),  # bottom side
+...     billiards.InfiniteWall((1, -1), (1, 1)),  # right side
+...     billiards.InfiniteWall((1, 1), (-1, 1)),  # top side
+...     billiards.InfiniteWall((-1, 1), (-1, -1)),  # left side
+...     billiards.Disk((0, 0), radius=0.5)  # disk in the middle
+... ]
 >>> bld = billiards.Billiard(obstacles=obs)
 ```
 
@@ -220,10 +220,10 @@ Distribute small particles (atoms) uniformly in the square, moving in random dir
 >>> from math import cos, pi, sin
 >>> from random import uniform
 >>> for i in range(250):
->>>     pos = [uniform(-1, 1), uniform(-1, 1)]
->>>     angle = uniform(0, 2 * pi)
->>>     vel = [cos(angle), sin(angle)]
->>>     bld.add_ball(pos, vel, radius=0.01, mass=1)
+...     pos = [uniform(-1, 1), uniform(-1, 1)]
+...     angle = uniform(0, 2 * pi)
+...     vel = [cos(angle), sin(angle)]
+...     bld.add_ball(pos, vel, radius=0.01, mass=1)
 ```
 
 Add a bigger ball (like a dust particle)
@@ -237,7 +237,7 @@ and simulate until t = 50, recording the position of the bigger ball at each col
 ```pycon
 >>> poslist = [bld.balls_position[idx].copy()]  # record initial position
 >>> def record(t, p, u, v, i_o):
->>>     poslist.append(p)
+...     poslist.append(p)
 >>> bld.evolve(50, ball_callbacks={idx: record})
 >>> poslist.append(bld.balls_position[idx].copy())  # record last position
 ```
@@ -249,7 +249,7 @@ Plot the billiard and overlay the path of the particle
 >>> fig.set_size_inches((7, 7))
 >>> ax = fig.gca()
 >>> poslist = np.asarray(poslist)
->>> ax.plot(poslist[:, 0], poslist[:, 1], marker=".", color="red")
+>>> ax.plot(poslist[:, 0], poslist[:, 1], color="red")
 >>> plt.show()
 ```
 

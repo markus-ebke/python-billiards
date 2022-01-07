@@ -9,7 +9,7 @@ imported separately and tries to load *matplotlib*, *tqdm* and *pyglet*.
 
    >>> import billiards  # access to Billiard, Disk and InfiniteWall
    >>> from billiards import visualize  # for plot, animate and interact
-   >>> import matplotlib.pyplot as plt  # for plt.show()
+   >>> import matplotlib.pyplot as plt  # show plots and animations with plt.show()
 
 
 

@@ -443,8 +443,8 @@ def test_step_consistency():
     ]
 
     # define two billiards
-    bld_once = billiards.Billiard(obstacles=bounds)
-    bld_step = billiards.Billiard(obstacles=bounds)
+    bld_once = Billiard(obstacles=bounds)
+    bld_step = Billiard(obstacles=bounds)
 
     # place a few balls with 'random' initial conditions
     bld_once.add_ball((0, 0.2), (1, 2), radius=0.2)
