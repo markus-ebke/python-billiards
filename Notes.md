@@ -54,10 +54,6 @@ We need to integrate a = mu to find the trajectory of the ball until it stops (t
 Drag is a force similar to friction, but F is proportional to velocity^2 * size of ball, this is more complicated to integrate.
 We can still use time of impact calculation, but we need to take care of the reparameterisation.
 
-## Resetable simulation
-When making a change to `bld.balls_position` or `bld.balls_velocity`, recompute toi tables (whole table or just for a single ball if e.g. and index is given) and optionally reset bld.time to zero.
-
-
 
 # Misc
 - Particles with no radius are point particles

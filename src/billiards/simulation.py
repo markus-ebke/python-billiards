@@ -181,6 +181,84 @@ class Billiard:
 
         return idx
 
+    def recompute_toi(self, indices=None):
+        """Recompute the time-of-impact for the given ball(s).
+
+        Must be called after modifying balls_position, balls_velocity or balls_radius.
+        If only one ball was touched, supply the index of the ball to update only its
+        entries in the time-of-impact table. If several balls were touched, supply a
+        list of indices. If no indices are given, will recompute table for all balls.
+
+        Args:
+            indices (optional): Index of a ball whose time of impact entries should be
+                recomputed. If an iterator is given, recompute entries for all indicated
+                balls (iterator elements must be valid indices). If no indices are
+                given, recompute for all balls.
+
+        Raises:
+            TypeError: if indices is not None or not int or not iterable.
+
+        """
+        # check type of indices
+        if indices is None:
+            indices = range(self.num)  # i.e. recompute all balls
+        elif isinstance(indices, int):
+            indices = [indices]  # i.e. recompute only single ball
+        else:
+            # try to see if iterable, if not will automatically raise TypeError
+            indices = iter(indices)  # i.e. recompute a collection of balls
+
+        min_idx = self.num  # = min(indices), used later to update toi_min
+        recompute_pairs = set()  # skip indices that we already recomputed
+        for idx in indices:
+            # update time of impact for ball-ball collisions
+            for j in range(idx):
+                if (idx, j) not in recompute_pairs:
+                    self.toi_table[idx][j] = self.calc_toi(idx, j)
+                    recompute_pairs.add((idx, j))
+
+            for i in range(idx + 1, self.num):
+                if (i, idx) not in recompute_pairs:
+                    self.toi_table[i][idx] = self.calc_toi(i, idx)
+                    recompute_pairs.add((i, idx))
+
+            # update time of impact for the next ball-obstacle collision
+            t_min, obs_min = self.calc_next_obstacle(idx)
+            self._obstacles_toi[idx] = t_min
+            self._obstacles_obs[idx] = obs_min
+
+            # update minimum index
+            min_idx = idx if idx < min_idx else min_idx
+
+        # update toi_min, we skip i = 0 because self.toi_min[0] is always (INF, -1)
+        for i in range(min_idx if min_idx > 0 else 1, self.num):
+            row = self.toi_table[i]
+            toi_idx = row.argmin()
+            self._balls_toi[i] = row[toi_idx]
+            self._balls_idx[i] = toi_idx
+
+        # update next ball ball collision
+        assert self._balls_toi[0] == INF  # first entry always invalid
+        assert self._balls_idx[0] == -1
+        next_idx = self._balls_toi.argmin()
+        self.next_ball_ball_collision = (
+            self._balls_toi[next_idx],
+            self._balls_idx[next_idx],
+            next_idx,
+        )
+
+        # update next ball obstacle collision
+        ball_idx = self._obstacles_toi.argmin()
+        self.next_ball_obstacle_collision = (
+            self._obstacles_toi[ball_idx],
+            ball_idx,
+            self._obstacles_obs[ball_idx],
+        )
+
+        # copy time and ball position for the current state
+        self._last_time = self.time
+        self._last_balls_position = self.balls_position.copy()
+
     def calc_toi(self, idx1, idx2):
         """Calculate time of impact of two balls in the simulation.
 

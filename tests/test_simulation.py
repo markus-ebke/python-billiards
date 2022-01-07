@@ -471,5 +471,82 @@ def test_step_consistency():
     assert np.linalg.norm(diff, axis=1).max() == 0
 
 
+def copy_and_check(bld):
+    """Re-setup a billiard and check that all internal attributes are consistent"""
+
+    def table_tolist_approx(toi_table):
+        return [approx(row.tolist(), rel=1e-15, abs=1e-15) for row in toi_table]
+
+    def tolist_approx(arr):
+        return approx(arr.tolist(), rel=1e-15, abs=1e-15)
+
+    # 'copy' billiard table
+    bld_check = Billiard(obstacles=bld.obstacles)
+    bld_check.time = bld.time
+    for idx in range(bld.num):
+        p = bld.balls_position[idx]
+        v = bld.balls_velocity[idx]
+        r = bld.balls_radius[idx]
+        m = bld.balls_mass[idx]
+        bld_check.add_ball(p, v, r, m)
+
+    # compare ball-ball collisions
+    assert table_tolist(bld.toi_table) == table_tolist_approx(bld_check.toi_table)
+    assert bld._balls_toi.tolist() == approx(bld_check._balls_toi.tolist())
+    assert bld._balls_idx == bld_check._balls_idx
+    t, i, j = bld.next_ball_ball_collision
+    assert t == approx(bld_check.next_ball_ball_collision[0])
+    assert i == bld_check.next_ball_ball_collision[1]
+    assert j == bld_check.next_ball_ball_collision[2]
+
+    # compare ball-obstacle collisions
+    assert bld._obstacles_toi.tolist() == tolist_approx(bld_check._obstacles_toi)
+    assert bld._obstacles_obs == bld_check._obstacles_obs
+    t, i, o = bld.next_ball_obstacle_collision
+    assert t == approx(bld_check.next_ball_obstacle_collision[0])
+    assert i == bld_check.next_ball_obstacle_collision[1]
+    assert o == bld_check.next_ball_obstacle_collision[2]
+
+    # compare time and positions of 'last' collision
+    assert bld._last_time == approx(bld_check._last_time)
+    assert bld._last_balls_position == approx(bld_check._last_balls_position)
+
+
+def test_recompute_toi_tables():
+    # setup a 4 ball billiard in a square box
+    bounds = [
+        billiards.InfiniteWall((-1, -1), (1, -1)),  # bottom side
+        billiards.InfiniteWall((1, -1), (1, 1)),  # right side
+        billiards.InfiniteWall((1, 1), (-1, 1)),  # top side
+        billiards.InfiniteWall((-1, 1), (-1, -1)),  # left side
+    ]
+    bld = Billiard(obstacles=bounds)
+    bld.add_ball((0, 0.2), (1, 2), radius=0.2)
+    bld.add_ball((0, 0.5), (-1, 2), radius=0.2)
+    bld.add_ball((0, -0.8), (0, -1), radius=0.2)
+    bld.add_ball((0.7, -0.8), (0, 0), radius=0.2)
+
+    # simulate a bit, then modify a single ball
+    bld.evolve(1)
+    bld.balls_position[0] = (0, 0)
+    bld.recompute_toi(0)
+    assert bld.time == 1
+    copy_and_check(bld)
+
+    # evolve some more and modify two balls
+    bld.evolve(2)
+    bld.balls_velocity[1] = (0, 0)
+    bld.balls_radius[2] = 0.1
+    bld.recompute_toi([1, 2])
+    assert bld.time == 2
+    copy_and_check(bld)
+
+    # evolve even more, then recompute everything
+    bld.evolve(3)
+    bld.recompute_toi()
+    assert bld.time == 3
+    copy_and_check(bld)
+
+
 if __name__ == "__main__":
     pytest.main()
