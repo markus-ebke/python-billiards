@@ -20,20 +20,24 @@ It simulates the movement and elastic collisions of hard, disk-shaped particles 
 
 ## Installation
 
-**billiards** depends on [numpy](https://numpy.org).
-Additionally, billiard systems can be visualized with [matplotlib](https://matplotlib.org) and [pyglet](http://pyglet.org) (and [tqdm](https://tqdm.github.io) to display progress in `visualize.animate`).
-But this feature is optional.
+**billiards** is a library for Python 3.
+It only depends on [numpy](https://numpy.org).
+
+Billiard systems can be visualized with [matplotlib](https://matplotlib.org) (and [tqdm](https://tqdm.github.io) to display progress in `visualize.animate`).
+Interaction with the simulation is possible via [pyglet](http://pyglet.org).
+These visualization features are optional.
 
 Clone the repository from GitHub and install the package:
 
 ```shell
 git clone https://github.com/markus-ebke/python-billiards.git
+cd python-billiards/
 pip install .[visualize]
 ```
 
 
 
-## Usage
+## Quickstart
 
 All important classes (the billiard simulation and obstacles) are accessible from the top-level module.
 The visualization module must be imported separately and tries to load *matplotlib*, *tqdm* and *pyglet*.
@@ -43,6 +47,9 @@ The visualization module must be imported separately and tries to load *matplotl
 >>> from billiards import visualize  # for plot, animate and interact
 >>> import matplotlib.pyplot as plt  # for plt.show()
 ```
+
+
+## Example: Computing π with pool
 
 Let's compute the first few digits of π using a billiard simulation following the setup of Gregory Galperin.
 We need a billiard table with a vertical wall and two balls:
@@ -250,6 +257,7 @@ Plot the billiard and overlay the path of the particle
 >>> ax = fig.gca()
 >>> poslist = np.asarray(poslist)
 >>> ax.plot(poslist[:, 0], poslist[:, 1], color="red")
+[<matplotlib.lines.Line2D object at 0x...>]
 >>> plt.show()
 ```
 

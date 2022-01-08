@@ -4,15 +4,16 @@ Installation
 Requirements
 ------------
 
-**billiards** depends on `numpy <https://numpy.org>`__. Additionally,
-billiard systems can be visualized with
-`matplotlib <https://matplotlib.org>`__ and
-`pyglet <http://pyglet.org>`__ (and `tqdm <https://tqdm.github.io>`__ to
-display progress in ``visualize.animate``). But this feature is
-optional.
+**billiards** is a library for Python 3. It only depends on
+`numpy <https://numpy.org>`__.
+
+Billiard systems can be visualized using `matplotlib <https://matplotlib.org>`__
+(and `tqdm <https://tqdm.github.io>`__ to display progress in
+``visualize.animate``). Interaction with the simulation is possible via
+`pyglet <http://pyglet.org>`__ . These visualization features are optional.
 
 
-If you want to install these packages manually, you can use:
+If you want to install all these packages manually, you can use:
 
 .. code:: shell
 
@@ -29,4 +30,5 @@ Clone the repository from GitHub and install the package:
 .. code:: shell
 
    git clone https://github.com/markus-ebke/python-billiards.git
+   cd python-billiards/
    pip install .[visualize]

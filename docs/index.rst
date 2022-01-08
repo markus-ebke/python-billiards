@@ -28,15 +28,16 @@ Features
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents
 
    installation
+   quickstart
    usage
    examples
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: API Reference
 
    api_reference/billiards

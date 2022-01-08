@@ -121,15 +121,52 @@ def brownian_motion(animate=False):
 
 def newtons_cradle():
     # example used in docs/usage.rst
-    bld = billiards.Billiard()
-    bld.add_ball((0, 0), (1, 0), 1)
-    bld.add_ball((3, 0), (0, 0), 1)
-    bld.add_ball((5.1, 0), (0, 0), 1)
-    bld.add_ball((7.2, 0), (0, 0), 1)
-    bld.add_ball((9.3, 0), (0, 0), 1)
 
-    anim = billiards.visualize.animate(bld, end_time=5)
+    # 1. Setup
+    walls = [
+        billiards.InfiniteWall((-4, -2), (-4, 2), inside="right"),
+        billiards.InfiniteWall((10, -2), (10, 2), inside="left"),
+    ]
+    bld = billiards.Billiard(obstacles=walls)
+
+    # 2. Add Balls
+    bld.add_ball(pos=(-3, 0), vel=(2, 0), radius=1)
+    bld.add_ball((0, 0), (0, 0), 1)
+    bld.add_ball((2.1, 0), (0, 0), 1)
+    bld.add_ball((4.2, 0), (0, 0), 1)
+    bld.add_ball((6.3, 0), (0, 0), 1)
+
+    # 3. Run Simulation
+    print(bld.next_ball_ball_collision)
+    print(bld.next_ball_obstacle_collision)
+    print(bld.next_collision)
+
+    def print_time(t):
+        print(f"Collision at t = {t:.3}")
+
+    bld.evolve(end_time=4, time_callback=print_time)
+    print(bld.time)
+    anim = billiards.visualize.animate(bld, end_time=12)
     anim.save(here / "_static/newtons_cradle.mp4")
+    # plt.show()
+
+    # mess it up
+    bld.balls_position[2, 1] = 1e-10
+    bld.recompute_toi(indices=2)
+
+    poslist = []
+
+    def record(t, pos, vel_old, vel_new, idx_or_obs):
+        poslist.append(pos)
+
+    bld.evolve(end_time=40, ball_callbacks={2: record})
+    poslist.append(bld.balls_position[2].copy())
+
+    fig = visualize.plot(bld)  # state of the billiard right now
+    x = [pos[0] for pos in poslist]
+    y = [pos[1] for pos in poslist]
+    fig.gca().plot(x, y, color="blue")  # overlay trajectory
+    plt.savefig(here / "_images/newtons_failed_cradle.svg")
     # plt.show()
 
 
