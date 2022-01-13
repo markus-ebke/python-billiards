@@ -302,68 +302,6 @@ class Billiard:
 
         return self.time + t_min, obs_min
 
-    def collide_balls(self, idx1, idx2, ball_callbacks):
-        """Update the velocities of two colliding balls in the simulation.
-
-        Args:
-            idx1: Index of one ball.
-            idx2: Index of another ball.
-            ball_callbacks: Mapping from ball index to a callable.
-
-        """
-        p1 = self.balls_position[idx1]
-        v1 = self.balls_velocity[idx1]
-        m1 = self.balls_mass[idx1]
-
-        p2 = self.balls_position[idx2]
-        v2 = self.balls_velocity[idx2]
-        m2 = self.balls_mass[idx2]
-
-        # collision with infinite masses: the other mass is effectively zero
-        if isinf(m1):
-            m1, m2 = (1, 0)
-        elif isinf(m2):
-            m1, m2 = (0, 1)
-
-        # compute new velocites
-        vnew1, vnew2 = elastic_collision(p1, v1, m1, p2, v2, m2)
-
-        # call callback here, because updating self.balls_velocity will change v1 and v2
-        # note: no copy of vnew1 and nvew2 needed, because after we assign it we never
-        # use it again
-        if idx1 in ball_callbacks:
-            ball_callbacks[idx1](self.time, p1.copy(), v1.copy(), vnew1, idx2)
-        if idx2 in ball_callbacks:
-            ball_callbacks[idx2](self.time, p2.copy(), v2.copy(), vnew2, idx1)
-
-        # assign new velocities
-        self.balls_velocity[idx1] = vnew1
-        self.balls_velocity[idx2] = vnew2
-
-    def collide_obstacle(self, idx, obs, ball_callbacks):
-        """Update velocity of a ball colliding with an obstacle.
-
-        Args:
-            idx: Index of the colliding ball.
-            obs: The obstacle with which the ball collides.
-            ball_callbacks: Mapping from ball index to a callable.
-
-        """
-        pos = self.balls_position[idx]
-        vel = self.balls_velocity[idx]
-        radius = self.balls_radius[idx]
-
-        new_vel = obs.collide(pos, vel, radius)
-
-        # call callback here, because updating self.balls_velocity will change vel
-        # note: no copy of new_vel needed, because after we assign it we never use it
-        # again
-        if idx in ball_callbacks:
-            ball_callbacks[idx](self.time, pos.copy(), vel.copy(), new_vel, obs)
-
-        # assign new velocity
-        self.balls_velocity[idx] = new_vel
-
     def evolve(self, end_time, time_callback=None, ball_callbacks=None):
         """Advance the simulation until the given time is reached.
 
@@ -441,7 +379,7 @@ class Billiard:
 
         # advance to the next collision and handle it
         self._move(t)
-        self.collide_balls(idx1, idx2, ball_callbacks)
+        self._collide_balls(idx1, idx2, ball_callbacks)
 
         # update time of impact for the two balls
         self.toi_table[idx2][idx1] = INF
@@ -503,7 +441,7 @@ class Billiard:
 
         # advance to the next collision and handle it
         self._move(t)
-        self.collide_obstacle(idx, obs, ball_callbacks)
+        self._collide_obstacle(idx, obs, ball_callbacks)
 
         # update time of impact for ball-ball collisions
         for j in range(idx):
@@ -545,3 +483,65 @@ class Billiard:
         dt = time - self.time
         self.balls_position += self.balls_velocity * dt
         self.time = time
+
+    def _collide_balls(self, idx1, idx2, ball_callbacks):
+        """Update the velocities of two colliding balls in the simulation.
+
+        Args:
+            idx1: Index of one ball.
+            idx2: Index of another ball.
+            ball_callbacks: Mapping from ball index to a callable.
+
+        """
+        p1 = self.balls_position[idx1]
+        v1 = self.balls_velocity[idx1]
+        m1 = self.balls_mass[idx1]
+
+        p2 = self.balls_position[idx2]
+        v2 = self.balls_velocity[idx2]
+        m2 = self.balls_mass[idx2]
+
+        # collision with infinite masses: the other mass is effectively zero
+        if isinf(m1):
+            m1, m2 = (1, 0)
+        elif isinf(m2):
+            m1, m2 = (0, 1)
+
+        # compute new velocites
+        vnew1, vnew2 = elastic_collision(p1, v1, m1, p2, v2, m2)
+
+        # call callback here, because updating self.balls_velocity will change v1 and v2
+        # note: no copy of vnew1 and nvew2 needed, because after we assign it we never
+        # use it again
+        if idx1 in ball_callbacks:
+            ball_callbacks[idx1](self.time, p1.copy(), v1.copy(), vnew1, idx2)
+        if idx2 in ball_callbacks:
+            ball_callbacks[idx2](self.time, p2.copy(), v2.copy(), vnew2, idx1)
+
+        # assign new velocities
+        self.balls_velocity[idx1] = vnew1
+        self.balls_velocity[idx2] = vnew2
+
+    def _collide_obstacle(self, idx, obs, ball_callbacks):
+        """Update velocity of a ball colliding with an obstacle.
+
+        Args:
+            idx: Index of the colliding ball.
+            obs: The obstacle with which the ball collides.
+            ball_callbacks: Mapping from ball index to a callable.
+
+        """
+        pos = self.balls_position[idx]
+        vel = self.balls_velocity[idx]
+        radius = self.balls_radius[idx]
+
+        new_vel = obs.collide(pos, vel, radius)
+
+        # call callback here, because updating self.balls_velocity will change vel
+        # note: no copy of new_vel needed, because after we assign it we never use it
+        # again
+        if idx in ball_callbacks:
+            ball_callbacks[idx](self.time, pos.copy(), vel.copy(), new_vel, obs)
+
+        # assign new velocity
+        self.balls_velocity[idx] = new_vel

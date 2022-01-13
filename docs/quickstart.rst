@@ -12,8 +12,8 @@ imported separately and tries to load *matplotlib*, *tqdm* and *pyglet*.
    >>> import matplotlib.pyplot as plt  # show plots and animations with plt.show()
 
 
-Example: Computing π with pool
-------------------------------
+Computing π with pool
+---------------------
 
 Let’s compute the first few digits of π using a billiard simulation
 following the setup of Gregory Galperin. We need a billiard table with a

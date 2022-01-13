@@ -2,7 +2,6 @@
 import pytest
 
 import billiards
-from billiards.obstacles import InfiniteWall
 
 
 @pytest.fixture
@@ -12,8 +11,8 @@ def create_newtons_cradle():
             left = -4
             right = 2 * num_balls + 3
             obs = [
-                InfiniteWall((left, -2), (left, 2), "right"),
-                InfiniteWall((right, -2), (right, 2)),
+                billiards.InfiniteWall((left, -2), (left, 2), "right"),
+                billiards.InfiniteWall((right, -2), (right, 2)),
             ]
         else:
             obs = []
