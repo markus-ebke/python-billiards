@@ -490,6 +490,14 @@ def copy_and_check(bld):
         m = bld.balls_mass[idx]
         bld_check.add_ball(p, v, r, m)
 
+    # compare ball parameters
+    assert bld.time == bld_check.time
+    assert bld.num == bld_check.num
+    assert bld.balls_position.tolist() == bld_check.balls_position.tolist()
+    assert bld.balls_velocity.tolist() == bld_check.balls_velocity.tolist()
+    assert bld.balls_radius == bld_check.balls_radius
+    assert bld.balls_mass == bld_check.balls_mass
+
     # compare ball-ball collisions
     assert table_tolist(bld.toi_table) == table_tolist_approx(bld_check.toi_table)
     assert bld._balls_toi.tolist() == approx(bld_check._balls_toi.tolist())
@@ -506,10 +514,6 @@ def copy_and_check(bld):
     assert t == approx(bld_check.next_ball_obstacle_collision[0])
     assert i == bld_check.next_ball_obstacle_collision[1]
     assert o == bld_check.next_ball_obstacle_collision[2]
-
-    # compare time and positions of 'last' collision
-    assert bld._last_time == approx(bld_check._last_time)
-    assert bld._last_balls_position == approx(bld_check._last_balls_position)
 
 
 def test_recompute_toi_tables():

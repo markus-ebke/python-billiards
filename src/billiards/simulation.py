@@ -21,16 +21,34 @@ class Billiard:
 
     The 2-dimensional world is infinite in every direction and initialized with a list
     of obstacles. Billiard balls are placed via the `add_ball` method. Using `evolve`
-    the simulation advances to the given timestamp. The other methods are used to detect
-    and resolve collisions during the execution of `evolve`.
+    the simulation advances to the given timestamp. The ball positions and velocities
+    can then be read out from the `balls_position` and `balls_velocity` attributes.
+
+    Note that the `balls_initial_time` and `balls_initial_position` attributes are the
+    time and position of the last collision for each ball. The actual position is
+    calculated via pos = initial pos + vel * (time - initial time) and saved in
+    `balls_position`.
+
+    The properties of the balls can be tweaked mid-simulation by modifying
+    `balls_position`, `balls_velocity` or `balls_radius`. If any of them were changed,
+    the internal time-of-impact table must be recomputed via the `recompute_toi` method.
+
+    The other methods are used to detect and resolve collisions during the execution of
+    `evolve`.
 
     Attributes:
-        time: Current simulation time.
-        num: Number of simulated balls.
-        balls_position: Numpy.ndarray of 2D position of the balls' centers.
-        balls_velocity: Numpy.ndarray of 2D velocities of the balls.
+        balls_initial_time: Numpy.ndarray of initial times, note that each entry is a
+            two-dimensional vector because of numpy's broadcasting rules.
+        balls_initial_position: Numpy.ndarray of 2D position of the balls' centers at
+            the initial time indicated in `balls_initial_time`.
         balls_radius: List of numbers that represent the radii of the balls.
         balls_mass: List of numbers that represent the masses of the balls.
+        num: Number of simulated balls.
+        time: Current simulation time.
+        balls_position: Numpy.ndarray of 2D position of the balls' centers at the
+            current simulation time. This property is computed from initial time,
+            position and velocity.
+        balls_velocity: Numpy.ndarray of 2D velocities of the balls.
         toi_table: Lower-triangular matrix (= list of np.ndarray) of time of impacts.
         next_ball_ball_collision: (time, index, index)-triple for the next collision.
         obstacles: List of obstacles on the table.
@@ -50,15 +68,17 @@ class Billiard:
         if obstacles is None:
             obstacles = []
 
-        # initalize time and number of balls to 0
-        self.time = 0.0
-        self.num = 0
-
         # ball properties
-        self.balls_position = np.empty(shape=(0, 2), dtype=np.float64)
-        self.balls_velocity = np.empty(shape=(0, 2), dtype=np.float64)
+        self.balls_initial_time = np.empty(shape=(0, 2), dtype=np.float64)
+        self.balls_initial_position = np.empty(shape=(0, 2), dtype=np.float64)
         self.balls_radius = []
         self.balls_mass = []
+        self.num = 0
+
+        # ball properties at a certain time of the simulation
+        self.time = 0.0
+        self.balls_position = np.empty(shape=(0, 2), dtype=np.float64)
+        self.balls_velocity = np.empty(shape=(0, 2), dtype=np.float64)
 
         # time of impact records for ball-ball collisions
         self.toi_table = []  # time of impact for each ball-ball pair (triangular table)
@@ -84,13 +104,6 @@ class Billiard:
         self._obstacles_toi = np.empty(shape=(0,), dtype=np.float64)
         self._obstacles_obs = []  # impacted obstacle (or None) for each ball
         self.next_ball_obstacle_collision = (INF, -1, None)  # min of _obstacles_toi
-
-        # copy of time and ball positions at last collision
-        # used to avoid floating point issues if end_time given to evolve lies between
-        # two collisions, if evolve is called again (e.g. this happens repeatedly in
-        # visualize.animate) then we will resume from self._last_time
-        self._last_time = None
-        self._last_balls_position = None
 
     @property
     def next_collision(self):
@@ -123,10 +136,18 @@ class Billiard:
 
         """
         # add ball properties
-        self.balls_position = np.append(self.balls_position, [pos], axis=0)
+        self.balls_initial_time = np.append(
+            self.balls_initial_time, [(self.time, self.time)], axis=0
+        )  # note that the shape is (num, 2) for broadcasting in self._move
+        self.balls_initial_position = np.append(
+            self.balls_initial_position, [pos], axis=0
+        )
         self.balls_velocity = np.append(self.balls_velocity, [vel], axis=0)
         self.balls_radius.append(float(radius))
         self.balls_mass.append(float(mass))
+
+        # update self.balls_position
+        self._move(self.time)
 
         # update ball count and calculate index
         self.num += 1
@@ -164,11 +185,9 @@ class Billiard:
             self._obstacles_obs[ball_idx],
         )
 
-        # copy time and ball position for the current state
-        self._last_time = self.time
-        self._last_balls_position = self.balls_position.copy()
-
         # sanity checks
+        assert self.balls_initial_time.shape == (self.num, 2)
+        assert self.balls_initial_position.shape == (self.num, 2)
         assert self.balls_position.shape == (self.num, 2)
         assert self.balls_velocity.shape == (self.num, 2)
         assert len(self.balls_radius) == self.num
@@ -184,10 +203,11 @@ class Billiard:
     def recompute_toi(self, indices=None):
         """Recompute the time-of-impact for the given ball(s).
 
-        Must be called after modifying balls_position, balls_velocity or balls_radius.
-        If only one ball was touched, supply the index of the ball to update only its
-        entries in the time-of-impact table. If several balls were touched, supply a
-        list of indices. If no indices are given, will recompute table for all balls.
+        Must be called after modifying `balls_position`, `balls_velocity` or
+        `balls_radius`. If only one ball was touched, supply the index of the ball to
+        update only its entries in the time-of-impact table. If several balls were
+        touched, supply a list of indices. If no indices are given, will recompute table
+        for all balls.
 
         Args:
             indices (optional): Index of a ball whose time of impact entries should be
@@ -207,6 +227,17 @@ class Billiard:
         else:
             # try to see if iterable, if not will automatically raise TypeError
             indices = iter(indices)  # i.e. recompute a collection of balls
+
+        # check which balls got an assigment to self.balls_position and update their
+        # initial time and position
+        dt = self.time - self.balls_initial_position
+        original_position = self.balls_initial_position + self.balls_velocity * dt
+        modified = np.any(self.balls_position != original_position, axis=1)
+        for idx in np.flatnonzero(modified).tolist():
+            self.balls_initial_time[idx] = self.time
+            self.balls_initial_position[idx] = self.balls_position[idx]
+        # TODO should we warn the user if the indices of the modified balls is not a
+        # subset of the supplied list of indices?
 
         min_idx = self.num  # = min(indices), used later to update toi_min
         recompute_pairs = set()  # skip indices that we already recomputed
@@ -254,10 +285,6 @@ class Billiard:
             ball_idx,
             self._obstacles_obs[ball_idx],
         )
-
-        # copy time and ball position for the current state
-        self._last_time = self.time
-        self._last_balls_position = self.balls_position.copy()
 
     def calc_toi(self, idx1, idx2):
         """Calculate time of impact of two balls in the simulation.
@@ -332,15 +359,6 @@ class Billiard:
                 f"not a {type(ball_callbacks)}"
             )
 
-        # reset time to last collisions (if any), this avoids floating point issues if
-        # the simulation is stopped and resumed multiple times
-        if self._last_time is not None and self._last_time != self.time:
-            assert self._last_time < self.time
-            assert self._last_balls_position is not None
-            assert self.balls_position.shape == self._last_balls_position.shape
-            self.time = self._last_time
-            self.balls_position = self._last_balls_position
-
         ball_collisions, obstacle_collisions = 0, 0
         while self.next_collision[0] <= end_time:
             # decide what kind of collision we are dealing with
@@ -354,11 +372,8 @@ class Billiard:
             if time_callback is not None:
                 time_callback(self.time)
 
+        # go from time of last collision to the end time
         assert end_time < self.next_collision[0]
-
-        # copy time and ball position at last collision
-        self._last_time = self.time
-        self._last_balls_position = self.balls_position.copy()
         self._move(end_time)
 
         return (ball_collisions, obstacle_collisions)
@@ -480,8 +495,8 @@ class Billiard:
 
     def _move(self, time):
         # just update position, no collision handling here
-        dt = time - self.time
-        self.balls_position += self.balls_velocity * dt
+        dt = time - self.balls_initial_time  # note: shape is (num, 2) for broadcasting
+        self.balls_position = self.balls_initial_position + self.balls_velocity * dt
         self.time = time
 
     def _collide_balls(self, idx1, idx2, ball_callbacks):
@@ -518,7 +533,11 @@ class Billiard:
         if idx2 in ball_callbacks:
             ball_callbacks[idx2](self.time, p2.copy(), v2.copy(), vnew2, idx1)
 
-        # assign new velocities
+        # update ball time, position and velocity
+        self.balls_initial_time[idx1] = self.time
+        self.balls_initial_time[idx2] = self.time
+        self.balls_initial_position[idx1] = p1
+        self.balls_initial_position[idx2] = p2
         self.balls_velocity[idx1] = vnew1
         self.balls_velocity[idx2] = vnew2
 
@@ -543,5 +562,7 @@ class Billiard:
         if idx in ball_callbacks:
             ball_callbacks[idx](self.time, pos.copy(), vel.copy(), new_vel, obs)
 
-        # assign new velocity
+        # update ball time, position and velocity
+        self.balls_initial_time[idx] = self.time
+        self.balls_initial_position[idx] = pos
         self.balls_velocity[idx] = new_vel

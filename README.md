@@ -147,7 +147,7 @@ Lastly, I want to point out that all collisions were elastic, i.e. they conserve
 5000000000.0
 >>> v_squared = (bld.balls_velocity ** 2).sum(axis=1)
 >>> (bld.balls_mass * v_squared).sum() / 2  # kinetic energy now
-4999999999.990375
+4999999999.989935
 ```
 
 The video [examples/pi_with_pool.mp4](examples/pi_with_pool.mp4) replays the whole billiard simulation (it was created using `visualize.animate`).
