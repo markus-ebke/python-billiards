@@ -9,14 +9,16 @@ https://www.bernat.tech/the-state-of-type-hints-in-python/
 ## Improve documentation
 - spellchecker? (sphinxcontrib.spelling is deprecated, but see cookiecutter-pylibrary for setup)
 - Upload documentation to ReadTheDocs and extend README.md with badges and link to documentation
+- Use a gallery page for the examples (like https://matplotlib.org/stable/gallery/index)
 
 ## Publish on PyPi
 Use twine (twine>=1.11.0 if readme in markdown), use `twine check` instead of `setup.py check`.
 https://packaging.python.org/guides/making-a-pypi-friendly-readme#validating-restructuredtext-markup
 
 ## More control of plot
-- Animate: draw path taken by balls? (pictures will get messy quickly)
-- Improve CircleCollection.datalim (somehow rendering and get_path_collection_extents don't do the same thing with transform, transData and transOffset)
+- Draw trail behind balls (and control trail length)
+- Improve CircleCollection.datalim (somehow rendering and `get_path_collection_extents` don't do the same thing with transform, transData and transOffset)
+- Improve plotting of InfiniteWall: make width of hatching scale invariant and extend it indefinitely into the "inside" of the wall, see e.g. https://matplotlib.org/stable/gallery/text_labels_and_annotations/angle_annotation.html
 
 ## More versatile `visualize.interact`
 - Use mouse scroll wheel for zooming
@@ -27,7 +29,7 @@ https://packaging.python.org/guides/making-a-pypi-friendly-readme#validating-res
 ## Better Testing
 - How to write proper tests for matplotlib?
 - How to write proper tests for pyglet (or GUIs in general)?
-- Make pyglet work with tox, currently I can't access pyglet.gl.GL_LINES when I run the tests via tox (pyglet.canvas.xlib.NoSuchDisplayException: Cannot connect to "None"), see commented fragments in test_visualize.py and the .model methods in obstacle.
+- Make pyglet work with tox, currently I can't access `pyglet.gl.GL_LINES` when I run the tests via tox (pyglet.canvas.xlib.NoSuchDisplayException: Cannot connect to "None"), see commented fragments in test_visualize.py and the .model methods in obstacle.
 - Use TravisCI (and other internet services?)
 
 ## More obstacles

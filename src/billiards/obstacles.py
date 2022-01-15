@@ -151,16 +151,18 @@ class Disk(Obstacle):
 class InfiniteWall(Obstacle):
     """An infinite wall where balls can collide only from one side."""
 
-    def __init__(self, start_point, end_point, inside="left"):
+    def __init__(self, start_point, end_point, exterior="left"):
         """Create an infinite wall through two points.
 
-        The inside of the billiard is on the left (or the right) going from
-        start along the line to end.
+        Going from the starting point to the end, the inside of the billiard is on the
+        side indicated by the argument 'exterior', i.e. balls coming from the exterior
+        side will be reflected at the wall, balls that cross the wall from the interior
+        to the exterior side will not be reflected.
 
         Args:
             start_point: x and y coordinates of the lines starting point.
             end_point: x and y of the end point.
-            inside: Either "left" or "right" of the line, defaults to "left".
+            exterior: Either "left" or "right" of the line, defaults to "left".
 
         """
         self.start_point = np.asarray(start_point)
@@ -174,12 +176,11 @@ class InfiniteWall(Obstacle):
         self._normal = np.asarray([-dy, dx])  # normal on the left
         self._normal = self._normal / np.linalg.norm(self._normal)
 
-        if inside == "right":
+        if exterior == "right":
             self._normal *= -1  # switch normal to the other side
-        elif not inside == "left":
+        elif not exterior == "left":
             # if inside is not "right", then it MUST be "left"
-            msg = 'inside must be "left" or "right", not {}'
-            raise ValueError(msg.format(inside))
+            raise ValueError(f'exterior must be "left" or "right", not {exterior}')
 
     def calc_toi(self, pos, vel, radius):
         """Calculate the velocity of a ball after colliding with the wall."""
@@ -211,9 +212,24 @@ class InfiniteWall(Obstacle):
 
         return vel + 2 * (headway * self._normal)
 
-    def plot(self, ax, color, **kwargs):
+    def plot(self, ax, color, scale=0.05, hatch="xx", **kwargs):
         """Draw the wall onto the given matplotlib axes."""
+        # wall
         ax.axline(self.start_point, self.end_point, color=color, **kwargs)
+
+        # hatching to mark inside of wall
+        if hatch is not None:
+            extent = scale * np.linalg.norm(self.start_point - self.end_point)
+            xy = [
+                self.start_point,
+                self.start_point - extent * self._normal,
+                self.end_point - extent * self._normal,
+                self.end_point,
+            ]
+            patch = mpl.patches.Polygon(
+                xy, hatch="xx", edgecolor=color, linewidth=0, fill=None, **kwargs
+            )
+            ax.add_patch(patch)
 
     def model(self):  # pragma: no cover
         """Vertices, indices and drawing mode for OpenGL drawing the wall."""

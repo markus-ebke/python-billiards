@@ -23,7 +23,7 @@ from billiards import visualize
 digits = 6  # number of digits of pi
 
 # setup the billiard table: Wall -- mass -<- MASS
-obstacles = [billiards.obstacles.InfiniteWall((0, -1), (0, 1), inside="right")]
+obstacles = [billiards.obstacles.InfiniteWall((0, -1), (0, 1), exterior="right")]
 bld = billiards.Billiard(obstacles)
 bld.add_ball((3, 0), (0, 0), radius=0.2)
 bld.add_ball((6, 0), (-1, 0), radius=1, mass=100 ** (digits - 1))

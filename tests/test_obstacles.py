@@ -71,7 +71,7 @@ def test_infinite_wall():
         w.collide((0, -10), (10, 1), 1)
 
     # use wall as ceiling
-    w = InfiniteWall((-1, 0), (1, 0), inside="right")
+    w = InfiniteWall((-1, 0), (1, 0), exterior="right")
     assert w.calc_toi((0, -10), (10, 1), 1) == 9
     assert tuple(w.collide((0, -10), (10, 1), 1)) == (10, -1)
 

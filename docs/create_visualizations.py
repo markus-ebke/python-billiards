@@ -15,7 +15,7 @@ here = Path(__file__).parent.resolve()  # should be docs folder
 
 def quickstart():
     # Quickstart - Setup
-    obstacles = [billiards.obstacles.InfiniteWall((0, -1), (0, 1), inside="right")]
+    obstacles = [billiards.obstacles.InfiniteWall((0, -1), (0, 1), exterior="right")]
     bld = billiards.Billiard(obstacles)
     bld.add_ball((3, 0), (0, 0), radius=0.2)
     bld.add_ball((6, 0), (-1, 0), radius=1, mass=100 ** 5)
@@ -124,8 +124,8 @@ def newtons_cradle():
 
     # 1. Setup
     walls = [
-        billiards.InfiniteWall((-4, -2), (-4, 2), inside="right"),
-        billiards.InfiniteWall((10, -2), (10, 2), inside="left"),
+        billiards.InfiniteWall((-4, -2), (-4, 2), exterior="right"),
+        billiards.InfiniteWall((10, -2), (10, 2), exterior="left"),
     ]
     bld = billiards.Billiard(obstacles=walls)
 

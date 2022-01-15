@@ -21,7 +21,7 @@ vertical wall and two balls:
 
 .. doctest::
 
-   >>> obstacles = [billiards.InfiniteWall((0, -1), (0, 1), inside="right")]
+   >>> obstacles = [billiards.InfiniteWall((0, -1), (0, 1), exterior="right")]
    >>> bld = billiards.Billiard(obstacles)
    >>> bld.add_ball((3, 0), (0, 0), radius=0.2, mass=1)  # position, velocity, radius, mass
    0

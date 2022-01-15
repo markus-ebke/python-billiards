@@ -15,7 +15,7 @@ num_balls = 5
 # setup the billiard table
 left, right = -4, 2 * num_balls + 2
 obs = [
-    billiards.InfiniteWall((left, -2), (left, 2), "right"),
+    billiards.InfiniteWall((left, -2), (left, 2), exterior="right"),
     billiards.InfiniteWall((right, -2), (right, 2)),
 ]
 bld = billiards.Billiard(obstacles=obs)
