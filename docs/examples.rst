@@ -11,6 +11,6 @@ folder. They include
    converges to the Maxwell-Boltzmann distribution
 -  `newtons_cradle.py`: Newton's cradle with two walls (so that it loops)
 -  `pi_with_pool.py`: The same example as in the *Usage* section, animated
--  `pool.py`: First shot in a game of pool, animated
+-  `pool_first_shot.py`: First shot in a game of pool, animated
 -  `sinai_billiard.py`: Point particles trapped in a box with a disk removed
    from the center (example of a chaotic system)

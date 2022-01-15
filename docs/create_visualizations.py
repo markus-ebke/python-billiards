@@ -93,8 +93,8 @@ def brownian_motion(animate=False):
     if animate:  # just to check animation
         anim = visualize.animate(bld, end_time, velocity_arrow_factor=0)
         anim._fig.set_size_inches((7, 7))
-        # anim.save("brownian motion.mp4")
-        plt.show()
+        anim.save("brownian motion.mp4")
+        # plt.show()
         return
 
     with tqdm(total=end_time) as pbar:
