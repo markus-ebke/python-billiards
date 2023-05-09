@@ -18,12 +18,12 @@ def quickstart():
     obstacles = [billiards.obstacles.InfiniteWall((0, -1), (0, 1), exterior="right")]
     bld = billiards.Billiard(obstacles)
     bld.add_ball((3, 0), (0, 0), radius=0.2)
-    bld.add_ball((6, 0), (-1, 0), radius=1, mass=100 ** 5)
+    bld.add_ball((6, 0), (-1, 0), radius=1, mass=100**5)
     fig = visualize.plot(bld)
     fig.savefig(here / "_images/quickstart_1.svg")
     # plt.show()
 
-    v_squared = (bld.balls_velocity ** 2).sum(axis=1)
+    v_squared = (bld.balls_velocity**2).sum(axis=1)
     print(f"Kinetic energy before: {(v_squared * bld.balls_mass).sum() / 2}")
 
     print()
@@ -51,7 +51,7 @@ def quickstart():
     fig.savefig(here / "_images/quickstart_3.svg")
     # plt.show()
 
-    v_squared = (bld.balls_velocity ** 2).sum(axis=1)
+    v_squared = (bld.balls_velocity**2).sum(axis=1)
     print(f"Kinetic energy after: {(v_squared * bld.balls_mass).sum() / 2}")
 
 

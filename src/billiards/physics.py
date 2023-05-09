@@ -45,7 +45,7 @@ def time_of_impact(pos1, vel1, radius1, pos2, vel2, radius2, t_eps=1e-10):
     assert b < 0, b
     c = (pos_sqrd - (radius1 + radius2) ** 2) / vel_sqrd
 
-    discriminant = b ** 2 - c
+    discriminant = b**2 - c
     if discriminant <= 0:
         # the balls miss or slide past each other
         return INF

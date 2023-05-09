@@ -53,7 +53,7 @@ speeds = np.linalg.norm(bld.balls_velocity, axis=1)
 plt.hist(speeds, bins=20, density=True, edgecolor="white", label="Simulation")
 x = np.linspace(0, speeds.max(), num=1000)
 beta = pi / (4 * np.mean(speeds) ** 2)  # inverse temperature, m / (2 k_B T)
-plt.plot(x, 2 * beta * x * np.exp(-beta * x ** 2), label="Theory")
+plt.plot(x, 2 * beta * x * np.exp(-beta * x**2), label="Theory")
 
 # adjust axes and labels
 plt.xlim(left=0)

@@ -129,7 +129,7 @@ class Disk(Obstacle):
         self.radius = radius
 
     def calc_toi(self, pos, vel, radius):
-        """Calculate the velocity of a ball after colliding with the disk."""
+        """Calculate the time of impact of a ball with the disk."""
         return time_of_impact(self.center, (0, 0), self.radius, pos, vel, radius)
 
     def collide(self, pos, vel, radius):
@@ -183,7 +183,7 @@ class InfiniteWall(Obstacle):
             raise ValueError(f'exterior must be "left" or "right", not {exterior}')
 
     def calc_toi(self, pos, vel, radius):
-        """Calculate the velocity of a ball after colliding with the wall."""
+        """Calculate the time of impact of a ball with the wall."""
         # headway: speed towards the wall, is positive if the ball moves from
         # inside to outside (i.e. on a collision course)
         headway = -np.dot(vel, self._normal)

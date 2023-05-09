@@ -25,7 +25,7 @@ vertical wall and two balls:
    >>> bld = billiards.Billiard(obstacles)
    >>> bld.add_ball((3, 0), (0, 0), radius=0.2, mass=1)  # position, velocity, radius, mass
    0
-   >>> bld.add_ball((6, 0), (-1, 0), radius=1, mass=100 ** 5)
+   >>> bld.add_ball((6, 0), (-1, 0), radius=1, mass=100**5)
    1
 
 Using the *visualize* module, let’s see how this initial state looks like:
@@ -124,9 +124,9 @@ conserved the kinetic energy (within floating point accuracy):
 
 .. doctest::
 
-   >>> 100 ** 5 * (-1) ** 2 / 2  # kinetic energy = m v^2 / 2 at the beginning
+   >>> 100**5 * (-1) ** 2 / 2  # kinetic energy = m v^2 / 2 at the beginning
    5000000000.0
-   >>> v_squared = (bld.balls_velocity ** 2).sum(axis=1)
+   >>> v_squared = (bld.balls_velocity**2).sum(axis=1)
    >>> (bld.balls_mass * v_squared).sum() / 2  # kinetic energy now
    4999999999.989935
 
