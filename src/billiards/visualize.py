@@ -38,7 +38,8 @@ try:
 except ImportError:  # pragma: no cover
     warnings.warn(
         "Could not import matplotlib, "
-        "'visualize.plot' and 'visualize.animate' will not work."
+        "'visualize.plot' and 'visualize.animate' will not work.",
+        stacklevel=1,
     )
 
 try:
@@ -46,7 +47,8 @@ try:
 except ImportError:  # pragma: no cover
     trange = range
     warnings.warn(
-        "Could not import tqdm, will not show progress in 'visualize.animate'."
+        "Could not import tqdm, will not show progress in 'visualize.animate'.",
+        stacklevel=1,
     )
 
 try:
@@ -54,12 +56,16 @@ try:
     from pyglet import gl
     from pyglet.window import Window, key
 except ImportError:  # pragma: no cover
-    warnings.warn("Could not import pyglet, 'visualize.interact' will not work.")
+    warnings.warn(
+        "Could not import pyglet, 'visualize.interact' will not work.", stacklevel=1
+    )
 except Exception as ex:  # pragma: no cover
     # When testing with tox this happens:
     # pyglet.canvas.xlib.NoSuchDisplayException: Cannot connect to "None"
     # I don't know how to prevent it, except with this hacky except case
-    warnings.warn(f"Imported pyglet, but then something went wrong: {repr(ex)}")
+    warnings.warn(
+        f"Imported pyglet, but then something went wrong: {repr(ex)}", stacklevel=1
+    )
     Window = object  # mock window
 
 
@@ -173,7 +179,7 @@ def default_fig_and_ax(figsize=(8, 6), fig=None, ax=None):
     # setup figure if needed and use tight layout
     if fig is None:
         fig = plt.figure(figsize=(8, 6), dpi=100)
-    fig.set_tight_layout(True)
+    fig.set_layout_engine("tight")
 
     # setup axes if needed and use equal aspect
     if ax is None:

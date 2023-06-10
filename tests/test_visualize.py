@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import warnings
+
 import numpy as np
 import pytest
 from pytest import approx
@@ -39,7 +41,7 @@ else:
 
 with_pyglet = pytest.mark.skipif(not has_pyglet, reason="requires pyglet")
 
-with pytest.warns(None) as captured_warning:
+with warnings.catch_warnings(record=True) as captured_warning:
     from billiards import visualize
 
 if not has_mpl or not has_tqdm or not has_pyglet:
@@ -64,7 +66,7 @@ def test_collection():
     box_max = [10.0, 8.0]
 
     fig = plt.figure(figsize=(8, 6), dpi=100)
-    fig.set_tight_layout(True)
+    fig.set_layout_engine("tight")
     ax = fig.add_subplot(1, 1, 1, aspect="equal", adjustable="datalim")
 
     # test datalimit (used by ax.autoscale)
@@ -131,7 +133,7 @@ def test_animate(create_newtons_cradle):
     anim = visualize.animate(bld, end_time=1, fps=60)
     assert bld.time == 1
     assert isinstance(anim, mpl.animation.FuncAnimation)
-    assert anim.save_count == 61
+    assert anim._save_count == 61
 
     animated_artists = anim._func(1)
     assert len(animated_artists) == 4
@@ -143,7 +145,7 @@ def test_animate(create_newtons_cradle):
     # from time = 1 to time = 2 at 30 fps => 31 frames (endpoints included)
     anim = visualize.animate(bld, end_time=2, fps=30)
     assert bld.time == 2
-    assert anim.save_count == 31
+    assert anim._save_count == 31
 
     anim._init_draw()  # prevent warning from matplotlib
 
