@@ -11,7 +11,7 @@ from math import isinf
 import numpy as np
 
 from .obstacles import Obstacle
-from .physics import elastic_collision, time_of_impact
+from .physics import elastic_collision, toi_ball_ball
 
 INF = float("inf")
 
@@ -305,7 +305,7 @@ class Billiard:
         v2 = self.balls_velocity[idx2]
         r2 = self.balls_radius[idx2]
 
-        return self.time + time_of_impact(p1, v1, r1, p2, v2, r2)
+        return self.time + toi_ball_ball(p1, v1, r1, p2, v2, r2)
 
     def calc_next_obstacle(self, idx):
         """Find the closest colliding obstacle for the given ball.

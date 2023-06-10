@@ -4,20 +4,20 @@ import numpy as np
 import pytest
 from pytest import approx
 
-from billiards.physics import elastic_collision, time_of_impact
+from billiards.physics import elastic_collision, toi_ball_ball
 
 INF = float("inf")
 np.seterr(divide="raise")  # use pytest.raises to catch them
 
 
-def test_time_of_impact():
+def test_toi_ball_ball():
     # check that only relative coordinates are important
-    assert time_of_impact((0, 42), (42, 0), 1, (5, 42), (41, 0), 1) == 3
-    assert time_of_impact((0, 0), (0, 0), 1, (5, 0), (-1, 0), 1) == 3
+    assert toi_ball_ball((0, 42), (42, 0), 1, (5, 42), (41, 0), 1) == 3
+    assert toi_ball_ball((0, 0), (0, 0), 1, (5, 0), (-1, 0), 1) == 3
 
     # for convenience
-    def toi(p2, v2, r2, t_eps=0):
-        return time_of_impact((0, 0), (0, 0), 1, p2, v2, r2, t_eps)
+    def toi(p2, v2, r2, t_eps=-0.0):
+        return toi_ball_ball((0, 0), (0, 0), 1, p2, v2, r2, t_eps)
 
     # check miss
     assert toi((2, 0), (1, 0), 1) == INF
@@ -54,7 +54,7 @@ def test_time_of_impact():
     # test touching balls and t_eps
     diag = (sqrt(2), sqrt(2))
     assert toi(diag, (-1, 0), r2=1 + 1e-5) == INF
-    assert toi(diag, (-1, 0), r2=1 + 1e-5, t_eps=1e-4) == approx(0.0, abs=2e-5)
+    assert toi(diag, (-1, 0), r2=1 + 1e-5, t_eps=-1e-4) == approx(0.0, abs=2e-5)
     assert toi(diag, (-1, 0), r2=1) == approx(0.0)
     assert toi((sqrt(2), sqrt(2)), (-1, 0), r2=1) == approx(0.0)
 
@@ -62,7 +62,7 @@ def test_time_of_impact():
     x, y = 2 * cos(1 / 4), 2 * sin(1 / 4)
     assert (x * x + y * y) - (1 + 1) ** 2 < 0  # rounding error => not zero
     assert toi((x, y), (-1, 0), 1) == INF  # fails to detect collision
-    assert toi((x, y), (-1, 0), 1, t_eps=1e-10) == approx(0.0)
+    assert toi((x, y), (-1, 0), 1, t_eps=-1e-10) == approx(0.0)
 
 
 def test_elastic_collision():

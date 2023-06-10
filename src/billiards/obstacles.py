@@ -8,7 +8,7 @@ You can import the obstacles from the top-level module::
 """
 import numpy as np
 
-from .physics import INF, elastic_collision, time_of_impact
+from .physics import INF, elastic_collision, toi_ball_ball
 
 try:
     import matplotlib as mpl
@@ -130,7 +130,7 @@ class Disk(Obstacle):
 
     def calc_toi(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the disk."""
-        return time_of_impact(self.center, (0, 0), self.radius, pos, vel, radius)
+        return toi_ball_ball(self.center, (0, 0), self.radius, pos, vel, radius)
 
     def collide(self, pos, vel, radius):
         """Calculate the velocity of a ball after colliding with the disk."""

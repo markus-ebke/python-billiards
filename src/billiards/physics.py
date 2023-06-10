@@ -6,12 +6,12 @@ import numpy as np
 INF = float("inf")
 
 
-def time_of_impact(pos1, vel1, radius1, pos2, vel2, radius2, t_eps=1e-10):
-    """Calculate for two moving balls the time until impact.
+def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2, t_eps=-1e-10):
+    """Calculate the time of impact for two moving balls.
 
-    Overlapping balls are not counted as a collision (because the impact
-    already occured). But due to rounding errors an actual impact might be
-    missed, use a larger t_eps to correct for that.
+    Already overlapping balls are not colliding (because the collision already
+    occured), but due to rounding errors we could miss a collision of two balls
+    that are very close. Adjusting t_eps will help in these situations.
 
     Args:
         pos1: Center of the first ball.
@@ -20,53 +20,63 @@ def time_of_impact(pos1, vel1, radius1, pos2, vel2, radius2, t_eps=1e-10):
         pos2: Center of the second ball.
         vel2: Velocity of the second ball.
         radius2: Radius of the second ball.
-        t_eps (optional): Correction for rounding errors, default: 1e-10.
+        t_eps (optional): Return infinity if the calculated time of collision is
+            less than t_eps. Ideally we should set t_eps = 0, but due to
+            rounding errors a value slightly lower than zero is more useful.
+            Default: -1e-10.
 
-    Return:
-        Time until impact, is infinite if there is no impact.
-
+    Returns:
+        Time of impact, is infinite if there is no collision.
     """
-    # switch to coordinate system of ball 1
-    pos_diff = np.subtract(pos2, pos1)
-    vel_diff = np.subtract(vel2, vel1)
+    # Compute the relative position and velocity between the two balls
+    dpos = np.subtract(pos2, pos1)
+    dvel = np.subtract(vel2, vel1)
 
-    pos_dot_vel = pos_diff.dot(vel_diff)
+    # Compute the scalar products dp*dp, dp*dv and dv*dv. If dp*dv >= 0 then the
+    # balls are not moving towards each other => no collision
+    pos_dot_vel = dpos.dot(dvel)
     if pos_dot_vel >= 0:
-        # balls are moving apart, no impact
         return INF
 
-    pos_sqrd = pos_diff.dot(pos_diff)
-    vel_sqrd = vel_diff.dot(vel_diff)  # note: vel_sqrd != 0
-    assert vel_sqrd > 0, vel_sqrd
+    dist_sqrd = dpos.dot(dpos)
+    speed_sqrd = dvel.dot(dvel)  # note: vel_sqrd != 0
+    assert speed_sqrd > 0, speed_sqrd
 
-    # time of impact is given as the solution of the quadratic equation
-    # t^2 + b t + c = 0 with b and c below
-    b = pos_dot_vel / vel_sqrd  # note: b < 0 because pos_dot_vel < 0
-    assert b < 0, b
-    c = (pos_sqrd - (radius1 + radius2) ** 2) / vel_sqrd
-
-    discriminant = b**2 - c
+    # The time of impact is a solution of the quadratic equation
+    # a t^2 + b t + c = 0 with a = speed_sqrd, b = pos_dot_vel and
+    # c = (dist_sqrd - (radius1 + radius2) ** 2) / 4. Depending on the value of
+    # the discriminant = b^2 - 4 a c, we can have no solution (when the balls
+    # miss), one solution (when the balls slide past each other, this is not a
+    # collision) or two solutions (and the smaller one is the time we want).
+    c = dist_sqrd - (radius1 + radius2) ** 2
+    discriminant = pos_dot_vel * pos_dot_vel - speed_sqrd * c
     if discriminant <= 0:
         # the balls miss or slide past each other
         return INF
 
-    # when writing the solution of the quadratic equation use that
-    # c = t1 t2 (prevents rounding errors)
-    t1 = -b + sqrt(discriminant)  # note: t1 > 0
-    assert t1 > 0, (t1, b, c, sqrt(discriminant))
-    t2 = c / t1
+    # Write out the solutions t12 = (-b -+ sqrt(discriminant) / a. Since t1 < t2
+    # the time of impact is t1 and we don't need to compute t2.
+    # t1 = (-pos_dot_vel - sqrt(discriminant)) / speed_sqrd
 
-    if t2 < -t_eps:
-        # If t2 is negative, then the balls overlap. This doesn't count as an
-        # impact, but if t2 is close to zero, then a collision might have
-        # happened and we miss it just because of rounding errors
-        return INF
+    # Alternative for computing t1: compute t2 = (-b + sqrt(discriminant)) / a
+    # which is not affected by cancellation of significant digits (because
+    # -b > 0 and sqrt(...) > 0), then use that from
+    # a (t - t1) (t - t2) = a t^2 - a (t1 + t2) t + a t1 t2 == a t^2 + b t + c
+    # we can derive t1 = c / (a t2).
+    t1 = c / (-pos_dot_vel + sqrt(discriminant))
+    assert -pos_dot_vel + sqrt(discriminant) > 0, (t1, pos_dot_vel, sqrt(discriminant))
 
-    return min(t1, t2)
+    # Note that t2 > 0 (because -b > 0 and sqrt(b**2-c) > 0). If t1 is negative,
+    # then t1 < 0 < t2 which means that the balls overlap. This doesn't count as
+    # a collision, so we return infinity.
+    # However, if t1 is close to zero, then a valid collision might have
+    # happened and we miss it just because of rounding errors. That's why we
+    # check t1 > t_eps (note t_eps < 0) instead of t1 > 0.
+    return t1 if t1 >= t_eps else INF
 
 
 def elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2):
-    """Perfectly elastic collision between 2 balls.
+    """Compute velocities after a perfectly elastic collision between 2 balls.
 
     Args:
         pos1: Center of the first ball.
@@ -76,16 +86,15 @@ def elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2):
         vel2: Velocity of the second ball.
         mass2: Mass of the second ball.
 
-    Return:
-        Two velocities after the collision.
-
+    Returns:
+        The two velocities after the collision.
     """
     # switch to coordinate system of ball 1
     pos_diff = np.subtract(pos2, pos1)
     vel_diff = np.subtract(vel2, vel1)
 
     pos_dot_vel = pos_diff.dot(vel_diff)
-    assert pos_dot_vel < 0  # colliding balls do not move apart
+    assert pos_dot_vel < 0  # check that colliding balls move towards each other
 
     impulse = 2 * (pos_dot_vel * pos_diff) / ((mass1 + mass2) * pos_diff.dot(pos_diff))
     return vel1 + mass2 * impulse, vel2 - mass1 * impulse
