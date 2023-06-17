@@ -44,7 +44,7 @@ def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2, t_eps=-1e-10):
 
     # The time of impact is a solution of the quadratic equation
     # a t^2 + b t + c = 0 with a = speed_sqrd, b = pos_dot_vel and
-    # c = (dist_sqrd - (radius1 + radius2) ** 2) / 4. Depending on the value of
+    # c = (dist_sqrd - (radius1 + radius2)^2) / 4. Depending on the value of
     # the discriminant = b^2 - 4 a c, we can have no solution (when the balls
     # miss), one solution (when the balls slide past each other, this is not a
     # collision) or two solutions (and the smaller one is the time we want).
@@ -73,6 +73,166 @@ def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2, t_eps=-1e-10):
     # happened and we miss it just because of rounding errors. That's why we
     # check t1 > t_eps (note t_eps < 0) instead of t1 > 0.
     return t1 if t1 >= t_eps else INF
+
+
+def toi_ball_point(pos, vel, radius, point, t_eps=-1e-10):
+    """Calculate the time of impact for a moving ball and a static point.
+
+    If the point is inside the ball no collision will be returned (because the
+    collision already occured), but due to rounding errors we could miss a
+    collision if the point is very close to the ball's surface. Adjusting t_eps
+    will help in these situations.
+
+    Args:
+        pos: Center of the ball.
+        vel: Velocity of the ball.
+        radius: Radius of the ball.
+        point: Position of the point.
+        t_eps (optional): Return infinity if the calculated time of collision is
+            less than t_eps. Ideally we should set t_eps = 0, but due to
+            rounding errors a value slightly lower than zero is more useful.
+            Default: -1e-10.
+
+    Returns:
+        Time of impact, is infinite if there is no collision.
+    """
+    # Compute the relative position between the ball and the point
+    dpos = np.subtract(pos, point)
+    vel = np.asarray(vel)
+
+    # Compute the scalar products dp*dp, dp*dv and dv*dv. If dp*dv >= 0 then the
+    # balls are not moving towards each other => no collision
+    pos_dot_vel = dpos.dot(vel)
+    if pos_dot_vel >= 0:
+        return INF
+
+    dist_sqrd = dpos.dot(dpos)
+    speed_sqrd = vel.dot(vel)  # note: vel_sqrd != 0
+    assert speed_sqrd > 0, speed_sqrd
+
+    # The time of impact is a solution of the quadratic equation
+    # a t^2 + b t + c = 0 with a = speed_sqrd, b = pos_dot_vel and
+    # c = (dist_sqrd - radius^2) / 4. Depending on the value of the
+    # discriminant = b^2 - 4 a c, we can have no solution (when the balls miss),
+    # one solution (when the balls slide past each other, this is not a
+    # collision) or two solutions (and the smaller one is the time we want).
+    c = dist_sqrd - radius**2
+    discriminant = pos_dot_vel * pos_dot_vel - speed_sqrd * c
+    if discriminant <= 0:
+        # the balls miss or slide past each other
+        return INF
+
+    # Write out the solutions t12 = (-b -+ sqrt(discriminant) / a. Since t1 < t2
+    # the time of impact is t1 and we don't need to compute t2.
+    # t1 = (-pos_dot_vel - sqrt(discriminant)) / speed_sqrd
+
+    # Alternative for computing t1: compute t2 = (-b + sqrt(discriminant)) / a
+    # which is not affected by cancellation of significant digits (because
+    # -b > 0 and sqrt(...) > 0), then use that from
+    # a (t - t1) (t - t2) = a t^2 - a (t1 + t2) t + a t1 t2 == a t^2 + b t + c
+    # we can derive t1 = c / (a t2).
+    t1 = c / (-pos_dot_vel + sqrt(discriminant))
+    assert -pos_dot_vel + sqrt(discriminant) > 0, (t1, pos_dot_vel, sqrt(discriminant))
+
+    # Note that t2 > 0 (because -b > 0 and sqrt(b**2-c) > 0). If t1 is negative,
+    # then t1 < 0 < t2 which means that the balls overlap. This doesn't count as
+    # a collision, so we return infinity.
+    # However, if t1 is close to zero, then a valid collision might have
+    # happened and we miss it just because of rounding errors. That's why we
+    # check t1 > t_eps (note t_eps < 0) instead of t1 > 0.
+    return t1 if t1 >= t_eps else INF
+
+
+def toi_ball_segment(
+    pos, vel, radius, line_start, line_end, vector, normal, t_eps=-1e-10
+):
+    """Calculate the time of impact for a moving ball and a line segment.
+
+    If the ball and the segment overlap, no collision will be returned (because
+    the collision already occured), but (due to rounding errors) we could miss a
+    collision if the segment is very close to the ball's surface. Adjusting
+    t_eps will help in these situations.
+
+    The arguments ``vector`` and ``normal`` can be computed as follows::
+        direction = np.subtract(line_end, line_start)
+        length_sqrd = direction.dot(direction)
+        vector = direction / length_sqrd
+        normal = np.asarray([-direction[1], direction[0]]) / sqrt(length_sqrd)
+    Since ``vector`` and ``normal`` depend only on the line segment, they need
+    to be computed only once when we define the line. Note that dividing the
+    direction vector by the squared length simplifies some calculations.
+
+    Args:
+        pos: Center of the ball.
+        vel: Velocity of the ball.
+        radius: Radius of the ball.
+        line_start: Starting point of the line segment.
+        line_end: Endpoint of the line segment.
+        vector: Equal to (line_end - line_start) / line_length**2.
+        normal: Normalized vector perpendicular to the line.
+        t_eps (optional): Return infinity if the calculated time of collision is
+            less than t_eps. Ideally we should set t_eps = 0, but due to
+            rounding errors a value slightly lower than zero is more useful.
+            Default: -1e-10.
+
+    Returns:
+        Time of impact, is infinite if there is no collision.
+
+    Notes:
+        A ball-segment intersection problem is equivalent to a particle-capsule
+        intersection problem (via Minkowski addition).
+    """
+    # The ball can collide with the line segment in four different places:
+    # face-on from the left or from the right or with one of the endpoints.
+
+    # Shift the position into the past by t_eps, later we only need to compare
+    # the collision time to zero but correct for t_eps before we return it.
+
+    # Switch to line coordinate system by projecting the relative position of
+    # the ball onto the line direction and the normal direction, in this frame
+    # the line segment has coordinates 0 <= dpos_line <= 1, dpos_normal == 0.
+    dpos = np.subtract(pos, line_start) + t_eps * np.asarray(vel)
+    dpos_line = vector.dot(dpos)
+    dpos_normal = normal.dot(dpos)
+
+    # If the distance in normal direction is smaller than the radius, then the
+    # ball can only collide with one of the endpoints.
+    if abs(dpos_normal) <= radius:
+        # The sign of line_project indicates if the ball is behind (< 0) or
+        # ahead (> 0) of line_start
+        if dpos_line < 0:
+            return toi_ball_point(pos, vel, radius, line_start, t_eps)
+        elif dpos_line > 1:
+            return toi_ball_point(pos, vel, radius, line_end, t_eps)
+        else:
+            # ball must overlap the line
+            return INF
+
+    # Next, we figure out where along the path of the ball it will hit the line.
+    # Note that dpos_normal is the signed distance to the infinite line, we
+    # divide it by the velocity in normal direction to get the collision time.
+    vel_normal = normal.dot(vel)
+    if vel_normal == 0:
+        # ball moves parallel to the line and distance to the line is greater
+        # than radius => no collision
+        return INF
+
+    # Compute the time when the distance to the line becomes equal to the radius
+    t = -(dpos_normal + (-radius if dpos_normal > 0 else radius)) / vel_normal
+    if t < 0:
+        # ball is moving away
+        return INF
+
+    # Compute the line parameter u of the collision point. If 0 <= u <= 1, then
+    # the collision point lies inside the segment. Otherwise the ball might
+    # still hit one of the endpoints.
+    u = dpos_line + t * vector.dot(vel)
+    if 0 <= u <= 1:
+        return t + t_eps
+    elif u < 0:
+        return toi_ball_point(pos, vel, radius, line_start, t_eps)
+    else:
+        return toi_ball_point(pos, vel, radius, line_end, t_eps)
 
 
 def elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2):

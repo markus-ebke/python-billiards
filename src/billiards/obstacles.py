@@ -6,9 +6,11 @@ You can import the obstacles from the top-level module::
     from billiard import Disk, InfiniteWall
 
 """
+from math import sqrt
+
 import numpy as np
 
-from .physics import INF, elastic_collision, toi_ball_ball
+from .physics import INF, elastic_collision, toi_ball_ball, toi_ball_segment
 
 try:
     import matplotlib as mpl
@@ -233,6 +235,60 @@ class InfiniteWall(Obstacle):
 
     def model(self):  # pragma: no cover
         """Vertices, indices and drawing mode for OpenGL drawing the wall."""
+        vertices = np.asarray([self.start_point, self.end_point])
+        indices = [0, 1]
+        return (vertices, indices, gl.GL_LINES)
+
+
+class LineSegment(Obstacle):
+    """A line segment with collisions from both sides."""
+
+    def __init__(self, start_point, end_point):
+        """Create a line segment between two points.
+
+        Args:
+            start_point: Starting point of the line segment.
+            end_point: Endpoint of the line segment.
+        """
+        self.start_point = np.asarray(start_point)
+        self.end_point = np.asarray(end_point)
+        direction = self.end_point - self.start_point
+        length_sqrd = direction.dot(direction)
+
+        if length_sqrd == 0.0:
+            raise ValueError("this is not a line")
+
+        # Direction of the line, dividing by the squared length simplifies some
+        # calculations in calc_toi
+        self._vector = direction / length_sqrd
+
+        # normalized vector perpendicular to the line
+        self._normal = np.array([-direction[1], direction[0]]) / sqrt(length_sqrd)
+
+    def calc_toi(self, pos, vel, radius):
+        """Calculate the time of impact of a ball with the line segment."""
+        return toi_ball_segment(
+            pos,
+            vel,
+            radius,
+            self.start_point,
+            self.end_point,
+            self._vector,
+            self._normal,
+        )
+
+    def collide(self, pos, vel, radius):
+        """Calculate the velocity of a ball after colliding with the line segment."""
+        # TODO implement collision with one of the endpoints
+        return vel - 2 * self._normal.dot(vel) * self._normal
+
+    def plot(self, ax, color, **kwargs):
+        """Draw the line segment onto the given matplotlib axes."""
+        kwargs.setdefault("solid_capstyle", "round")
+        ax.plot(self.start_point, self.end_point, color=color, **kwargs)
+
+    def model(self):  # pragma: no cover
+        """Vertices, indices and drawing mode for OpenGL drawing the line segment."""
         vertices = np.asarray([self.start_point, self.end_point])
         indices = [0, 1]
         return (vertices, indices, gl.GL_LINES)
