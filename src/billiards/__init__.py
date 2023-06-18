@@ -14,7 +14,15 @@ __version__ = "0.5.0"
 
 # Local
 from . import obstacles, physics, simulation
-from .obstacles import Disk, InfiniteWall
+from .obstacles import Disk, InfiniteWall, LineSegment
 from .simulation import Billiard
 
-__all__ = ["obstacles", "physics", "simulation", "Billiard", "Disk", "InfiniteWall"]
+__all__ = [
+    "obstacles",
+    "physics",
+    "simulation",
+    "Billiard",
+    "Disk",
+    "InfiniteWall",
+    "LineSegment",
+]

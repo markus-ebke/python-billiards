@@ -153,6 +153,9 @@ def test_toi_ball_segment():
         vel = (cos(a), -sin(a))
         assert toi(pos, vel, 1 / 2) == approx((pos[1] - 1 / 2) / (-vel[1])), a
 
+    # collision along the line before collision with endpoint
+    assert toi((1, 1), (-1, -1), 1 / 2) == approx(0.5)
+
     # miss
     assert toi((-1, 0), (0, 1), 1) == INF
     assert toi((-1, -1), (0, 1), 1) == INF
@@ -164,6 +167,8 @@ def test_toi_ball_segment():
     assert toi((0.1, 0), (0, 1), 1) == INF
     assert toi((0.1, -0.5), (0, 1), 1) == INF
     assert toi((0.1, 0), (0, 1), 10) == INF
+    assert toi((1 / 2, 0), (-1, 0), 1 / 4) == INF
+    assert toi((1 / 2, 1 / 3), (-1, -1), 1 / 2) == INF
 
     # toi was in the past, use t_eps
     assert toi((0.1, 1), (0, -1), 1 + 1e-5) == INF
@@ -189,6 +194,18 @@ def test_elastic_collision():
 
     # zero mass collision
     assert ec((-1, 0), (-20, 0), mass2=0) == ((-1, 0), (18, 0))
+
+    # sliding past each other is possible
+    assert ec((0, 0), (0, 1)) == ((0, 0), (0, 1))
+
+    # When the balls are moving slightly apart, we *should* get an exception. But to
+    # avoid false positives when balls are slightly moving towards each other, we allow
+    # it.
+    assert ec((0, 0), (5e-16, 1)) == ((5e-16, 0), (0, 1))
+
+    # check exceptions
+    with pytest.raises(ValueError):
+        ec((0, 0), (6e-16, 1))
 
     # collision of two massless particles makes no sense
     with pytest.raises(FloatingPointError):

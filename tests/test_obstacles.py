@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
+from math import cos, pi, sin, sqrt
+
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose
 from pytest import approx
 
-from billiards.obstacles import Disk, InfiniteWall, circle_model
+from billiards.obstacles import Disk, InfiniteWall, LineSegment, circle_model
 
 INF = float("inf")
 
@@ -74,6 +77,46 @@ def test_infinite_wall():
     w = InfiniteWall((-1, 0), (1, 0), exterior="right")
     assert w.calc_toi((0, -10), (10, 1), 1) == 9
     assert tuple(w.collide((0, -10), (10, 1), 1)) == (10, -1)
+
+
+def test_line_segment():
+    # test invalid construction
+    with pytest.raises(ValueError):
+        LineSegment((-1, 0), (-1, 0))  # not a line
+
+    # check properties
+    line = LineSegment((-1, 0), (1, 0))
+    assert_allclose(line.start_point, (-1, 0))
+    assert_allclose(line.end_point, (1, 0))
+    assert_allclose(line._vector, (1 / 2, 0))
+    assert_allclose(line._normal, (0, 1))
+
+    # collision at left endpoint
+    for a in [0, 1 / 6, 1 / 4, -1 / 2, pi / 2 - 1e-6, pi / 2]:
+        pos = np.asarray([-cos(a) - 1, sin(a)])
+        vel = np.asarray([cos(a), -sin(a)])
+        assert line.calc_toi(pos, vel, 1 / 2) == approx(0.5), a
+
+        cvel = line.collide(pos + 0.5 * vel, vel, 1 / 2)
+        assert_allclose(cvel, (-vel[0], -vel[1]), atol=1e-14)
+
+    pos = np.asarray([-sqrt(1 / 2) - 2, sqrt(1 / 2) - 1])
+    vel = np.asarray([1, 1])
+    assert line.calc_toi(pos, vel, 1 + 1e-14) == approx(1.0)
+
+    cvel = line.collide(pos + 1.0 * vel, vel, 1)
+    assert_allclose(cvel, vel, atol=1e-14)
+
+    # collision along the line
+    # TODO too close to the endpoint and the test fails, a = pi/2 + 1e-10
+    for a in [pi / 2 + 1e-6, 5 / 6 * pi - 1e-15]:
+        pos = np.asarray([-cos(a) - 1, sin(a)])
+        vel = np.asarray([cos(a), -sin(a)])
+        t = (pos[1] - 1 / 2) / (-vel[1])
+        assert line.calc_toi(pos, vel, 1 / 2) == approx(t), a
+
+        cvel = line.collide(pos + t * vel, vel, 1 / 2)
+        assert_allclose(cvel, (vel[0], -vel[1]), atol=1e-14)
 
 
 if __name__ == "__main__":

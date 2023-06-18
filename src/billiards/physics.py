@@ -248,13 +248,18 @@ def elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2):
 
     Returns:
         The two velocities after the collision.
+
+    Raises:
+        ValueError: When the two balls are not moving towards each other.
     """
     # switch to coordinate system of ball 1
     pos_diff = np.subtract(pos2, pos1)
     vel_diff = np.subtract(vel2, vel1)
 
     pos_dot_vel = pos_diff.dot(vel_diff)
-    assert pos_dot_vel < 0  # check that colliding balls move towards each other
+    if pos_dot_vel > 1e-15:
+        msg = f"Balls are not moving towards each other: pos * vel = {pos_dot_vel} > 0"
+        raise ValueError(msg)
 
     impulse = 2 * (pos_dot_vel * pos_diff) / ((mass1 + mass2) * pos_diff.dot(pos_diff))
     return vel1 + mass2 * impulse, vel2 - mass1 * impulse

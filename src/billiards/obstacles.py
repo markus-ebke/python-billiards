@@ -279,13 +279,23 @@ class LineSegment(Obstacle):
 
     def collide(self, pos, vel, radius):
         """Calculate the velocity of a ball after colliding with the line segment."""
-        # TODO implement collision with one of the endpoints
+        dpos = np.subtract(pos, self.start_point)
+        if abs(dpos.dot(dpos) - radius**2) < 1e-14:
+            return elastic_collision(self.start_point, (0, 0), 1, pos, vel, 0)[1]
+
+        dpos = np.subtract(pos, self.end_point)
+        if abs(dpos.dot(dpos) - radius**2) < 1e-14:
+            return elastic_collision(self.end_point, (0, 0), 1, pos, vel, 0)[1]
+
+        # collision with the line part of the segment
         return vel - 2 * self._normal.dot(vel) * self._normal
 
     def plot(self, ax, color, **kwargs):
         """Draw the line segment onto the given matplotlib axes."""
         kwargs.setdefault("solid_capstyle", "round")
-        ax.plot(self.start_point, self.end_point, color=color, **kwargs)
+        sx, sy = self.start_point
+        ex, ey = self.end_point
+        ax.plot([sx, ex], [sy, ey], color=color, **kwargs)
 
     def model(self):  # pragma: no cover
         """Vertices, indices and drawing mode for OpenGL drawing the line segment."""
