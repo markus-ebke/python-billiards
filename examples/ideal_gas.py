@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ideal gas trapped in a box
+"""Ideal gas trapped in a box.
 
 In the beginning, all balls have the same speed. But after many collisions, the
 distribution of speeds converges to the (two-dimensional) Maxwell-Boltzmann
@@ -29,13 +29,12 @@ bld = billiards.Billiard(obstacles=bounds)
 
 # distribute particles uniformly in the square, moving in random directions but
 # with the same speed
-for _i in range(num_balls):
+for _ in range(num_balls):
     pos = np.random.uniform((-0.99, -0.99), (0.99, 0.99))
     angle = np.random.uniform(0, 2 * pi)
-    vel = [cos(angle), sin(angle)]
+    vel = np.asarray([cos(angle), sin(angle)]) / 5
 
     bld.add_ball(pos, vel, radius=0.01)
-bld.balls_velocity /= 5  # slow down
 
 # add a bigger ball to illustrate Brownian motion
 # bld.add_ball((0, 0), (0, 0), radius=0.1, mass=10)
