@@ -10,7 +10,7 @@ from math import sqrt
 
 import numpy as np
 
-from .physics import INF, elastic_collision, toi_ball_ball, toi_ball_segment
+from .physics import INF, elastic_collision, toi_and_param_ball_segment, toi_ball_ball
 
 try:
     import matplotlib as mpl
@@ -64,23 +64,25 @@ class Obstacle:  # pragma: no cover
             vel: Velocity of the ball.
             radius: Ball radius.
 
-        Return:
-            float: Time until impact the given ball with this obstacle.
-            float("inf") if there is no collision.
+        Returns:
+            float: Time until impact the given ball with this obstacle, is infinite if
+                there is no collision.
+            tuple: Optional arguments for the collide method.
 
         """
         raise NotImplementedError("subclasses should implement this!")
 
-    def collide(self, pos, vel, radius):
+    def collide(self, pos, vel, radius, *args):
         """Calculate the velocity of a ball after colliding with this obstacle.
 
         Args:
             pos: Center of the ball.
             vel: Velocity of the ball.
             radius: Ball radius.
+            *args: Optional arguments for more collision info.
 
-        Return:
-            np.ndarry: Velocity after impact.
+        Returns:
+            np.ndarray: Velocity after impact.
 
         """
         raise NotImplementedError("subclasses should implement this!")
@@ -132,9 +134,9 @@ class Disk(Obstacle):
 
     def calc_toi(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the disk."""
-        return toi_ball_ball(self.center, (0, 0), self.radius, pos, vel, radius)
+        return toi_ball_ball(self.center, (0, 0), self.radius, pos, vel, radius), ()
 
-    def collide(self, pos, vel, radius):
+    def collide(self, pos, vel, radius, *args):
         """Calculate the velocity of a ball after colliding with the disk."""
         return elastic_collision(self.center, (0, 0), 1, pos, vel, 0)[1]
 
@@ -191,7 +193,7 @@ class InfiniteWall(Obstacle):
         headway = -np.dot(vel, self._normal)
         if headway <= 0:
             # ball does not get closer to the wall, no collision
-            return INF
+            return INF, ()
 
         # size of the gap between the perimeter of the ball and the wall, is
         # negative if the ball is not completely on the inside
@@ -203,13 +205,17 @@ class InfiniteWall(Obstacle):
             # doesn't count as an impact, but if t is close to zero, then a
             # collision might have happened and we miss it just because of
             # rounding errors
-            return INF
+            return INF, ()
         else:
-            return t
+            return t, (headway,)
 
-    def collide(self, pos, vel, radius):
+    def collide(self, pos, vel, radius, headway):
         """Calculate the velocity of a ball after colliding with the wall."""
-        headway = -np.dot(vel, self._normal)
+        # if headway is None:
+        #    headway = -np.dot(vel, self._normal)
+        # else:
+        #    ref = -np.dot(vel, self._normal)
+        #    assert np.linalg.norm(headway - ref) <= 1e-14, (headway, ref)
         assert headway > 0  # if the ball is colliding, it can't move away
 
         return vel + 2 * (headway * self._normal)
@@ -267,7 +273,7 @@ class LineSegment(Obstacle):
 
     def calc_toi(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the line segment."""
-        return toi_ball_segment(
+        t, u = toi_and_param_ball_segment(
             pos,
             vel,
             radius,
@@ -276,15 +282,18 @@ class LineSegment(Obstacle):
             self._vector,
             self._normal,
         )
+        return t, (u,)
 
-    def collide(self, pos, vel, radius):
+    def collide(self, pos, vel, radius, u):
         """Calculate the velocity of a ball after colliding with the line segment."""
-        dpos = np.subtract(pos, self.start_point)
-        if abs(dpos.dot(dpos) - radius**2) < 1e-14:
+        # dpos = np.subtract(pos, self.start_point)
+        # if abs(dpos.dot(dpos) - radius**2) < 1e-14:
+        if u == 0:
             return elastic_collision(self.start_point, (0, 0), 1, pos, vel, 0)[1]
 
-        dpos = np.subtract(pos, self.end_point)
-        if abs(dpos.dot(dpos) - radius**2) < 1e-14:
+        # dpos = np.subtract(pos, self.end_point)
+        # if abs(dpos.dot(dpos) - radius**2) < 1e-14:
+        elif u == 1:
             return elastic_collision(self.end_point, (0, 0), 1, pos, vel, 0)[1]
 
         # collision with the line part of the segment

@@ -103,7 +103,7 @@ class Billiard:
         # toi: time of impact with an obstacle for each ball (size == self.num)
         self._obstacles_toi = np.empty(shape=(0,), dtype=np.float64)
         self._obstacles_obs = []  # impacted obstacle (or None) for each ball
-        self.next_ball_obstacle_collision = (INF, -1, None)  # min of _obstacles_toi
+        self.next_ball_obstacle_collision = (INF, -1, (None, ()))  # min _obstacles_toi
 
     @property
     def next_collision(self):
@@ -175,9 +175,9 @@ class Billiard:
         )  # note that first ball index must be lower than second index
 
         # calculate time of impact for obstacles
-        t_min, obs_min = self.calc_next_obstacle(idx)
+        t_min, obs_and_args_min = self.calc_next_obstacle(idx)
         self._obstacles_toi = np.append(self._obstacles_toi, t_min)
-        self._obstacles_obs.append(obs_min)
+        self._obstacles_obs.append(obs_and_args_min)
         ball_idx = self._obstacles_toi.argmin()
         self.next_ball_obstacle_collision = (
             self._obstacles_toi[ball_idx],
@@ -254,9 +254,9 @@ class Billiard:
                     recompute_pairs.add((i, idx))
 
             # update time of impact for the next ball-obstacle collision
-            t_min, obs_min = self.calc_next_obstacle(idx)
+            t_min, obs_and_args_min = self.calc_next_obstacle(idx)
             self._obstacles_toi[idx] = t_min
-            self._obstacles_obs[idx] = obs_min
+            self._obstacles_obs[idx] = obs_and_args_min
 
             # update minimum index
             min_idx = idx if idx < min_idx else min_idx
@@ -314,20 +314,20 @@ class Billiard:
             idx: Index of ball.
 
         Returns:
-            tuple: (time, obstacle)-pair of the next collision or (INF, None) if ball
-            will not impact any obstacle.
+            tuple: (time, (obstacle, args))-pair of the next collision or (INF, None) if
+            ball will not impact any obstacle.
         """
         pos = self.balls_position[idx]
         vel = self.balls_velocity[idx]
         radius = self.balls_radius[idx]
 
-        t_min, obs_min = INF, None
+        t_min, obs_and_args_min = INF, None
         for obs in self.obstacles:
-            t = obs.calc_toi(pos, vel, radius)
+            t, args = obs.calc_toi(pos, vel, radius)
             if t < t_min:
-                t_min, obs_min = t, obs
+                t_min, obs_and_args_min = t, (obs, args)
 
-        return self.time + t_min, obs_min
+        return self.time + t_min, obs_and_args_min
 
     def evolve(self, end_time, time_callback=None, ball_callbacks=None):
         """Advance the simulation until the given time is reached.
@@ -429,12 +429,12 @@ class Billiard:
         )
 
         # update time of impact for the next ball-obstacle collision
-        t_min, obs_min = self.calc_next_obstacle(idx1)
+        t_min, obs_and_args_min = self.calc_next_obstacle(idx1)
         self._obstacles_toi[idx1] = t_min
-        self._obstacles_obs[idx1] = obs_min
-        t_min, obs_min = self.calc_next_obstacle(idx2)
+        self._obstacles_obs[idx1] = obs_and_args_min
+        t_min, obs_and_args_min = self.calc_next_obstacle(idx2)
         self._obstacles_toi[idx2] = t_min
-        self._obstacles_obs[idx2] = obs_min
+        self._obstacles_obs[idx2] = obs_and_args_min
 
         ball_idx = self._obstacles_toi.argmin()
         self.next_ball_obstacle_collision = (
@@ -450,13 +450,13 @@ class Billiard:
             ball_callbacks: Mapping from ball index to a callable.
 
         """
-        t, idx, obs = self.next_ball_obstacle_collision
+        t, idx, obs_and_args = self.next_ball_obstacle_collision
         assert self._obstacles_toi[idx] == t
-        assert self._obstacles_obs[idx] == obs
+        assert self._obstacles_obs[idx] == obs_and_args
 
         # advance to the next collision and handle it
         self._move(t)
-        self._collide_obstacle(idx, obs, ball_callbacks)
+        self._collide_obstacle(idx, obs_and_args, ball_callbacks)
 
         # update time of impact for ball-ball collisions
         for j in range(idx):
@@ -482,9 +482,9 @@ class Billiard:
         )
 
         # update time of impact for the next ball-obstacle collision
-        t_min, obs_min = self.calc_next_obstacle(idx)
+        t_min, obs_and_args_min = self.calc_next_obstacle(idx)
         self._obstacles_toi[idx] = t_min
-        self._obstacles_obs[idx] = obs_min
+        self._obstacles_obs[idx] = obs_and_args_min
 
         ball_idx = self._obstacles_toi.argmin()
         self.next_ball_obstacle_collision = (
@@ -541,12 +541,13 @@ class Billiard:
         self.balls_velocity[idx1] = vnew1
         self.balls_velocity[idx2] = vnew2
 
-    def _collide_obstacle(self, idx, obs, ball_callbacks):
+    def _collide_obstacle(self, idx, obs_and_args, ball_callbacks):
         """Update velocity of a ball colliding with an obstacle.
 
         Args:
             idx: Index of the colliding ball.
-            obs: The obstacle with which the ball collides.
+            obs_and_args: The obstacle with which the ball collides and optional
+                arguments for obstacle.collide.
             ball_callbacks: Mapping from ball index to a callable.
 
         """
@@ -554,7 +555,8 @@ class Billiard:
         vel = self.balls_velocity[idx]
         radius = self.balls_radius[idx]
 
-        new_vel = obs.collide(pos, vel, radius)
+        obs, args = obs_and_args
+        new_vel = obs.collide(pos, vel, radius, *args)
 
         # call callback here, because updating self.balls_velocity will change vel
         # note: no copy of new_vel needed, because after we assign it we never use it

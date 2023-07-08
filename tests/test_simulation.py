@@ -321,8 +321,8 @@ def test_obstacles():
     bld.add_ball((-10, 0), (1, 0), radius=1)
     assert bld._obstacles_toi.shape == (1,)
     assert bld._obstacles_toi.tolist() == [8.0]
-    assert bld._obstacles_obs == [disk]
-    assert bld.next_ball_obstacle_collision == (8.0, 0, disk)
+    assert bld._obstacles_obs == [(disk, ())]
+    assert bld.next_ball_obstacle_collision == (8.0, 0, (disk, ()))
 
     # record ball collisions via callback function
     collisions = []
@@ -351,8 +351,8 @@ def test_newtons_cradle_with_obstacles(create_newtons_cradle):
     # check toi of ball-ball and ball-obstacle collisions
     assert bld.next_ball_ball_collision == (3.0, 0, 1)
     assert bld._obstacles_toi.tolist() == [9.0, INF]
-    assert bld._obstacles_obs == [right_wall, None]
-    assert bld.next_ball_obstacle_collision == (9.0, 0, right_wall)
+    assert bld._obstacles_obs == [(right_wall, (1.0,)), None]
+    assert bld.next_ball_obstacle_collision == (9.0, 0, (right_wall, (1.0,)))
     assert bld.next_collision == bld.next_ball_ball_collision
 
     # evolve until first ball-ball collision
@@ -362,8 +362,8 @@ def test_newtons_cradle_with_obstacles(create_newtons_cradle):
     # check again toi of ball-ball and ball-obstacle collisions
     assert bld.next_ball_ball_collision == (INF, -1, 0)
     assert bld._obstacles_toi.tolist() == [INF, 7.0]
-    assert bld._obstacles_obs == [None, right_wall]
-    assert bld.next_ball_obstacle_collision == (7.0, 1, right_wall)
+    assert bld._obstacles_obs == [None, (right_wall, (1.0,))]
+    assert bld.next_ball_obstacle_collision == (7.0, 1, (right_wall, (1.0,)))
     assert bld.next_collision == bld.next_ball_obstacle_collision
 
     # evolve until the second ball hits the right wall
@@ -373,8 +373,8 @@ def test_newtons_cradle_with_obstacles(create_newtons_cradle):
     # check again toi of ball-ball and ball-obstacle collisions
     assert bld.next_ball_ball_collision == (11.0, 0, 1)
     assert bld._obstacles_toi.tolist() == [INF, 16.0]
-    assert bld._obstacles_obs == [None, left_wall]
-    assert bld.next_ball_obstacle_collision == (16.0, 1, left_wall)
+    assert bld._obstacles_obs == [None, (left_wall, (1.0,))]
+    assert bld.next_ball_obstacle_collision == (16.0, 1, (left_wall, (1.0,)))
     assert bld.next_collision == bld.next_ball_ball_collision
 
     # evolve until the second ball hits the first which then hits the left wall

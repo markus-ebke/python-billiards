@@ -6,9 +6,9 @@ from pytest import approx
 
 from billiards.physics import (
     elastic_collision,
+    toi_and_param_ball_segment,
     toi_ball_ball,
     toi_ball_point,
-    toi_ball_segment,
 )
 
 INF = float("inf")
@@ -128,51 +128,64 @@ def test_toi_ball_segment():
     normal = np.asarray([-direction[1], direction[0]]) / sqrt(length_sqrd)
 
     line = (start, end, vector, normal)
-    assert toi_ball_segment((1 / 2, 2), (0, -1), 1, *line) == 1
+    assert toi_and_param_ball_segment((1 / 2, 2), (0, -1), 1, *line) == (1, 1 / 2)
 
     # check that only relative coordinates are important
     line = (start + (42, 0), end + (42, 0), vector, normal)
-    assert toi_ball_segment((1 / 2 + 42, 2), (0, -1), 1, *line) == 1
+    assert toi_and_param_ball_segment((1 / 2 + 42, 2), (0, -1), 1, *line) == (1, 1 / 2)
 
     # check that scale doesn't matter
     line = (10 * start, 10 * end, vector / 10, normal)
-    assert toi_ball_segment((5, 20), (0, -10), 10, *line) == 1
+    assert toi_and_param_ball_segment((5, 20), (0, -10), 10, *line) == (1, 1 / 2)
 
     # for convenience
     def toi(pos, vel, radius, t_eps=-0.0):
-        return toi_ball_segment(pos, vel, radius, start, end, vector, normal, t_eps)
+        return toi_and_param_ball_segment(
+            pos, vel, radius, start, end, vector, normal, t_eps
+        )
 
     # collision at left endpoint
     for a in [0, 1 / 6, 1 / 4, -1 / 2, pi / 2 - 1e-6, pi / 2]:
-        assert toi((-cos(a), sin(a)), (cos(a), -sin(a)), 1 / 2) == approx(0.5), a
-    assert toi((-sqrt(1 / 2) - 1, sqrt(1 / 2) - 1), (1, 1), 1 + 1e-14) == approx(1.0)
+        assert toi((-cos(a), sin(a)), (cos(a), -sin(a)), 1 / 2) == (approx(0.5), 0), a
+    pos = (-sqrt(1 / 2) - 1, sqrt(1 / 2) - 1)
+    assert toi(pos, (1, 1), 1 + 1e-14) == (approx(1.0), 0)
 
     # collision along the line
     for a in [pi / 2 + 1e-6, 5 / 6 * pi - 1e-15]:
         pos = (-cos(a), sin(a))
         vel = (cos(a), -sin(a))
-        assert toi(pos, vel, 1 / 2) == approx((pos[1] - 1 / 2) / (-vel[1])), a
+        t, u = toi(pos, vel, 1 / 2)
+        t_ref = (pos[1] - 1 / 2) / (-vel[1])
+        assert t == approx(t_ref), a
+        assert u is not None and u > 0, a
+
+        ball_pos = np.asarray(pos) + t * np.asarray(vel)
+        line_pos = start + u * direction
+        assert np.linalg.norm(ball_pos - line_pos) == approx(1 / 2), a
 
     # collision along the line before collision with endpoint
-    assert toi((1, 1), (-1, -1), 1 / 2) == approx(0.5)
+    assert toi((1, 1), (-1, -1), 1 / 2) == (approx(0.5), approx(1 / 2))
 
     # miss
-    assert toi((-1, 0), (0, 1), 1) == INF
-    assert toi((-1, -1), (0, 1), 1) == INF
-    assert toi((-sqrt(1 / 2) - 1, sqrt(1 / 2) - 1), (1, 1), 1 - 1e-10) == INF
-    assert toi((0.1, 1), (1, 0), 1) == INF  # slide
+    assert toi((-1, 0), (0, 1), 1)[0] == INF
+    assert toi((-1, -1), (0, 1), 1)[0] == INF
+    assert toi((-sqrt(1 / 2) - 1, sqrt(1 / 2) - 1), (1, 1), 1 - 1e-10)[0] == INF
+    assert toi((0.1, 1), (1, 0), 1)[0] == INF  # slide
 
     # overlap is a miss
-    assert toi((-1, 0), (0, 1), 1.1) == INF
-    assert toi((0.1, 0), (0, 1), 1) == INF
-    assert toi((0.1, -0.5), (0, 1), 1) == INF
-    assert toi((0.1, 0), (0, 1), 10) == INF
-    assert toi((1 / 2, 0), (-1, 0), 1 / 4) == INF
-    assert toi((1 / 2, 1 / 3), (-1, -1), 1 / 2) == INF
+    assert toi((-1, 0), (0, 1), 1.1)[0] == INF
+    assert toi((0.1, 0), (0, 1), 1)[0] == INF
+    assert toi((0.1, -0.5), (0, 1), 1)[0] == INF
+    assert toi((0.1, 0), (0, 1), 10)[0] == INF
+    assert toi((1 / 2, 0), (-1, 0), 1 / 4)[0] == INF
+    assert toi((1 / 2, 1 / 3), (-1, -1), 1 / 2)[0] == INF
 
     # toi was in the past, use t_eps
-    assert toi((0.1, 1), (0, -1), 1 + 1e-5) == INF
-    assert toi((0.1, 1), (0, -1), 1 + 1e-5, t_eps=-1e-4) == approx(-1e-5, abs=1e-10)
+    assert toi((0.1, 1), (0, -1), 1 + 1e-5)[0] == INF
+    assert toi((0.1, 1), (0, -1), 1 + 1e-5, t_eps=-1e-4) == (
+        approx(-1e-5, abs=1e-14),
+        0.1,
+    )
 
 
 def test_elastic_collision():

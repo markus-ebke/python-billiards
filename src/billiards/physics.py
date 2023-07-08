@@ -143,7 +143,7 @@ def toi_ball_point(pos, vel, radius, point, t_eps=-1e-10):
     return t1 if t1 >= t_eps else INF
 
 
-def toi_ball_segment(
+def toi_and_param_ball_segment(
     pos, vel, radius, line_start, line_end, vector, normal, t_eps=-1e-10
 ):
     """Calculate the time of impact for a moving ball and a line segment.
@@ -176,7 +176,9 @@ def toi_ball_segment(
             Default: -1e-10.
 
     Returns:
-        Time of impact, is infinite if there is no collision.
+        tuple: Time of impact (is infinite if there is no collision) and line parameter
+            for the impact location on the segment (in the interval [0, 1] for a valid
+            collision).
 
     Notes:
         A ball-segment intersection problem is equivalent to a particle-capsule
@@ -201,12 +203,12 @@ def toi_ball_segment(
         # The sign of line_project indicates if the ball is behind (< 0) or
         # ahead (> 0) of line_start
         if dpos_line < 0:
-            return toi_ball_point(pos, vel, radius, line_start, t_eps)
+            return toi_ball_point(pos, vel, radius, line_start, t_eps), 0
         elif dpos_line > 1:
-            return toi_ball_point(pos, vel, radius, line_end, t_eps)
+            return toi_ball_point(pos, vel, radius, line_end, t_eps), 1
         else:
             # ball must overlap the line
-            return INF
+            return INF, None
 
     # Next, we figure out where along the path of the ball it will hit the line.
     # Note that dpos_normal is the signed distance to the infinite line, we
@@ -215,24 +217,24 @@ def toi_ball_segment(
     if vel_normal == 0:
         # ball moves parallel to the line and distance to the line is greater
         # than radius => no collision
-        return INF
+        return INF, None
 
     # Compute the time when the distance to the line becomes equal to the radius
     t = -(dpos_normal + (-radius if dpos_normal > 0 else radius)) / vel_normal
     if t < 0:
         # ball is moving away
-        return INF
+        return INF, None
 
     # Compute the line parameter u of the collision point. If 0 <= u <= 1, then
     # the collision point lies inside the segment. Otherwise the ball might
     # still hit one of the endpoints.
     u = dpos_line + t * vector.dot(vel)
     if 0 <= u <= 1:
-        return t + t_eps
+        return t + t_eps, u
     elif u < 0:
-        return toi_ball_point(pos, vel, radius, line_start, t_eps)
+        return toi_ball_point(pos, vel, radius, line_start, t_eps), 0
     else:
-        return toi_ball_point(pos, vel, radius, line_end, t_eps)
+        return toi_ball_point(pos, vel, radius, line_end, t_eps), 1
 
 
 def elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2):
