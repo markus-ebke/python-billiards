@@ -106,6 +106,14 @@ def test_line_segment():
     vel = np.asarray([1, 1])
     assert line.calc_toi(pos, vel, 1 + 1e-14) == (approx(1.0), (0,))
 
+    pos = np.asarray([-sqrt(1 / 2), sqrt(1 / 2) + 1])
+    vel = np.asarray([-1, -1])
+    assert line.calc_toi(pos, vel, 1 + 1e-14) == (approx(1.0), (0,))
+
+    pos = np.asarray([-2, 1 - 1e-14])
+    vel = np.asarray([1, 0])
+    assert line.calc_toi(pos, vel, 1) == (approx(1.0), (0,))
+
     cvel = line.collide(pos + 1.0 * vel, vel, 1, 0)
     assert_allclose(cvel, vel, atol=1e-14)
 
@@ -120,6 +128,27 @@ def test_line_segment():
 
         cvel = line.collide(pos + t * vel, vel, 1 / 2, u)
         assert_allclose(cvel, (vel[0], -vel[1]), atol=1e-14)
+
+    # collision at right endpoint
+    for a in [0, 1 / 6, 1 / 4, -1 / 2, pi / 2 - 1e-6]:
+        pos = np.asarray([-cos(a + pi) + 1, sin(a + pi)])
+        vel = np.asarray([cos(a + pi), -sin(a + pi)])
+        assert line.calc_toi(pos, vel, 1 / 2) == (approx(0.5), (1,)), a
+
+        cvel = line.collide(pos + 0.5 * vel, vel, 1 / 2, 1)
+        assert_allclose(cvel, (-vel[0], -vel[1]), atol=1e-14)
+
+    pos = np.asarray([1 + sqrt(1 / 2) + 1, sqrt(1 / 2) - 1])
+    vel = np.asarray([-1, 1])
+    assert line.calc_toi(pos, vel, 1 + 1e-14) == (approx(1.0), (1,))
+
+    pos = np.asarray([1 + sqrt(1 / 2) - 1, sqrt(1 / 2) + 1])
+    vel = np.asarray([1, -1])
+    assert line.calc_toi(pos, vel, 1 + 1e-14) == (approx(1.0), (1,))
+
+    pos = np.asarray([2, 1 - 1e-14])
+    vel = np.asarray([-1, 0])
+    assert line.calc_toi(pos, vel, 1) == (approx(1.0), (1,))
 
 
 if __name__ == "__main__":

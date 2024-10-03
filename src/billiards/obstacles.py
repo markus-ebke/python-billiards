@@ -6,11 +6,17 @@ You can import the obstacles from the top-level module::
     from billiard import Disk, InfiniteWall
 
 """
-from math import sqrt
+from math import isinf, sqrt
 
 import numpy as np
 
-from .physics import INF, elastic_collision, toi_and_param_ball_segment, toi_ball_ball
+from .physics import (
+    INF,
+    elastic_collision,
+    toi_and_param_ball_segment,
+    toi_ball_ball,
+    toi_ball_point,
+)
 
 try:
     import matplotlib as mpl
@@ -65,10 +71,11 @@ class Obstacle:  # pragma: no cover
             radius: Ball radius.
 
         Returns:
-            float: Time until impact the given ball with this obstacle, is infinite if
-                there is no collision.
-            tuple: Optional arguments for the collide method.
-
+            A tuple ``(t, args)``, where ``t`` (a float) is the time until the given
+            ball collides with this obstacle. If there is no collision, ``t`` will be
+            infinite. The tuple ``args`` contains optional arguments for the collide
+            method. These arguments will be unpacked, i.e. if the collide method needs
+            no optional arguments then ``args`` should be ``()``.
         """
         raise NotImplementedError("subclasses should implement this!")
 
@@ -274,14 +281,14 @@ class LineSegment(Obstacle):
     def calc_toi(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the line segment."""
         t, u = toi_and_param_ball_segment(
-            pos,
-            vel,
-            radius,
-            self.start_point,
-            self.end_point,
-            self._vector,
-            self._normal,
+            pos, vel, radius, self.start_point, self._vector, self._normal
         )
+        if isinf(t):
+            if u == 0:
+                return toi_ball_point(pos, vel, radius, self.start_point), (u,)
+            elif u == 1:
+                return toi_ball_point(pos, vel, radius, self.end_point), (u,)
+
         return t, (u,)
 
     def collide(self, pos, vel, radius, u):
