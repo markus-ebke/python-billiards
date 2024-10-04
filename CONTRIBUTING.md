@@ -32,8 +32,8 @@ Before you start make sure that you have Python version >= 3.7.
    But you can also use [venv](https://docs.python.org/3/library/venv.html) or [virtualenv](https://virtualenv.pypa.io/en/latest) to create a virtual environment and then install the required packages with [pip](https://pypi.org/project/pip/) like this:
 
    ```shell
+   pip install --editable .[visualize]
    pip install -r requirements_dev.txt
-   python setup.py develop
    ```
 
 3. Install the [pre-commit](https://pre-commit.com) git hook scripts with
@@ -91,6 +91,12 @@ Before you start make sure that you have Python version >= 3.7.
       ```
 
       This will install [sphinx](https://pypi.org/project/Sphinx/) in its own environment and build the documentation in the `build/docs` folder.
+
+      You can also run doctests for the code in the documentation with
+
+      ```shell
+      tox -e docs-doctest
+      ```
 
    - If you want to run the tests against other versions of Python that you have installed, use [tox](https://tox.readthedocs.io/en/latest/install.html).
      The command
@@ -199,7 +205,14 @@ Before merging, you should:
   git merge master
   ```
 
-- The *tox* environment *metadata* checks that the project can be correctly packaged, it runs [check-manifest](https://pypi.org/project/check-manifest/) (configuration settings in `tox.ini`) to make sure the important files are included.
+- The *tox* environment *metadata* checks that the project can be correctly packaged, it runs [check-manifest](https://pypi.org/project/check-manifest/) (configuration settings in `tox.ini`) and [twine check](https://twine.readthedocs.io/en/stable/index.html#twine-check) to make sure the important files are included.
+  To check the metadata and build the package use
+
+  ```shell
+  tox -e metadata
+  python3 -m build
+  ```
+
   Note that I haven't figured out a good way to put this package on [PyPi](https://pypi.org/) (yet).
 
 
@@ -241,10 +254,8 @@ check-manifest  | no                | yes           | yes
 
 ### Total Cleanup
 
-- Folders that can be safely removed: `build`, `htmlcov`, `src/billiards.egg-info`, `.eggs`, `.pytest_cache`, `.tox`
-
-- Delete `.coverage` file: $ coverage erase
+- Files and folders that can be safely removed: `build`, `htmlcov`, `src/billiards.egg-info`, `.eggs`, `.pytest_cache`, `.tox`, `.coverage` (or use `$ coverage erase`)
 
 - Remove pipenv virtual environment: $ pipenv --rm
 
-- Delete the virtualenv folder in `~/.local/share/virtualenvs` (Linux)
+- When using Pipenv on Linux: delete the virtualenv folder in `~/.local/share/virtualenvs`

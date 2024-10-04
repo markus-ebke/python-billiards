@@ -3,9 +3,9 @@ matplotlib
 tqdm
 pyglet
 setuptools>=40.8.0
+build
 pytest
 pytest-cov
 bump2version
-grip
 pre-commit
 tox

@@ -10,14 +10,11 @@ tqdm = "*"
 pyglet = "*"
 
 [dev-packages]
+billiards = {editable = true, path = "."}
 setuptools = ">=40.8.0"
+build = "*"
 pytest = "*"
 pytest-cov = "*"
 bump2version = "*"
-grip = "*"
 pre-commit = "*"
 tox = "*"
-billiards = {editable = true, path = "."}
-
-[requires]
-python_version = "3.8"

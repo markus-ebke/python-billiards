@@ -1,7 +1,5 @@
 [build-system]
-# These are the assumed default build requirements from pip:
-# https://pip.pypa.io/en/stable/cli/pip/#pep-517-and-518-support
-requires = ["setuptools>=40.8.0", "wheel"]
+requires = ["setuptools>=40.8.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.isort]
