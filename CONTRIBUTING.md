@@ -4,16 +4,16 @@ Contributions are always welcome and greatly appreciated!
 Here is how you can help:
 
 - Report bugs at <https://github.com/markus-ebke/python-billiards/issues>.
-    Please include your Python version, a list of steps to reproduce the bug and any details about your local setup that may be helpful in troubleshooting.
-- Suggest a feature: File an issue labeled with `enhancement` and explain in detail how the proposed feature would work.
-- Improve documentation: *billiards* could always use more and clearer documentation, whether as part of the official docs, in docstrings, or even on the web in blog posts, articles, and such. You can also contribute example files.
-- Fix bugs or implement features: Have a look at the issues page or work on your own ideas. The section below explains how to setup everything for local development.
+    Please include your Python version, a list of steps to reproduce the bug (or an example file) and any details about your local setup that may be helpful in troubleshooting.
+- Suggest a feature: File an issue labeled with `enhancement` and describe your idea.
+- Improve documentation: *billiards* could always use more and clearer documentation, in the docstrings or as part of the official docs. You can also contribute example files.
+- Fix bugs or implement features: Have a look at the issues page or work on your own ideas. The section below explains how to setup the project for local development.
 
 
 
 ## Development
 
-Before you start make sure that you have Python version >= 3.7.
+Before you start, make sure that you have Python version >= 3.7.
 
 1. Fork this project (via the button on the Github page) and clone your fork locally:
 
@@ -21,24 +21,25 @@ Before you start make sure that you have Python version >= 3.7.
    git clone https://github.com/<your_username>/python-billiards.git
    ```
 
-2. Install the local copy inside a virtual environment.
-   Using [pipenv](https://pypi.org/project/pipenv/) this is quite easy:
+2. Install the local copy, preferably inside a virtual environment.
+   With [pipenv](https://pypi.org/project/pipenv/) this is quite easy:
 
    ```shell
    cd python-billiards
    pipenv install --dev
    ```
 
-   But you can also use [venv](https://docs.python.org/3/library/venv.html) or [virtualenv](https://virtualenv.pypa.io/en/latest) to create a virtual environment and then install the required packages with [pip](https://pypi.org/project/pip/) like this:
+   But you can also use [venv](https://docs.python.org/3/library/venv.html) or [virtualenv](https://virtualenv.pypa.io/en/latest) to create a virtual environment and, after activating it, install the required packages with [pip](https://pypi.org/project/pip/) like this:
 
    ```shell
    pip install --editable .[visualize]
    pip install -r requirements_dev.txt
    ```
 
-3. Install the [pre-commit](https://pre-commit.com) git hook scripts with
+3. Optional: Install [pre-commit](https://pre-commit.com) (not included in `requirements_dev.txt`) and its git hook scripts:
 
    ```shell
+   pip install pre-commit
    pre-commit install
    ```
 
@@ -48,13 +49,13 @@ Before you start make sure that you have Python version >= 3.7.
    - [flake8](https://pypi.org/project/flake8/) as linter for code
    - [pydocstyle](https://pypi.org/project/pydocstyle/) (only for `src/billiards/`) and [doc8](https://pypi.org/project/doc8/) (only for `docs/`) as linters for documentation
 
-   You can also run them manually with
+   You can also run the tools manually:
 
    ```shell
    pre-commit run --all-files
    ```
 
-4. Create a branch for local development (I suggest to follow the [GitHub flow](https://guides.github.com/introduction/flow/) model):
+4. Create a branch for local development (I suggest you follow the [GitHub flow](https://guides.github.com/introduction/flow/) model):
 
    ```shell
    git checkout -b <name-of-your-feature>
@@ -65,14 +66,39 @@ Before you start make sure that you have Python version >= 3.7.
 5. Regularly run tests with [pytest](https://pypi.org/project/pytest/), note that this will also create a coverage report via [pytest-cov](https://pypi.org/project/pytest-cov/) (summary on the command line, details in `htmlcov/index.html`).
    Depending on the kind of changes you made, there are some additional steps you should take to keep everything consistent:
 
-   - If you changed code in `visualize.py`, please regenerate the images and videos for the documentation with
+   - If you changed code in `visualize.py`, please regenerate the images and videos for the documentation with:
 
       ```shell
-      cd docs/
-      python create_visualizations.py
+      python docs/create_visualizations.py
       ```
 
-   - While modifing the markdown files `README.md` or `CONTRIBUTING.md`, you can preview the changes in your browser with [grip](https://pypi.org/project/grip/):
+   - If you changed docstrings or documentation files, check that the documentation is generated correctly via [tox](https://tox.readthedocs.io/en/latest/install.html):
+
+      ```shell
+      tox -e docs-lint
+      tox -e docs-build
+      ```
+
+      The first command will run [pydocstyle](https://pypi.org/project/pydocstyle/) on the `src/billiards` folder and [doc8](https://pypi.org/project/doc8/) followed by [Sphinx](https://pypi.org/project/Sphinx/) doctest and linkcheck on the `docs` folder.
+      The second command will generate the documentation in the `build/docs` folder.
+
+   - If you want to run the tests against other versions of Python that you have installed, use [tox](https://tox.readthedocs.io/en/latest/install.html).
+     The command
+
+      ```shell
+      tox -l
+      ```
+
+      will list all Python versions that *billiards* should be compatible with.
+      For example, to run against Python 3.13 (assuming the corresponding Python interpreter is already installed on your computer):
+
+      ```shell
+      tox -e py313
+      ```
+
+      This will run pytest and also create a coverage report in `htmlcov/index.html`.
+
+   - While modifing the markdown files `README.md` or `CONTRIBUTING.md`, you can preview the changes in your browser with [grip](https://pypi.org/project/grip/) (not included in `requirements_dev.txt`):
 
       ```shell
       grip -b
@@ -84,30 +110,7 @@ Before you start make sure that you have Python version >= 3.7.
       grip -b CONTRIBUTING.md
       ```
 
-   - If you changed docstrings or documentation files, check that the documentation generates correctly via [tox](https://tox.readthedocs.io/en/latest/install.html):
-
-      ```shell
-      tox -e docs
-      ```
-
-      This will install [sphinx](https://pypi.org/project/Sphinx/) in its own environment and build the documentation in the `build/docs` folder.
-
-      You can also run doctests for the code in the documentation with
-
-      ```shell
-      tox -e docs-doctest
-      ```
-
-   - If you want to run the tests against other versions of Python that you have installed, use [tox](https://tox.readthedocs.io/en/latest/install.html).
-     The command
-
-      ```shell
-      tox -l
-      ```
-
-      will list all Python versions that *billiards* should be able to support.
-
-6. Commit your changes and push your branch to GitHub:
+6. Commit the changes and push your branch to GitHub:
 
    ```shell
    git add .
@@ -127,15 +130,64 @@ If you need some code review or feedback while you're developing the code, just 
 
 Before merging, you should:
 
-1. Include tests and make sure they pass (run *pytest* or *tox*).
-2. Update the documentation if you extended the API or added functionality, etc.
-   If you added functions or classes write a docstring (use the [Google style](https://google.github.io/styleguide/pyguide.html), [example](https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html)).
-3. Add a note at the top of `CHANGELOG.md` about the changes.
+1. Include new tests (if any) and make sure they pass (run *pytest* or *tox*).
+2. Update docstrings and the documentation files if you changed the API or added functionality.
+   For docstrings, use the [Google style](https://google.github.io/styleguide/pyguide.html).
+   Example file: https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html.
+3. Add a note in the top section of `CHANGELOG.md` describing the changes.
 4. Add yourself to the *Authors* section in the `README.md` file.
 
 
 
 ## Notes to Myself
+
+### How to make a new release
+
+- Update `CHANGELOG.md` and close off the topmost section with `**v<new_version>**` (write it exactly as stated here, later *bump2version* will replace `<new_version>` with the updated version number).
+
+- Commit, message: `Update CHANGELOG.md` or similar.
+
+- Go to master branch and merge develop into master:
+
+   ```shell
+   git checkout master
+   git merge develop
+   ```
+
+- Use [bump2version](https://pypi.org/project/bump2version/) to change the version number in the files:
+
+   ```shell
+   bump2version minor
+   ```
+
+(alternative: `major` or `patch`).
+This will create another commit and a tag with the new version number of the form `v<major.minor.patch>`.
+
+- Push to Github:
+
+   ```shell
+   git push --all
+   git push --tags
+   ```
+
+- The *tox* environment *metadata* checks that the project can be correctly packaged, it runs [check-manifest](https://pypi.org/project/check-manifest/) (configuration settings in `tox.ini`) and [twine check](https://twine.readthedocs.io/en/stable/index.html#twine-check) to make sure the important files are included.
+To check the metadata and build the package use
+
+   ```shell
+   tox -e metadata
+   python3 -m build
+   ```
+
+Note that I haven't figured out a good way to put this package on [PyPi](https://pypi.org/) (yet).
+
+- Return to develop branch and merge master branch (to get current version number):
+
+   ```shell
+   git checkout develop
+   git merge master
+   ```
+
+### Useful commands and settings
 
 - Update packages and pre-commit hooks to their newest version:
 
@@ -144,14 +196,12 @@ Before merging, you should:
    pre-commit autoupdate
    ```
 
-- The configuration settings are in `pyproject.toml`, except for *flake8* (because it doesn't support `pyproject.toml` yet, see `tox.ini` instead)
+- The configuration settings are in `pyproject.toml`, `setup.cfg` (TODO: move to `pyproject.toml`), `tox.ini` (TODO: can move to `pyproject.toml`, but requires version >=v4.21.0?) and `.flake8` (doesn't support `pyproject.toml`, workaround: Flake8-pyproject?)
 
 - I don't include `Pipfile.lock` in git because the [official recommendation](https://pipenv.pypa.io/en/latest/basics/#general-recommendations-version-control) is
   > Do not keep `Pipfile.lock` in version control if multiple versions of Python are being targeted.
 
   And *billiards* is intended as a libary for multiple Python versions and not as a standalone application.
-
-- Don't include *billiards* in `requirements_dev.txt`, because *pip19.1* [can't do editable installs with ``pyproject.toml`` files](https://github.com/pypa/pip/issues/6375) (the [recommended way](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode) is `$ python setup.py develop`).
 
 - I used [markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint) when writing the readme and this file.
 
@@ -161,60 +211,18 @@ Before merging, you should:
    pandoc README.md --from markdown --to rst -s -o readme.rst
    ```
 
+- Generate the API documentation templates:
+   ```shell
+   sphinx-apidoc -f -o {toxinidir}/docs/api_reference {toxinidir}/src/billiards
+   ```
+
 - Create docs manually (i.e. without tox):
 
    ```shell
    cd docs/
-   pip install -r requirements.txt
+   pip install -r requirements_docs.txt
    make html
    ```
-
-- To make a new release:
-
-  - Update `CHANGELOG.md` and close off the topmost section with `**v<new_version>**` (write it exactly as stated here, later *bump2version* will replace `<new_version>` with the updated version number).
-
-  - Commit, message: `Updated CHANGELOG.md` or similar.
-
-  - Go to master branch and merge develop into master:
-
-  ```shell
-  git checkout master
-  git merge develop
-  ```
-
-  - Use [bump2version](https://pypi.org/project/bump2version/) to change the version number in the files:
-
-  ```shell
-  bump2version minor
-  ```
-
-  (alternative: `major` or `patch`).
-  This will create another commit and a tag with the new version number of the form `v<major.minor.patch>`.
-
-  - Push to Github:
-
-  ```shell
-  git push --all
-  git push --tags
-  ```
-
-  - Return to develop branch and merge master branch (to get current version number):
-
-  ```shell
-  git checkout develop
-  git merge master
-  ```
-
-- The *tox* environment *metadata* checks that the project can be correctly packaged, it runs [check-manifest](https://pypi.org/project/check-manifest/) (configuration settings in `tox.ini`) and [twine check](https://twine.readthedocs.io/en/stable/index.html#twine-check) to make sure the important files are included.
-  To check the metadata and build the package use
-
-  ```shell
-  tox -e metadata
-  python3 -m build
-  ```
-
-  Note that I haven't figured out a good way to put this package on [PyPi](https://pypi.org/) (yet).
-
 
 
 ### List of tools in pre-commit
@@ -224,7 +232,7 @@ Before merging, you should:
 - isort
 - black
 - blacken-docs
-- flake8 (with flake8-colors, flake8-bugbear, flake8-comprehensions)
+- flake8 (with flake8-bugbear, flake8-comprehensions)
 - pydocstyle (only for src, not for tests or examples)
 - docs8
 
@@ -232,9 +240,9 @@ Before merging, you should:
 
 - pytest, coverage report
 - sphinx-build
-- check-manifest and $ python setup.py check --metadata --strict
+- check-manifest and twine
 - tox
-- bumpversion
+- bump2version
 
 ### The current state of configuration files
 
@@ -242,7 +250,7 @@ Tool name       | name.cfg/ini      | setup.cfg     | pyproject.toml
 ----------------|-------------------|---------------|-----------------
 isort           | yes (preferred)   | yes           | yes (preferred)
 black           | no                | no            | yes
-flake8          | yes               | yes           | no
+flake8          | yes               | yes           | Flake8-pyproject
 pydocstyle      | yes               | yes           | yes
 doc8            | yes               | yes           | yes
 pytest          | yes               | no            | yes
@@ -254,7 +262,7 @@ check-manifest  | no                | yes           | yes
 
 ### Total Cleanup
 
-- Files and folders that can be safely removed: `build`, `htmlcov`, `src/billiards.egg-info`, `.eggs`, `.pytest_cache`, `.tox`, `.coverage` (or use `$ coverage erase`)
+- Files and folders that can be safely removed: `build`, `dist`, `htmlcov`, `src/billiards.egg-info`, `.eggs`, `.pytest_cache`, `.tox`, `.coverage`
 
 - Remove pipenv virtual environment: $ pipenv --rm
 

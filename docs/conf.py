@@ -47,6 +47,9 @@ exclude_patterns = ["Thumbs.db", ".DS_Store"]
 # The master toctree document
 master_doc = "index"
 
+# If linkcheck_timeout (default: 30s) expires before we get a response, report
+# the link as broken. We need an unambiguous pass/fail when running tox.
+linkcheck_report_timeouts_as_broken = True
 
 # -- Options for HTML output -------------------------------------------------
 

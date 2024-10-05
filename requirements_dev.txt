@@ -7,5 +7,4 @@ build
 pytest
 pytest-cov
 bump2version
-pre-commit
 tox
