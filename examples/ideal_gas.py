@@ -5,6 +5,7 @@ In the beginning, all balls have the same speed. But after many collisions, the
 distribution of speeds converges to the (two-dimensional) Maxwell-Boltzmann
 distribution.
 """
+
 import random
 from math import cos, pi, sin
 

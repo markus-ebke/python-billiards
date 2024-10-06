@@ -4,6 +4,7 @@ A cloud of billiard balls collapses, but they keep colliding with each other.
 
 Note that this example uses pyglet for rendering.
 """
+
 import numpy as np
 
 import billiards

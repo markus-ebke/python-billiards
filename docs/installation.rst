@@ -10,7 +10,7 @@ Requirements
 Billiard systems can be visualized using `matplotlib <https://matplotlib.org>`__
 (and `tqdm <https://tqdm.github.io>`__ to display progress in
 ``visualize.animate``). Interaction with the simulation is possible via
-`pyglet <http://pyglet.org>`__ . These visualization features are optional.
+`pyglet <https://pyglet.org>`__ . These visualization features are optional.
 
 
 If you want to install all these packages manually, you can use:

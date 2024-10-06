@@ -7,8 +7,8 @@ For convenience, you can import the following classes from here::
 To use the visualize module, you need to import it separately::
 
     import billiard.visualize
-
 """
+
 __version__ = "0.5.0"
 
 

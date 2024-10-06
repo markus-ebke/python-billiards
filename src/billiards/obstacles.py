@@ -4,8 +4,8 @@
 You can import the obstacles from the top-level module::
 
     from billiard import Disk, InfiniteWall
-
 """
+
 from math import isinf, sqrt
 
 import numpy as np
@@ -38,7 +38,6 @@ def circle_model(radius, num_points=32):
         np.ndarray: Position of the vertices in a Nx2-shaped array.
         list: Indicies indicating the start and endpoints of lines that will
         form the circle, has langth 2N.
-
     """
     # vertices on the circle
     angles = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
@@ -59,7 +58,6 @@ class Obstacle:  # pragma: no cover
 
     Subclasses must implement the calc_toi and collide methods. Optionally they
     can implement the plot method for visualization with matplotlib.
-
     """
 
     def calc_toi(self, pos, vel, radius):
@@ -90,7 +88,6 @@ class Obstacle:  # pragma: no cover
 
         Returns:
             np.ndarray: Velocity after impact.
-
         """
         raise NotImplementedError("subclasses should implement this!")
 
@@ -101,7 +98,6 @@ class Obstacle:  # pragma: no cover
             ax: Axes to draw the obstacle on.
             color: Color of the obstacle.
             **kwargs: Keyword arguments for plot.
-
         """
         if not has_visualize:
             raise RuntimeError("can't use plot, matplotlib is not available")
@@ -123,7 +119,6 @@ class Obstacle:  # pragma: no cover
             np.ndarray: A Nx2-array of vertex positions.
             list: Indices for the above array of length 2N.
             mode: OpenGL drawing mode.
-
         """
         if not has_visualize:
             raise RuntimeError("can't use model, pyglet is not available")
@@ -174,7 +169,6 @@ class InfiniteWall(Obstacle):
             start_point: x and y coordinates of the lines starting point.
             end_point: x and y of the end point.
             exterior: Either "left" or "right" of the line, defaults to "left".
-
         """
         self.start_point = np.asarray(start_point)
         self.end_point = np.asarray(end_point)

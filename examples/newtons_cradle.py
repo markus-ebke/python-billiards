@@ -5,6 +5,7 @@ A ball strikes the end of a straight row of stationary balls and, through
 conservation of momentum and energy (elastic collision), only the at the other
 end starts moving.
 """
+
 import matplotlib.pyplot as plt
 
 import billiards

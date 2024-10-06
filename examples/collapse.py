@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """A cloud of billiard balls collapses, but the balls keep colliding."""
+
 import matplotlib.pyplot as plt
 import numpy as np
 

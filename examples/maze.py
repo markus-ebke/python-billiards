@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Ideal gas trapped in one corner of a box filled with obstacles.
-"""
+"""Ideal gas trapped in one corner of a box filled with obstacles."""
+
 import random
 from math import cos, pi, sin
 

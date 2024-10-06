@@ -5,6 +5,7 @@ Note that the breakup should be perfect (everything is perfectly placed within
 floating point accuracy), but it is not (and I don't know why, probably it's
 the floating point accuracy).
 """
+
 from math import sqrt
 
 import matplotlib.pyplot as plt

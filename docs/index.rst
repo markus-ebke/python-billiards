@@ -22,7 +22,7 @@ Features
    (although this library is not optimized for point particles).
 -  Optional features: plotting and animation with
    `matplotlib <https://matplotlib.org>`__, interaction with
-   `pyglet <http://pyglet.org>`__.
+   `pyglet <https://pyglet.org>`__.
 -  Free software: GPLv3+ license.
 
 

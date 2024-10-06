@@ -13,6 +13,7 @@ Reference:
 Gregory Galperin, "Playing pool with π (the number π from a billiard point of view)",
 Regular and Chaotic Dynamics, 2003, 8 (4), 375-394
 """
+
 from math import isinf, pi
 
 import matplotlib.pyplot as plt

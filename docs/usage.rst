@@ -71,7 +71,7 @@ beginning always remain static, as if their mass was infinite.
 3. Run the Simulation
 ---------------------
 
-After adding balls the billiard object already knows the time of the next
+After adding balls, the billiard object already knows the time of the next
 collision:
 
 .. doctest::
@@ -79,12 +79,14 @@ collision:
    >>> bld.next_ball_ball_collision
    (0.5, 0, 1)
    >>> bld.next_ball_obstacle_collision
-   (6.0, 0, <billiards.obstacles.InfiniteWall object at 0x...>)
+   (6.0, 0, (<billiards.obstacles.InfiniteWall object at 0x...>, (np.float64(2.0),)))
    >>> bld.next_collision  # the minimum of the two above
    (0.5, 0, 1)
 
-These triplets are the time of collision, the index of a ball and, depending on
-the type of collision, the index of another ball or an obstacle.
+These triplets are the time of collision, the index of a ball and (depending on
+the type of collision) either the index of another ball, or an obstacle and a
+tuple of optional arguments for its ``collide`` method (here: the line
+parameter).
 
 Using ``bld.evolve`` we can simulate the billiard system from the initial time
 ``bld.time = 0`` until a given end time. Additionally, we extract some

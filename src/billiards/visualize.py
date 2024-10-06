@@ -6,11 +6,11 @@ With matplotlib (assuming ``bld`` is an instance of the ``Billiard`` class)::
     from billiards import visualize
 
     # show billiard balls and indicate their velocity with arrows, draw obstacles
-    billiards.visualize.plot(bld)
+    visualize.plot(bld)
     plt.show()
 
     # show how the billiard evolves from bld.time to end_time
-    billiards.visualize.animate(bld, end_time=10)
+    visualize.animate(bld, end_time=10)
     plt.show()
 
 See also the functions ``plot_obstacles``, ``plot_balls`` and ``plot_velocities``
@@ -22,6 +22,7 @@ With pyglet::
 
 Instructions are printed to the console window.
 """
+
 import warnings
 
 import numpy as np
@@ -81,7 +82,6 @@ class CircleCollection(Collection):  # pragma: no cover
             centers: A Nx2-shaped numpy array, each row the center of a circle.
             radii: The N radii of the circles.
             **kwargs: Keyword arguments for matplotlib.collections.Collection.
-
         """
         super().__init__(offsets=centers, **kwargs)
 
@@ -162,6 +162,9 @@ class CircleCollection(Collection):  # pragma: no cover
             super().draw(renderer)
 
 
+CircleCollection.set.__doc__ = ""  # Sphinx complains about :mpltype:
+
+
 def default_fig_and_ax(figsize=(8, 6), fig=None, ax=None):
     """Create a 800x600 figure with tight layout and equal aspect axes.
 
@@ -178,7 +181,7 @@ def default_fig_and_ax(figsize=(8, 6), fig=None, ax=None):
     """
     # setup figure if needed and use tight layout
     if fig is None:
-        fig = plt.figure(figsize=(8, 6), dpi=100)
+        fig = plt.figure(figsize=figsize, dpi=100)
     fig.set_layout_engine("tight")
 
     # setup axes if needed and use equal aspect

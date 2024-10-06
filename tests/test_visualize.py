@@ -89,6 +89,7 @@ def test_plot_obstacles():
     obs = [
         billiards.obstacles.Disk((0, 0), 10),
         billiards.obstacles.InfiniteWall((-1, -20), (1, -20)),
+        billiards.obstacles.LineSegment((-1, -20), (1, -20)),
     ]
     bld = billiards.Billiard(obstacles=obs)
 

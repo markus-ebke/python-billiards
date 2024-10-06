@@ -13,7 +13,7 @@ It simulates the movement and elastic collisions of hard, disk-shaped particles 
 - Quick state updates thanks to [numpy](https://numpy.org), especially if there are no collisions between the given start and end times.
 - Static obstacles to construct a proper billiard table.
 - Balls with zero radii behave like point particles, useful for simulating [dynamical billiards](https://en.wikipedia.org/wiki/Dynamical_billiards) (although this library is not optimized for point particles).
-- Optional features: plotting and animation with [matplotlib](https://matplotlib.org), interaction with [pyglet](http://pyglet.org).
+- Optional features: plotting and animation with [matplotlib](https://matplotlib.org), interaction with [pyglet](https://pyglet.org).
 - Free software: GPLv3+ license.
 
 
@@ -24,7 +24,7 @@ It simulates the movement and elastic collisions of hard, disk-shaped particles 
 It only depends on [numpy](https://numpy.org).
 
 Billiard systems can be visualized with [matplotlib](https://matplotlib.org) (and [tqdm](https://tqdm.github.io) to display progress in `visualize.animate`).
-Interaction with the simulation is possible via [pyglet](http://pyglet.org).
+Interaction with the simulation is possible via [pyglet](https://pyglet.org).
 These visualization features are optional.
 
 Clone the repository from GitHub and install the package:
@@ -59,7 +59,7 @@ We need a billiard table with a vertical wall and two balls:
 >>> bld = billiards.Billiard(obstacles)
 >>> bld.add_ball((3, 0), (0, 0), radius=0.2, mass=1)  # returns index of new ball
 0
->>> bld.add_ball((6, 0), (-1, 0), radius=1, mass=100 ** 5)
+>>> bld.add_ball((6, 0), (-1, 0), radius=1, mass=100**5)
 1
 ```
 
@@ -84,6 +84,7 @@ It returns a list of collisions (ball-ball and ball-obstacle collisions).
 >>> for i in [1, 2, 3, 4, 5]:
 ...     total_collisions += sum(bld.evolve(i))
 ...     print(f"Until t = {bld.time}: {total_collisions} collisions")
+...
 Until t = 1: 0 collisions
 Until t = 2: 1 collisions
 Until t = 3: 1 collisions
@@ -143,11 +144,11 @@ For an explanation why this happens, see Galperin's paper [Playing pool with π 
 Lastly, I want to point out that all collisions were elastic, i.e. they conserved the kinetic energy (within floating point accuracy):
 
 ```pycon
->>> 100 ** 5 * (-1) ** 2 / 2  # kinetic energy = m v^2 / 2 at the beginning
+>>> 100**5 * (-1) ** 2 / 2  # kinetic energy = m v^2 / 2 at the beginning
 5000000000.0
->>> v_squared = (bld.balls_velocity ** 2).sum(axis=1)
+>>> v_squared = (bld.balls_velocity**2).sum(axis=1)
 >>> (bld.balls_mass * v_squared).sum() / 2  # kinetic energy now
-4999999999.989935
+np.float64(4999999999.989935)
 ```
 
 The video [examples/pi_with_pool.mp4](examples/pi_with_pool.mp4) replays the whole billiard simulation (it was created using `visualize.animate`).
@@ -176,7 +177,7 @@ Construct the billiard table:
 ...     billiards.InfiniteWall((0, 0), (length, 0)),  # bottom side
 ...     billiards.InfiniteWall((length, 0), (length, width)),  # right side
 ...     billiards.InfiniteWall((length, width), (0, width)),  # top side
-...     billiards.InfiniteWall((0, width), (0, 0))  # left side
+...     billiards.InfiniteWall((0, width), (0, 0)),  # left side
 ... ]
 >>> bld = billiards.Billiard(obstacles=bounds)
 ```
@@ -191,6 +192,7 @@ Arrange the balls in a pyramid shape:
 ...         x = 0.75 * length + radius * sqrt(3) * i
 ...         y = width / 2 + radius * (2 * j - i)
 ...         bld.add_ball((x, y), (0, 0), radius)
+...
 ```
 
 Add the white ball and give it a push, then view the animation:
@@ -216,7 +218,6 @@ The billiard table is a square box:
 ...     billiards.InfiniteWall((1, -1), (1, 1)),  # right side
 ...     billiards.InfiniteWall((1, 1), (-1, 1)),  # top side
 ...     billiards.InfiniteWall((-1, 1), (-1, -1)),  # left side
-...     billiards.Disk((0, 0), radius=0.5)  # disk in the middle
 ... ]
 >>> bld = billiards.Billiard(obstacles=obs)
 ```
@@ -231,6 +232,7 @@ Distribute small particles (atoms) uniformly in the square, moving in random dir
 ...     angle = uniform(0, 2 * pi)
 ...     vel = [cos(angle), sin(angle)]
 ...     bld.add_ball(pos, vel, radius=0.01, mass=1)
+...
 ```
 
 Add a bigger ball (like a dust particle)
@@ -245,6 +247,7 @@ and simulate until t = 50, recording the position of the bigger ball at each col
 >>> poslist = [bld.balls_position[idx].copy()]  # record initial position
 >>> def record(t, p, u, v, i_o):
 ...     poslist.append(p)
+...
 >>> bld.evolve(50, ball_callbacks={idx: record})
 >>> poslist.append(bld.balls_position[idx].copy())  # record last position
 ```

@@ -4,6 +4,7 @@
 The billiard table is a square where a disk in the center was removed.
 The billiard balls are point particles that don't collide with each other.
 """
+
 from math import cos, pi, sin
 
 import matplotlib.pyplot as plt
@@ -37,6 +38,7 @@ for _i in range(num_balls):
     bld.add_ball(pos, vel, radius=0)
 
 bld.balls_velocity /= 5  # slow down
+bld.recompute_toi()
 
 # start the animation
 anim = visualize.animate(bld, end_time=10)

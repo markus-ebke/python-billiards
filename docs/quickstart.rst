@@ -128,7 +128,7 @@ conserved the kinetic energy (within floating point accuracy):
    5000000000.0
    >>> v_squared = (bld.balls_velocity**2).sum(axis=1)
    >>> (bld.balls_mass * v_squared).sum() / 2  # kinetic energy now
-   4999999999.989935
+   np.float64(4999999999.989935)
 
 
 
