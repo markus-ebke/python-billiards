@@ -124,24 +124,24 @@ def test_toi_ball_segment():
     start, end = np.asarray([0, 0]), np.asarray([1, 0])
     direction = end - start
     length_sqrd = direction.dot(direction)
-    vector = direction / length_sqrd
+    covector = direction / length_sqrd
     normal = np.asarray([-direction[1], direction[0]]) / sqrt(length_sqrd)
 
-    line = (start, vector, normal)
+    line = (start, covector, normal)
     assert toi_and_param_ball_segment((1 / 2, 2), (0, -1), 1, *line) == (1, 1 / 2)
 
     # check that only relative coordinates are important
-    line = (start + (42, 0), vector, normal)
+    line = (start + (42, 0), covector, normal)
     assert toi_and_param_ball_segment((1 / 2 + 42, 2), (0, -1), 1, *line) == (1, 1 / 2)
 
     # check that scale doesn't matter
-    line = (10 * start, vector / 10, normal)
+    line = (10 * start, covector / 10, normal)
     assert toi_and_param_ball_segment((5, 20), (0, -10), 10, *line) == (1, 1 / 2)
 
     # for convenience
     def toi(pos, vel, radius, t_eps=-0.0):
         return toi_and_param_ball_segment(
-            pos, vel, radius, start, vector, normal, t_eps
+            pos, vel, radius, start, covector, normal, t_eps
         )
 
     # no collision from left endpoint

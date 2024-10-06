@@ -267,7 +267,7 @@ class LineSegment(Obstacle):
 
         # Direction of the line, dividing by the squared length simplifies some
         # calculations in calc_toi
-        self._vector = direction / length_sqrd
+        self._covector = direction / length_sqrd
 
         # normalized vector perpendicular to the line
         self._normal = np.array([-direction[1], direction[0]]) / sqrt(length_sqrd)
@@ -275,7 +275,7 @@ class LineSegment(Obstacle):
     def calc_toi(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the line segment."""
         t, u = toi_and_param_ball_segment(
-            pos, vel, radius, self.start_point, self._vector, self._normal
+            pos, vel, radius, self.start_point, self._covector, self._normal
         )
         if isinf(t):
             if u == 0:

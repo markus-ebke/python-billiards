@@ -331,7 +331,7 @@ def test_obstacles():
         nonlocal collisions
         collisions.append((t, p.tolist(), u.tolist(), v.tolist(), o))
 
-    bld.bounce_ballobstacle(ball_callbacks={0: record})
+    bld.bounce_ball_obstacle(ball_callbacks={0: record})
     assert len(collisions) == 1
     assert collisions[0] == (8.0, [-2.0, 0.0], [1.0, 0.0], [-1.0, 0.0], disk)
     assert bld._obstacles_toi.tolist() == [INF]

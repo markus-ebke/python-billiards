@@ -90,7 +90,7 @@ def test_line_segment():
     line = LineSegment((-1, 0), (1, 0))
     assert_allclose(line.start_point, (-1, 0))
     assert_allclose(line.end_point, (1, 0))
-    assert_allclose(line._vector, (1 / 2, 0))
+    assert_allclose(line._covector, (1 / 2, 0))
     assert_allclose(line._normal, (0, 1))
 
     # collision at left endpoint
