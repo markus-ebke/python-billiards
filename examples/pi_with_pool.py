@@ -19,7 +19,7 @@ from math import isinf, pi
 import matplotlib.pyplot as plt
 
 import billiards
-from billiards import visualize
+import billiards.visualize_matplotlib as visualize
 
 digits = 6  # number of digits of pi
 

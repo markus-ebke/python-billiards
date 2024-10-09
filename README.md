@@ -23,7 +23,7 @@ It simulates the movement and elastic collisions of hard, disk-shaped particles 
 **billiards** is a library for Python 3.
 It only depends on [numpy](https://numpy.org).
 
-Billiard systems can be visualized with [matplotlib](https://matplotlib.org) (and [tqdm](https://tqdm.github.io) to display progress in `visualize.animate`).
+Billiard systems can be visualized with [matplotlib](https://matplotlib.org) (and [tqdm](https://tqdm.github.io) to display progress in `visualize_matplotlib.animate`).
 Interaction with the simulation is possible via [pyglet](https://pyglet.org).
 These visualization features are optional.
 
@@ -40,11 +40,11 @@ pip install .[visualize]
 ## Quickstart
 
 All important classes (the billiard simulation and obstacles) are accessible from the top-level module.
-The visualization module must be imported separately and tries to load *matplotlib*, *tqdm* and *pyglet*.
+The visualization modules must be imported separately and will load *matplotlib*, *tqdm* and *pyglet*.
 
 ```pycon
 >>> import billiards  # access to Billiard, Disk and InfiniteWall
->>> from billiards import visualize  # for plot, animate and interact
+>>> import billiards.visualize_matplotlib as visualize  # for plot and animate
 >>> import matplotlib.pyplot as plt  # for plt.show()
 ```
 
@@ -162,7 +162,7 @@ Setup:
 ```pycon
 >>> import matplotlib.pyplot as plt
 >>> import billiards
->>> from billiards import visualize
+>>> import billiards.visualize_matplotlib as visualize
 ```
 
 

@@ -2,11 +2,11 @@
 
 For convenience, you can import the following classes from here::
 
-    from billiard import Billiard, Disk, InfiniteWall
+    from billiards import Billiard, Disk, InfiniteWall, LineSegment
 
-To use the visualize module, you need to import it separately::
+To use the visualization modules, you need to import them separately::
 
-    import billiard.visualize
+    from billiards import visualize_matplotlib, visualize_pyglet
 """
 
 __version__ = "0.5.0"

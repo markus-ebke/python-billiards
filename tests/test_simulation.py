@@ -432,7 +432,7 @@ def test_step_consistency():
     # can have a large effect on the final result. Here we make sure that computing the
     # simulation in one go gives the same end result as stopping and resuming the
     # simulation in multiple steps. If the end results were the deviate, then e.g. the
-    # result of visualize.animate could not be trusted
+    # result of visualize_matplotlib.animate could not be trusted
 
     # the billiard table is a square box
     bounds = [
@@ -461,7 +461,7 @@ def test_step_consistency():
     end_time = 10
     bld_once.evolve(end_time)  # in one go
 
-    # stopping and resuming 30 times each second (as visualize.animate would do it)
+    # stopping and resuming 30 times each second (as 'animate' would do it)
     for i in range(end_time):
         for j in range(1, 31):
             bld_step.evolve(i + j / 30)

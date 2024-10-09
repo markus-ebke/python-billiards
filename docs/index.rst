@@ -44,7 +44,8 @@ Features
    api_reference/billiards_physics
    api_reference/billiards_simulation
    api_reference/billiards_obstacles
-   api_reference/billiards_visualize
+   api_reference/billiards_visualize_matplotlib
+   api_reference/billiards_visualize_pyglet
 
 
 Indices and tables

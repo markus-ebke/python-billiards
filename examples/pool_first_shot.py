@@ -11,7 +11,7 @@ from math import sqrt
 import matplotlib.pyplot as plt
 
 import billiards
-from billiards import visualize
+import billiards.visualize_matplotlib as visualize
 
 # setup the billiard table
 width, length = 112, 224

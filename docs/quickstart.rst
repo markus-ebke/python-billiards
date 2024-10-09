@@ -2,13 +2,13 @@ Quickstart
 ==========
 
 All important classes (the billiard simulation and obstacles) are
-accessible from the top-level module. The visualization module must be
-imported separately and tries to load *matplotlib*, *tqdm* and *pyglet*.
+accessible from the top-level module. The visualization modules must be
+imported separately and will load *matplotlib*, *tqdm* and *pyglet*.
 
 .. doctest::
 
    >>> import billiards  # access to Billiard, Disk and InfiniteWall
-   >>> from billiards import visualize  # for plot, animate and interact
+   >>> import billiards.visualize_matplotlib as visualize  # for plot and animate
    >>> import matplotlib.pyplot as plt  # show plots and animations with plt.show()
 
 

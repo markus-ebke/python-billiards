@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import billiards
-from billiards import visualize
+import billiards.visualize_matplotlib as visualize
 
 # global settings
 disk_radius = 0.5  # radius of the disk in the middle

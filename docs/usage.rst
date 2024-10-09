@@ -2,22 +2,23 @@ Usage
 =====
 
 All important classes (the billiard simulation and obstacles) are
-accessible from the top-level module. The visualization module must be
-imported separately and tries to load *matplotlib*, *tqdm* and *pyglet*.
+accessible from the top-level module. The visualization modules must be
+imported separately and will load *matplotlib*, *tqdm* and *pyglet*.
 
 .. doctest::
 
    >>> import billiards  # access to Billiard, Disk and InfiniteWall
-   >>> from billiards import visualize  # for plot, animate and interact
+   >>> import billiards.visualize_matplotlib as visualize  # for plot and animate
    >>> import matplotlib.pyplot as plt  # show plots and animations with plt.show()
 
 
 The workflow with **billiards** follows three steps:
+
 1. Setup obstacles and create a billiard.
 2. Add balls to the billiard.
-3. Run the simulation and extract some useful information
+3. Run the simulation and extract some useful information.
 
-As an example of this workflow, let's recreate Newton's cradle.
+As an example of this workflow, let's build Newton's cradle.
 
 
 

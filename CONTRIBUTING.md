@@ -66,7 +66,7 @@ Before you start, make sure that you have Python version >= 3.7.
 5. Regularly run tests with [pytest](https://pypi.org/project/pytest/), note that this will also create a coverage report via [pytest-cov](https://pypi.org/project/pytest-cov/) (summary on the command line, details in `htmlcov/index.html`).
    Depending on the kind of changes you made, there are some additional steps you should take to keep everything consistent:
 
-   - If you changed code in `visualize.py`, please regenerate the images and videos for the documentation with:
+   - If you changed code in `visualize_matplotlib.py`, please regenerate the images and videos for the documentation with:
 
       ```shell
       python docs/create_visualizations.py
@@ -132,7 +132,7 @@ Before merging, you should:
 
 1. Include new tests (if any) and make sure they pass (run *pytest* or *tox*).
 2. Update docstrings and the documentation files if you changed the API or added functionality.
-   For docstrings, use the [Google style](https://google.github.io/styleguide/pyguide.html).
+   For docstrings, use the [Google style guide](https://google.github.io/styleguide/pyguide.html).
    Example file: https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html.
 3. Add a note in the top section of `CHANGELOG.md` describing the changes.
 4. Add yourself to the *Authors* section in the `README.md` file.

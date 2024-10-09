@@ -8,7 +8,7 @@ Note that this example uses pyglet for rendering.
 import numpy as np
 
 import billiards
-from billiards import visualize
+import billiards.visualize_pyglet as visualize
 
 # global settings
 num_balls = 200  # increase this if your computer can handle it

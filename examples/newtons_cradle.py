@@ -9,7 +9,7 @@ end starts moving.
 import matplotlib.pyplot as plt
 
 import billiards
-from billiards import visualize
+import billiards.visualize_matplotlib as visualize
 
 num_balls = 5
 

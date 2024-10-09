@@ -8,7 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 import billiards
-from billiards import visualize
+import billiards.visualize_matplotlib as visualize
 
 here = Path(__file__).parent.resolve()  # should be docs folder
 
@@ -146,7 +146,7 @@ def newtons_cradle():
 
     bld.evolve(end_time=4, time_callback=print_time)
     print(bld.time)
-    anim = billiards.visualize.animate(bld, end_time=12)
+    anim = visualize.animate(bld, end_time=12)
     anim.save(here / "_static/newtons_cradle.mp4")
     # plt.show()
 
