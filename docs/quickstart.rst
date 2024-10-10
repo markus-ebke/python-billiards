@@ -33,7 +33,7 @@ Using the *visualize* module, let’s see how this initial state looks like:
 .. doctest::
 
    >>> visualize.plot(bld)
-   <Figure size 800x600 with 1 Axes>
+   (<Figure size 800x600 with 1 Axes>, <Axes: >)
    >>> plt.show()
 
 .. figure:: _images/quickstart_1.svg
@@ -69,7 +69,7 @@ thousands. Let’s see how the situation looks now:
    >>> bld.time  # current time
    5
    >>> visualize.plot(bld)
-   <Figure size 800x600 with 1 Axes>
+   (<Figure size 800x600 with 1 Axes>, <Axes: >)
    >>> plt.show()
 
 .. figure:: _images/quickstart_2.svg
@@ -91,7 +91,7 @@ any other collisions after this time:
    >>> bld.next_ball_obstacle_collision  # next ball-obstacle collision
    (inf, 0, None)
    >>> visualize.plot(bld)
-   <Figure size 800x600 with 1 Axes>
+   (<Figure size 800x600 with 1 Axes>, <Axes: >)
    >>> plt.show()
 
 .. figure:: _images/quickstart_3.svg
@@ -185,9 +185,7 @@ Plot the billiard and overlay the path of the particle
 
 .. doctest::
 
-   >>> fig = visualize.plot(bld, velocity_arrow_factor=0)
-   >>> fig.set_size_inches((7, 7))
-   >>> ax = fig.gca()
+   >>> fig, ax = visualize.plot(bld, velocity_scale=0, figsize=(7, 7))
    >>> import numpy as np
    >>> poslist = np.asarray(poslist)
    >>> ax.plot(poslist[:, 0], poslist[:, 1], color="red")

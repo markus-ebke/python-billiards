@@ -35,7 +35,6 @@ for i in range(5):
 bld.add_ball((0.25 * length, width / 2), (length / 3, 0), radius)
 
 # start the animation
-anim = visualize.animate(bld, end_time=30)
-anim._fig.set_size_inches((10, 5.5))
+anim, fig, ax = visualize.animate(bld, end_time=30, figsize=(10, 5.5))
 # anim.save("pool_first_shot.mp4")
 plt.show()

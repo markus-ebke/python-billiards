@@ -19,7 +19,7 @@ def quickstart():
     bld = billiards.Billiard(obstacles)
     bld.add_ball((3, 0), (0, 0), radius=0.2)
     bld.add_ball((6, 0), (-1, 0), radius=1, mass=100**5)
-    fig = visualize.plot(bld)
+    fig, ax = visualize.plot(bld)
     fig.savefig(here / "_images/quickstart_1.svg")
     # plt.show()
 
@@ -35,7 +35,7 @@ def quickstart():
         total_collisions += sum(bld.evolve(i))
         print(f"Until t = {bld.time}: {total_collisions} collisions")
     print(bld.time)
-    fig = visualize.plot(bld)
+    fig, ax = visualize.plot(bld)
     fig.savefig(here / "_images/quickstart_2.svg")
     # plt.show()
 
@@ -47,7 +47,7 @@ def quickstart():
     print(bld.next_ball_ball_collision)
     print(bld.next_ball_obstacle_collision)
     print(total_collisions)
-    fig = visualize.plot(bld)
+    fig, ax = visualize.plot(bld)
     fig.savefig(here / "_images/quickstart_3.svg")
     # plt.show()
 
@@ -91,8 +91,9 @@ def brownian_motion(animate=False):
         poslist.append(p)
 
     if animate:  # just to check animation
-        anim = visualize.animate(bld, end_time, velocity_arrow_factor=0)
-        anim._fig.set_size_inches((7, 7))
+        anim, fig, ax = visualize.animate(
+            bld, end_time, velocity_scale=0, figsize=(7, 7)
+        )
         anim.save("brownian motion.mp4")
         # plt.show()
         return
@@ -110,9 +111,7 @@ def brownian_motion(animate=False):
     poslist.append(bld.balls_position[idx].copy())  # record last position
 
     # plot the billiard and overlay the path of the particle
-    fig = visualize.plot(bld, velocity_arrow_factor=0)
-    fig.set_size_inches((7, 7))
-    ax = fig.gca()
+    fig, ax = visualize.plot(bld, velocity_scale=0, figsize=(7, 7))
     poslist = np.asarray(poslist)
     ax.plot(poslist[:, 0], poslist[:, 1], color="red")
     plt.savefig(here / "_images/brownian_motion.svg")
@@ -146,7 +145,7 @@ def newtons_cradle():
 
     bld.evolve(end_time=4, time_callback=print_time)
     print(bld.time)
-    anim = visualize.animate(bld, end_time=12)
+    anim, fig, ax = visualize.animate(bld, end_time=12)
     anim.save(here / "_static/newtons_cradle.mp4")
     # plt.show()
 
@@ -162,10 +161,10 @@ def newtons_cradle():
     bld.evolve(end_time=40, ball_callbacks={2: record})
     poslist.append(bld.balls_position[2].copy())
 
-    fig = visualize.plot(bld)  # state of the billiard right now
+    fig, ax = visualize.plot(bld)  # state of the billiard right now
     x = [pos[0] for pos in poslist]
     y = [pos[1] for pos in poslist]
-    fig.gca().plot(x, y, color="blue")  # overlay trajectory
+    ax.plot(x, y, color="blue")  # overlay trajectory
     plt.savefig(here / "_images/newtons_failed_cradle.svg")
     # plt.show()
 

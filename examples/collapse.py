@@ -25,8 +25,7 @@ for _i in range(num_balls):
     idx = bld.add_ball(pos, vel, radius=1)
 
 # start the animation, but zoom into the origin to see the cloud colliding
-anim = visualize.animate(bld, end_time=15)
-ax = anim._fig.gca()
+anim, fig, ax = visualize.animate(bld, end_time=15)
 ax.set_xlim(-40, 40)
 ax.set_ylim(-40, 40)
 # anim.save("collapse.mp4")

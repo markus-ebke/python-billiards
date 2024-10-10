@@ -67,7 +67,7 @@ Using the _visualize_ module, let's see how this initial state looks:
 
 ```pycon
 >>> visualize.plot(bld)
-<Figure size 800x600 with 1 Axes>
+(<Figure size 800x600 with 1 Axes>, <Axes: >)
 >>> plt.show()
 ```
 
@@ -100,7 +100,7 @@ Let's see how the situation looks now:
 >>> bld.time  # current time
 5
 >>> visualize.plot(bld)
-<Figure size 800x600 with 1 Axes>
+(<Figure size 800x600 with 1 Axes>, <Axes: >)
 >>> plt.show()
 ```
 
@@ -120,7 +120,7 @@ array([[0.73463055, 0.        ],
 >>> bld.next_ball_obstacle_collision
 (inf, 0, None)
 >>> visualize.plot(bld)
-<Figure size 800x600 with 1 Axes>
+(<Figure size 800x600 with 1 Axes>, <Axes: >)
 >>> plt.show()
 ```
 
@@ -199,8 +199,7 @@ Add the white ball and give it a push, then view the animation:
 
 ```pycon
 >>> bld.add_ball((0.25 * length, width / 2), (length / 3, 0), radius)
->>> anim = visualize.animate(bld, end_time=10)
->>> anim._fig.set_size_inches((10, 5.5))
+>>> anim, fig, ax = visualize.animate(bld, end_time=10, figsize=(10, 5.5))
 >>> plt.show()
 ```
 
@@ -255,9 +254,7 @@ and simulate until t = 50, recording the position of the bigger ball at each col
 Plot the billiard and overlay the path of the particle
 
 ```pycon
->>> fig = visualize.plot(bld, velocity_arrow_factor=0)
->>> fig.set_size_inches((7, 7))
->>> ax = fig.gca()
+>>> fig, ax = visualize.plot(bld, velocity_scale=0, figsize=(7, 7))
 >>> poslist = np.asarray(poslist)
 >>> ax.plot(poslist[:, 0], poslist[:, 1], color="red")
 [<matplotlib.lines.Line2D object at 0x...>]

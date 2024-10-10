@@ -122,7 +122,7 @@ seconds:
    >>> bld.time
    4
    >>> visualize.animate(bld, end_time=12)
-   <matplotlib.animation.FuncAnimation object at 0x...>
+   (<matplotlib.animation.FuncAnimation object at 0x...>, <Figure size 800x600 with 1 Axes>, <Axes: >)
    >>> plt.show()
 
 
@@ -157,10 +157,10 @@ callback we can record the trajectory of this ball and then plot it.
    >>> bld.evolve(end_time=30, ball_callbacks={2: record})
    (36, 8)
    >>> poslist.append(bld.balls_position[2].copy())  # add last position
-   >>> fig = visualize.plot(bld)  # state of the billiard right now
+   >>> fig, ax = visualize.plot(bld)  # state of the billiard right now
    >>> x = [pos[0] for pos in poslist]
    >>> y = [pos[1] for pos in poslist]
-   >>> fig.gca().plot(x, y, color="blue")  # overlay trajectory
+   >>> ax.plot(x, y, color="blue")  # overlay trajectory
    [<matplotlib.lines.Line2D object at 0x...>]
    >>> plt.show()
 

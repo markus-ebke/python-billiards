@@ -27,5 +27,5 @@ for i in range(1, num_balls):
     bld.add_ball((2 * i, 0), (0, 0), radius=1)
 
 # start the animation
-anim = visualize.animate(bld, end_time=3 * 4)  # period: 4
+anim, fig, ax = visualize.animate(bld, end_time=3 * 4)  # period: 4
 plt.show()

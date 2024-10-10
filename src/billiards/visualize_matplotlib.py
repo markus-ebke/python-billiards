@@ -3,51 +3,164 @@
 Usage (assuming ``bld`` is an instance of the ``Billiard`` class)::
 
     import matplotlib.pyplot as plt  # for plt.show()
-    from billiards import visualize
+    from billiards import visualize_matplotlib
 
-    # show billiard balls and indicate their velocity with arrows, draw obstacles
-    visualize.plot(bld)
+    # show the billiard simulation including velocity vectors
+    visualize_matplotlib.plot(bld)
     plt.show()
 
-    # show how the billiard evolves from bld.time to end_time
-    visualize.animate(bld, end_time=10)
+    # show evolution of the simulation from bld.time to end_time
+    visualize_matplotlib.animate(bld, end_time=10)
     plt.show()
 
-See also the functions ``plot_obstacles``, ``plot_balls`` and ``plot_velocities``
-for plotting only certain aspects of the billiard.
+Use the functions ``plot_obstacles``, ``plot_balls``, ``plot_points`` and
+``plot_velocities`` for plotting only certain aspects of the billiard. Each of
+these function takes a ``billiard.Simulation`` instance, a
+``matplotlib.axes.Axes`` instance and an optional ``colors`` argument (a mapping
+from billiard objects to `matplotlib` colors). Any additional keyword arguments
+are passed to the appropriate plotting functions of the ``matplotlib.axes.Axes``
+instance.
+
+The global variable ``default_colors`` stores colors for each billiard object
+type. To adjust the colors (or disable plotting) for certain objects or object
+types:
+* change or add entries of ``default_colors`` or
+* use the ``colors`` parameter of the plot functions above.
+
+The ``plot_obstacles`` function looks up the appropriate plotting function in
+the global variable ``obstacle_plot_functions``. If you implement a custom
+obstacle, add the corresponding plot function here.
 """
 
-import warnings
-
+import matplotlib.animation
+import matplotlib.path
+import matplotlib.pyplot as plt
+import matplotlib.transforms
 import numpy as np
-
-try:
-    import matplotlib.path as mpath
-    import matplotlib.pyplot as plt
-    import matplotlib.transforms as mtransforms
-    from matplotlib.animation import FuncAnimation
-    from matplotlib.artist import allow_rasterization
-    from matplotlib.collections import Collection
-except ImportError:  # pragma: no cover
-    warnings.warn(
-        "Could not import matplotlib, "
-        "'visualize.plot' and 'visualize.animate' will not work.",
-        stacklevel=1,
-    )
 
 try:
     from tqdm import trange
 except ImportError:  # pragma: no cover
-    trange = range
+    import warnings
+
     warnings.warn(
-        "Could not import tqdm, will not show progress in 'visualize.animate'.",
+        "Could not import tqdm, will not show progress in 'animate' function.",
         stacklevel=1,
     )
+    trange = range
+
+
+from .obstacles import Disk, InfiniteWall, LineSegment
+
+default_colors = {
+    "obstacles": "C2",
+    "balls": "C0",
+    "points": "C0",
+    "velocities": "C1",
+}
+"""dict: The default values for the colors.
+Possible keys for this mapping are:
+
+* the strings ``"obstacles"``, ``"balls"``, ``"points"`` and ``"velocities"``:
+  set the color used for all obstacles, all balls with positive radius
+  (``"balls"``), all balls with zero radius (``"points"``) and the velocity
+  vectors. These keys must always be present.
+* an integer ``i`` in the range from 0 to ``bld.num``:
+  set the color of the ball with index ``i`` (takes precedence over the
+  setting for ``"balls"``).
+* an obstacle class (e.g., ``obstacle.Disk``):
+  set the color all obstacles of this class (takes precedence over
+  ``"obstacle"``).
+* an obstacle instance:
+  set the color of this obstacle (takes precedence over the obstacle class
+  and ``"obstacle"``).
+
+Possible values are valid `matplotlib` colors and ``None`` (which disables
+plotting for this object or class of objects).
+
+The default colors are (in draw order)::
+
+    {"obstacles": "C2", "balls": "C0", "points": "C0", "velocities": "C1"}
+
+"""
+
+
+def _merge_colors(colors=None):
+    if colors is None:
+        colors = default_colors
+    else:
+        if not isinstance(colors, dict):  # TODO generalize "dict" to "Mapping"?
+            raise TypeError(f"'colors' must be a mapping, not {type(colors)}")
+        colors = {**default_colors, **colors}
+    return colors
+
+
+obstacle_plot_functions = {}
+"""dict: The plotting functions for obstacles. Each key is an obstacle classes
+(e.g., ``Disk``, ``InfiniteLine``), the corresponding value is a function with
+signature::
+
+    plot_func(obs: obstacle.Obstacle, ax: matplotlib.axes.Axes, color, **kwargs) -> None
+
+The color argument is a `matplotlib` colors, the keyword arguments will be
+passed to `matplotlib` plotting functions."""
+
+
+def plot_disk(obs, ax, color, **kwargs):
+    """Draw the disk onto the given matplotlib axes."""
+    assert isinstance(obs, Disk), type(obs)
+    assert isinstance(ax, matplotlib.axes.Axes), type(ax)
+
+    patch = matplotlib.patches.Circle(obs.center, obs.radius, facecolor=color, **kwargs)
+    ax.add_patch(patch)
+
+
+obstacle_plot_functions[Disk] = plot_disk
+
+
+def plot_infinite_wall(obs, ax, color, **kwargs):
+    """Draw the infinite wall onto the given matplotlib axes."""
+    assert isinstance(obs, InfiniteWall), type(obs)
+    assert isinstance(ax, matplotlib.axes.Axes), type(ax)
+
+    # wall
+    ax.axline(obs.start_point, obs.end_point, color=color, **kwargs)
+
+    # hatching to mark inside of wall
+    scale = 0.05
+    extent = scale * np.linalg.norm(obs.start_point - obs.end_point)
+    xy = [
+        obs.start_point,
+        obs.start_point - extent * obs._normal,
+        obs.end_point - extent * obs._normal,
+        obs.end_point,
+    ]
+    patch = matplotlib.patches.Polygon(
+        xy, hatch="xx", edgecolor=color, linewidth=0, fill=None, **kwargs
+    )
+    ax.add_patch(patch)
+
+
+obstacle_plot_functions[InfiniteWall] = plot_infinite_wall
+
+
+def plot_line_segment(obs, ax, color, **kwargs):
+    """Draw the line segment onto the given matplotlib axes."""
+    assert isinstance(obs, LineSegment), type(obs)
+    assert isinstance(ax, matplotlib.axes.Axes), type(ax)
+
+    kwargs.setdefault("solid_capstyle", "round")
+    sx, sy = obs.start_point
+    ex, ey = obs.end_point
+    ax.plot([sx, ex], [sy, ey], color=color, **kwargs)
+
+
+obstacle_plot_functions[LineSegment] = plot_line_segment
 
 
 # don't use matplotlib.collections.CircleCollection because there the circle
 # size is in screen coordinates, but we need data coordinates
-class CircleCollection(Collection):  # pragma: no cover
+class CircleCollection(matplotlib.collections.Collection):  # pragma: no cover
     """A collection of circles with their radius in data coordinates."""
 
     def __init__(self, centers, radii, **kwargs):
@@ -65,7 +178,7 @@ class CircleCollection(Collection):  # pragma: no cover
 
     def set_paths(self):
         """Set path (here: a unit circle)."""
-        self._paths = [mpath.Path.unit_circle()]
+        self._paths = [matplotlib.path.Path.unit_circle()]
         self.stale = True
 
     def set_radii(self, radii):
@@ -109,7 +222,7 @@ class CircleCollection(Collection):  # pragma: no cover
             transforms = self.get_transforms()
             transforms = np.matmul(transData.get_matrix(), transforms)
 
-            result = mpath.get_path_collection_extents(
+            result = matplotlib.path.get_path_collection_extents(
                 transform.frozen(),
                 paths,
                 transforms,
@@ -118,7 +231,7 @@ class CircleCollection(Collection):  # pragma: no cover
             )
             result = result.transformed(transData.inverted())
         else:
-            result = mtransforms.Bbox.null()
+            result = matplotlib.transforms.Bbox.null()
         return result
 
     def _set_transform(self, transData):
@@ -128,7 +241,7 @@ class CircleCollection(Collection):  # pragma: no cover
         transform.get_matrix()[:2, 2:] = 0
         self.set_transform(transform)
 
-    @allow_rasterization
+    @matplotlib.artist.allow_rasterization
     def draw(self, renderer):
         """Render the collection."""
         self._set_transform(self.axes.transData)
@@ -140,24 +253,20 @@ class CircleCollection(Collection):  # pragma: no cover
 CircleCollection.set.__doc__ = ""  # Sphinx complains about :mpltype:
 
 
-def default_fig_and_ax(figsize=(8, 6), fig=None, ax=None):
-    """Create a 800x600 figure with tight layout and equal aspect axes.
-
-    Figure is set the use tight layout, axes will use equal aspect.
+def default_fig_and_ax(fig=None, ax=None, **kwargs):
+    """Create a figure and add an Axes with equal aspect ratio.
 
     Args:
-        figsize: Width and height of the figure, default: (8, 6).
-        fig: Create a new figure or use this one.
-        ax: Create a new axes object from figure or use this one.
+        fig (optional): Create a new figure or use this one.
+        ax (optional): Create a new axes object from figure or use this one.
+        **kwargs: Keyword arguments for ``plt.figure``.
 
     Returns:
-        A figure and one axes object.
-
+        A figure and an axes object.
     """
-    # setup figure if needed and use tight layout
+    # setup figure if needed
     if fig is None:
-        fig = plt.figure(figsize=figsize, dpi=100)
-    fig.set_layout_engine("tight")
+        fig = plt.figure(**kwargs)
 
     # setup axes if needed and use equal aspect
     if ax is None:
@@ -167,7 +276,7 @@ def default_fig_and_ax(figsize=(8, 6), fig=None, ax=None):
     return fig, ax
 
 
-def plot_obstacles(bld, ax, color="C2", **kwargs):
+def plot_obstacles(bld, ax, colors=None, **kwargs):
     """Draw the obstacles of the billiard.
 
     Args:
@@ -179,15 +288,69 @@ def plot_obstacles(bld, ax, color="C2", **kwargs):
     Returns:
         List of artists that were drawn onto the axes.
     """
+    colors = _merge_colors(colors)
+    default_color = colors["obstacles"]
+
     obs_artists = []
     for obs in bld.obstacles:
-        ret = obs.plot(ax, color=color, zorder=-1)
-        obs_artists.append(ret)
+        col = colors.get(type(obs), default_color)
+        col = colors.get(obs, col)
+
+        if col is not None:
+            plot_func = obstacle_plot_functions[type(obs)]
+            plot_func(obs, ax, col, **kwargs)
 
     return obs_artists
 
 
-def plot_balls(bld, ax, color="C0", **kwargs):
+def plot_balls(bld, ax, colors=None, **kwargs):
+    """Draw balls with non-zero radius as circles.
+
+    Args:
+        bld: Billiard object.
+        ax: matplotlib axes object.
+        color (optional): Color of the balls, default: "C0" (light blue).
+        **kwargs: Keyword arguments for CircleCollection and Axes.scatter.
+
+    Returns:
+        Two matplotlib collections, the first one for the proper balls and the
+        second one for the point particles.
+    """
+    colors = _merge_colors(colors)
+    default_color = colors["balls"]
+
+    # filter out proper balls
+    radii = np.asarray(bld.balls_radius)
+    draw_as_circles = radii > 0
+
+    # Set custom ball color
+    if any(isinstance(key, int) and draw_as_circles[key] for key in colors.keys()):
+        col = []
+        for i in range(bld.num):
+            c = colors.get(i, default_color)
+            if c is None:
+                draw_as_circles[i] = False
+            else:
+                col.append(c)
+    else:
+        col = default_color
+
+    # plot balls
+    if col is not None:
+        circles = CircleCollection(
+            bld.balls_position[draw_as_circles],
+            radii[draw_as_circles],
+            transOffset=ax.transData,
+            facecolor=col,
+            **kwargs,
+        )
+        ax.add_collection(circles)
+        return circles
+    else:
+        return []
+
+
+def plot_points(bld, ax, colors=None, point_marker="x", point_size=20, **kwargs):
     """Draw the balls in the billiard.
 
     Balls with zero radius (i.e. point particles) will be drawn using scatter.
@@ -202,76 +365,87 @@ def plot_balls(bld, ax, color="C0", **kwargs):
         Two matplotlib collections, the first one for the proper balls and the
         second one for the point particles.
     """
-    # simplify variables
-    pos = bld.balls_position
+    colors = _merge_colors(colors)
+    default_color = colors["points"]
+
+    # filter out point particles
     radii = np.asarray(bld.balls_radius)
+    draw_as_markers = radii == 0
 
-    # draw point particles only as markers
-    draw_as_circles = radii > 0
-    draw_as_markers = np.logical_not(draw_as_circles)
+    if any(isinstance(key, int) and draw_as_markers[key] for key in colors.keys()):
+        col = []
+        for i in range(bld.num):
+            c = colors.get(i, default_color)
+            if c is None:
+                draw_as_markers[i] = False
+            else:
+                col.append(c)
+    else:
+        col = default_color
 
-    # draw proper balls as circles
-    circles = CircleCollection(
-        pos[draw_as_circles],
-        radii[draw_as_circles],
-        transOffset=ax.transData,
-        facecolor=color,
-        zorder=0,
-        **kwargs,
-    )
-    ax.add_collection(circles)
-
-    # draw point particles
-    points = ax.scatter(
-        pos[draw_as_markers, 0],
-        pos[draw_as_markers, 1],
-        s=20,
-        marker="x",
-        color=color,
-        zorder=0,
-        **kwargs,
-    )
-
-    return circles, points
+    # plot particles
+    if col is not None:
+        points = ax.scatter(
+            bld.balls_position[draw_as_markers, 0],
+            bld.balls_position[draw_as_markers, 1],
+            s=point_size,
+            marker=point_marker,
+            color=col,
+            **kwargs,
+        )
+        return points
+    else:
+        return []
 
 
-def plot_velocities(bld, ax, color="C1", arrow_factor=1, **kwargs):
+def plot_velocities(bld, ax, colors=None, velocity_scale=1.0, **kwargs):
     """Plot velocites of the balls in the billiard.
 
     Args:
         bld: Billiard object.
         ax: matplotlib axes object.
         color (optional): Color of the arrows, default: "C1" (yellow).
-        arrow_factor (optional): Scale the length of the velocity arrows.
-        **kwargs: Keyword arguments for Axes.quiver.
+        velocity_scale (optional): Scale the length of the velocity arrows.
+        **kwargs: Keyword arguments for ``Axes.quiver``.
 
     Returns:
-        The output of axes.quiver.
-
+        The output of ``Axes.quiver``.
     """
-    # simplify variables
-    pos = bld.balls_position
-    vel = bld.balls_velocity
+    colors = _merge_colors(colors)
+    col = colors["velocities"]
 
     # draw velocities as arrows (slow balls will be marked with hexagons)
-    arrows = ax.quiver(
-        pos[:, 0],
-        pos[:, 1],
-        vel[:, 0],
-        vel[:, 1],
-        angles="xy",
-        scale_units="xy",
-        scale=1 / arrow_factor,
-        width=0.004,
-        color=color,
-        zorder=1,
-        **kwargs,
-    )
+    if col is not None and velocity_scale > 0:
+        arrows = ax.quiver(
+            bld.balls_position[:, 0],
+            bld.balls_position[:, 1],
+            bld.balls_velocity[:, 0],
+            bld.balls_velocity[:, 1],
+            angles="xy",
+            scale_units="xy",
+            scale=1 / velocity_scale,
+            width=0.004,
+            color=col,
+            **kwargs,
+        )
+        return arrows
+    else:
+        return []
 
-    return arrows
 
-
-def plot(bld, fig=None, ax=None, velocity_arrow_factor=1):
+def plot(
+    bld,
+    fig=None,
+    ax=None,
+    colors=None,
+    point_marker="x",
+    point_size=20,
+    velocity_scale=1.0,
+    figsize=(8, 6),
+    dpi=100,
+    layout="tight",
+    **kwargs,
+):
     """Plot the given billiard for the current moment.
 
     Args:
@@ -280,10 +454,8 @@ def plot(bld, fig=None, ax=None, velocity_arrow_factor=1):
             Defaults to None in which case a new figure will be created.
         ax (optional): Axes used for drawing.
             Defaults to None in which case a new axes object will be created.
-            If an axes object is supplied, use
-            ax.set_aspect(self, aspect="equal", adjustable="datalim")
-            for correct aspect ratio.
-        velocity_arrow_factor (optional): Scale the length of velocity arrows.
+            The new (or given) axes will be set to "equal" aspect ratio.
+        velocity_scale (optional): Scale the length of velocity arrows.
             The default value is 1, meaning that in one time unit the particle
             reaches the tip of the arrow. Larger values increase the length of
             the arrows, smaller values will shrink them. A value of 0 disables
@@ -294,23 +466,41 @@ def plot(bld, fig=None, ax=None, velocity_arrow_factor=1):
         plot use fig.savefig("savename.png").
 
     """
-    fig, ax = default_fig_and_ax(fig=fig, ax=ax)
+    fig, ax = default_fig_and_ax(fig, ax, figsize=figsize, dpi=dpi, layout=layout)
+    # colors = _merge_colors(colors)
 
-    # plot billiard obstacles and balls
-    plot_obstacles(bld, ax)
-    plot_balls(bld, ax)
-    if velocity_arrow_factor > 0:
-        plot_velocities(bld, ax, arrow_factor=velocity_arrow_factor)
+    # plot billiard obstacles, balls and velocities
+    plot_obstacles(bld, ax, colors, **kwargs)
+    plot_balls(bld, ax, colors, **kwargs)
+    plot_points(
+        bld, ax, colors, point_marker=point_marker, point_size=point_size, **kwargs
+    )
+    plot_velocities(bld, ax, colors, velocity_scale=velocity_scale, **kwargs)
 
     # show the current simulation time
     text = f"Time: {bld.time:.3f}"
     ax.text(0.02, 0.95, text, transform=ax.transAxes)
 
-    return fig
+    return fig, ax
 
 
 def animate(
-    bld, end_time, fps=30, fig=None, ax=None, velocity_arrow_factor=1, **kwargs
+    bld,
+    end_time,
+    fps=30,
+    fig=None,
+    ax=None,
+    colors=None,
+    point_marker="x",
+    point_size=20,
+    velocity_scale=1.0,
+    figsize=(8, 6),
+    dpi=100,
+    layout="tight",
+    blit=False,
+    repeat=True,
+    repeat_delay=0,
+    **kwargs,
 ):
     """Animate the billiard plot.
 
@@ -333,18 +523,24 @@ def animate(
             If an axes object is supplied, use
             ax.set_aspect(self, aspect="equal", adjustable="datalim")
             for correct aspect ratio.
-        velocity_arrow_factor (optional): Scale the length of velocity arrows.
+        velocity_scale (optional): Scale the length of velocity arrows.
             The default value is 1, meaning that in one time unit the particle
             reaches the tip of the arrow. Larger values increase the length of
             the arrows, smaller values will shrink them. A value of 0 disables
             arrows.
-        **kwargs (optional): other keyword arguments are passed to
-            matplotlib.animation.FuncAnimation.
+        **kwargs (optional): other keyword arguments are passed to the axes plot
+            functions.
 
     Returns:
-        matplotlib.animation.FuncAnimation: An animation object, to play the
-        animation use matplotlib.pyplot.show(), to save it as a video use
-        anim.save("savename.mp4").
+        A tuple of three objects: animation, figure and axes.
+
+        The first element is a `matplotlib.animation.FuncAnimation` object. To
+        play the animation use `matplotlib.pyplot.show()`, to save it as a video
+        use anim.save("videoname.mp4").
+
+        The second element (a `matplotlib.figure.Figure` object) and the third
+        element (a `matplotlib.axes.Axes` object) are the figure and axes that
+        will be animated.
 
     """
     start_time = bld.time
@@ -362,13 +558,16 @@ def animate(
         velocities.append(bld.balls_velocity.copy())
 
     # setup plot
-    fig, ax = default_fig_and_ax(fig=fig, ax=ax)
+    fig, ax = default_fig_and_ax(fig, ax, figsize=figsize, dpi=dpi, layout=layout)
+    # colors = _merge_colors(colors)
 
     # plot billiard obstacle and balls
-    plot_obstacles(bld, ax)
-    circles, points = plot_balls(bld, ax)
-    if velocity_arrow_factor > 0:
-        arrows = plot_velocities(bld, ax, arrow_factor=velocity_arrow_factor)
+    plot_obstacles(bld, ax, colors, **kwargs)
+    circles = plot_balls(bld, ax, colors, **kwargs)
+    points = plot_points(
+        bld, ax, colors, point_marker=point_marker, point_size=point_size, **kwargs
+    )
+    arrows = plot_velocities(bld, ax, colors, velocity_scale=velocity_scale, **kwargs)
 
     # show the current simulation time
     text = f"Time: {bld.time:.3f}"
@@ -380,38 +579,55 @@ def animate(
 
     def init():
         time_text.set_text("")
+        ret = (time_text,)
 
-        circles.set_offsets(np.empty(shape=(1, 2)))
-        points.set_offsets(np.empty(shape=(1, 2)))
+        if circles:
+            circles.set_offsets(np.empty(shape=(1, 2)))
+            ret += (circles,)
 
-        if velocity_arrow_factor > 0:
+        if points:
+            points.set_offsets(np.empty(shape=(1, 2)))
+            ret += (points,)
+
+        if arrows:
             arrows.set_offsets(np.empty(shape=(1, 2)))
             arrows.set_UVC(np.empty(shape=(1, 1)), np.empty(shape=(1, 1)))
+            ret += (arrows,)
 
-            return (time_text, circles, points, arrows)
-        else:
-            return (time_text, circles, points)
+        return ret
 
     # animate will play the precomputed simulation
     def animate(i):
         time_text.set_text(f"Time: {time[i]:.3f}")
+        ret = (time_text,)
 
         pos = positions[i]
-        circles.set_offsets(pos[draw_as_circles])
-        points.set_offsets(pos[draw_as_markers])
+        if circles:
+            circles.set_offsets(pos[draw_as_circles])
+            ret += (circles,)
 
-        if velocity_arrow_factor > 0:
+        if points:
+            points.set_offsets(pos[draw_as_markers])
+            ret += (points,)
+
+        if arrows:
             arrows.set_offsets(pos)
             vel = velocities[i]
             arrows.set_UVC(vel[:, 0], vel[:, 1])
+            ret += (arrows,)
 
-            return (time_text, circles, points, arrows)
-        else:
-            return (time_text, circles, points)
+        return ret
 
-    kwargs.setdefault("cache_frame_data", False)  # to save memory
-    anim = FuncAnimation(
-        fig, animate, frames, interval=1000 / fps, blit=True, init_func=init, **kwargs
+    anim = matplotlib.animation.FuncAnimation(
+        fig,
+        animate,
+        frames,
+        interval=1000 / fps,
+        blit=blit,
+        init_func=init,
+        repeat=repeat,
+        repeat_delay=repeat_delay,
+        cache_frame_data=False,  # to save memory
     )
 
-    return anim
+    return anim, fig, ax

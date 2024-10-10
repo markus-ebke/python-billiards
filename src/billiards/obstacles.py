@@ -19,7 +19,6 @@ from .physics import (
 )
 
 try:
-    import matplotlib as mpl
     from pyglet import gl
 except ImportError:  # pragma: no cover
     has_visualize = False
@@ -91,19 +90,6 @@ class Obstacle:  # pragma: no cover
         """
         raise NotImplementedError("subclasses should implement this!")
 
-    def plot(self, ax, color, **kwargs):
-        """Draw the obstacle onto the given matplotlib axes.
-
-        Args:
-            ax: Axes to draw the obstacle on.
-            color: Color of the obstacle.
-            **kwargs: Keyword arguments for plot.
-        """
-        if not has_visualize:
-            raise RuntimeError("can't use plot, matplotlib is not available")
-
-        raise NotImplementedError("subclasses should implement this!")
-
     def model(self):
         """Vertices, indices and drawing mode for OpenGL drawing this obstacle.
 
@@ -141,11 +127,6 @@ class Disk(Obstacle):
     def collide(self, pos, vel, radius, *args):
         """Calculate the velocity of a ball after colliding with the disk."""
         return elastic_collision(self.center, (0, 0), 1, pos, vel, 0)[1]
-
-    def plot(self, ax, color, **kwargs):
-        """Draw the disk onto the given matplotlib axes."""
-        patch = mpl.patches.Circle(self.center, self.radius, facecolor=color, **kwargs)
-        ax.add_patch(patch)
 
     def model(self):  # pragma: no cover
         """Vertices, indices and drawing mode for OpenGL drawing the disk."""
@@ -221,25 +202,6 @@ class InfiniteWall(Obstacle):
 
         return vel + 2 * (headway * self._normal)
 
-    def plot(self, ax, color, scale=0.05, hatch="xx", **kwargs):
-        """Draw the wall onto the given matplotlib axes."""
-        # wall
-        ax.axline(self.start_point, self.end_point, color=color, **kwargs)
-
-        # hatching to mark inside of wall
-        if hatch is not None:
-            extent = scale * np.linalg.norm(self.start_point - self.end_point)
-            xy = [
-                self.start_point,
-                self.start_point - extent * self._normal,
-                self.end_point - extent * self._normal,
-                self.end_point,
-            ]
-            patch = mpl.patches.Polygon(
-                xy, hatch="xx", edgecolor=color, linewidth=0, fill=None, **kwargs
-            )
-            ax.add_patch(patch)
-
     def model(self):  # pragma: no cover
         """Vertices, indices and drawing mode for OpenGL drawing the wall."""
         vertices = np.asarray([self.start_point, self.end_point])
@@ -299,13 +261,6 @@ class LineSegment(Obstacle):
 
         # collision with the line part of the segment
         return vel - 2 * self._normal.dot(vel) * self._normal
-
-    def plot(self, ax, color, **kwargs):
-        """Draw the line segment onto the given matplotlib axes."""
-        kwargs.setdefault("solid_capstyle", "round")
-        sx, sy = self.start_point
-        ex, ey = self.end_point
-        ax.plot([sx, ex], [sy, ey], color=color, **kwargs)
 
     def model(self):  # pragma: no cover
         """Vertices, indices and drawing mode for OpenGL drawing the line segment."""
