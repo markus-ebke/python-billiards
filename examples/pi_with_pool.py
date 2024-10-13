@@ -45,6 +45,6 @@ bld.add_ball((3, 0), (0, 0), radius=0.2)
 bld.add_ball((6, 0), (-1, 0), radius=1, mass=100 ** (digits - 1))
 
 # animate the simulation
-anim, fig, ax = visualize.animate(bld, end_time=16, fps=60, figsize=(10, 5))
+anim, fig, ax = visualize.animate(bld, end_time=16, dt=1 / 60, fps=60, figsize=(10, 5))
 # anim.save("pi_with_pool.mp4")
 plt.show()

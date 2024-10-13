@@ -91,9 +91,7 @@ def brownian_motion(animate=False):
         poslist.append(p)
 
     if animate:  # just to check animation
-        anim, fig, ax = visualize.animate(
-            bld, end_time, velocity_scale=0, figsize=(7, 7)
-        )
+        anim, fig, ax = visualize.animate(bld, end_time, arrow_size=0, figsize=(7, 7))
         anim.save("brownian motion.mp4")
         # plt.show()
         return
@@ -111,7 +109,7 @@ def brownian_motion(animate=False):
     poslist.append(bld.balls_position[idx].copy())  # record last position
 
     # plot the billiard and overlay the path of the particle
-    fig, ax = visualize.plot(bld, velocity_scale=0, figsize=(7, 7))
+    fig, ax = visualize.plot(bld, arrow_size=0, figsize=(7, 7))
     poslist = np.asarray(poslist)
     ax.plot(poslist[:, 0], poslist[:, 1], color="red")
     plt.savefig(here / "_images/brownian_motion.svg")

@@ -41,6 +41,6 @@ bld.balls_velocity /= 5  # slow down
 bld.recompute_toi()
 
 # start the animation
-anim, fig, ax = visualize.animate(bld, end_time=10, figsize=(6, 6))
+anim, fig, ax = visualize.animate(bld, end_time=10, figsize=(6, 6), particle_marker="x")
 # anim.save("sinai_billiard.mp4")
 plt.show()

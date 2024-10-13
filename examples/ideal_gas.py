@@ -41,7 +41,7 @@ for _ in range(num_balls):
 # bld.add_ball((0, 0), (0, 0), radius=0.1, mass=10)
 
 # show a simulation of the first 10 seconds
-anim, fig, ax = visualize.animate(bld, end_time=10, velocity_scale=0, figsize=(7, 7))
+anim, fig, ax = visualize.animate(bld, end_time=10, arrow_size=0.1, figsize=(7, 7))
 # note: bld.time == 10.0
 # anim.save("ideal_gas.mp4")
 plt.show()

@@ -254,7 +254,7 @@ and simulate until t = 50, recording the position of the bigger ball at each col
 Plot the billiard and overlay the path of the particle
 
 ```pycon
->>> fig, ax = visualize.plot(bld, velocity_scale=0, figsize=(7, 7))
+>>> fig, ax = visualize.plot(bld, arrow_size=0, figsize=(7, 7))
 >>> poslist = np.asarray(poslist)
 >>> ax.plot(poslist[:, 0], poslist[:, 1], color="red")
 [<matplotlib.lines.Line2D object at 0x...>]
