@@ -46,15 +46,10 @@ import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 import numpy as np
 
+# If tqdm is installed, use it to draw a progress bar in 'animate'
 try:
-    from tqdm import trange
+    from tqdm.auto import trange
 except ImportError:  # pragma: no cover
-    import warnings
-
-    warnings.warn(
-        "Could not import tqdm, will not show progress in 'animate' function.",
-        stacklevel=1,
-    )
     trange = range
 
 
@@ -136,6 +131,14 @@ def _merge_color_scheme(color_scheme=None):
             raise TypeError(msg)
         color_scheme = {**default_color_scheme, **color_scheme}
     return color_scheme
+
+
+def _is_color_like(col):
+    # Wrapper around matplotlib.colors.is_color_like, treats (color, None) never
+    # as a color (matplotlib>=3.8 will interpret the "None" part as alpha=1.0)
+    if isinstance(col, tuple) and len(col) == 2 and col[1] is None:
+        return False
+    return mcolors.is_color_like(col)
 
 
 obstacle_plot_functions = {}
@@ -371,7 +374,7 @@ def plot_balls(bld, ax, color_scheme=None, **kwargs):
         **kwargs: Keyword arguments for ``CircleCollection``.
 
     Returns:
-        A ``EllipseCollection`` or None (if all balls have radius zero or
+        A ``CircleCollection`` or None (if all balls have radius zero or
         their color is set to None).
     """
     color_scheme = _merge_color_scheme(color_scheme)
@@ -379,7 +382,7 @@ def plot_balls(bld, ax, color_scheme=None, **kwargs):
     if (
         isinstance(default_color, tuple)
         and len(default_color) == 2
-        and not mcolors.is_color_like(default_color)
+        and not _is_color_like(default_color)
     ):
         default_color = default_color[0]
 
@@ -397,13 +400,17 @@ def plot_balls(bld, ax, color_scheme=None, **kwargs):
             c = color_scheme.get(i, default_color)
             if c is None:
                 draw_as_circles[i] = False
-            elif isinstance(c, tuple) and len(c) == 2 and not mcolors.is_color_like(c):
+            elif isinstance(c, tuple) and len(c) == 2 and not _is_color_like(c):
                 if c[0] is None:
                     draw_as_circles[i] = False
                 else:
                     col.append(c[0])
             else:
                 col.append(c)
+
+        assert np.count_nonzero(draw_as_circles) == len(col)
+        if len(col) == 1:
+            col = col[0]
     else:
         col = default_color
 
@@ -463,7 +470,7 @@ def plot_particles(
     if (
         isinstance(default_color, tuple)
         and len(default_color) == 2
-        and not mcolors.is_color_like(default_color)
+        and not _is_color_like(default_color)
     ):
         default_color = default_color[0]
 
@@ -481,13 +488,17 @@ def plot_particles(
             c = color_scheme.get(i, default_color)
             if c is None:
                 draw_as_markers[i] = False
-            elif isinstance(c, tuple) and len(c) == 2 and not mcolors.is_color_like(c):
+            elif isinstance(c, tuple) and len(c) == 2 and not _is_color_like(c):
                 if c[0] is None:
                     draw_as_markers[i] = False
                 else:
                     col.append(c[0])
             else:
                 col.append(c)
+
+        assert np.count_nonzero(draw_as_markers) == len(col)
+        if len(col) == 1:
+            col = col[0]
     else:
         col = default_color
 
@@ -547,13 +558,17 @@ def plot_velocities(bld, ax, arrow_size=1.0, color_scheme=None, **kwargs):
 
         if c is None:
             draw_velocities[i] = False
-        elif isinstance(c, tuple) and len(c) == 2 and not mcolors.is_color_like(c):
+        elif isinstance(c, tuple) and len(c) == 2 and not _is_color_like(c):
             if c[1] is None:
                 draw_velocities[i] = False
             else:
                 col.append(c[1])
         else:
             col.append(c)
+
+    assert np.count_nonzero(draw_velocities) == len(col)
+    if len(col) == 1:
+        col = col[0]
 
     # draw velocities as arrows (slow balls will be marked with small dots)
     if col is not None and np.any(draw_velocities):
