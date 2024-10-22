@@ -6,20 +6,9 @@ import pytest
 from numpy.testing import assert_allclose
 from pytest import approx
 
-from billiards.obstacles import Disk, InfiniteWall, LineSegment, circle_model
+from billiards.obstacles import Disk, InfiniteWall, LineSegment
 
 INF = float("inf")
-
-
-def test_circle_model():
-    r, n = 5.0, 16
-    vertices, indices = circle_model(r, num_points=n)
-
-    assert isinstance(vertices, np.ndarray)
-    assert vertices.shape == (n, 2)
-    assert np.hypot(vertices[:, 0], vertices[:, 1]) == approx(r)
-
-    assert len(indices) == 2 * n
 
 
 def test_disk():

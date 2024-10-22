@@ -7,7 +7,7 @@ name = "pypi"
 numpy = "*"
 matplotlib = "*"
 tqdm = "*"
-pyglet = "*"
+pyglet = ">=2.0.0"
 
 [dev-packages]
 billiards = {editable = true, path = "."}

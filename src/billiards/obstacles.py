@@ -18,39 +18,6 @@ from .physics import (
     toi_ball_point,
 )
 
-try:
-    from pyglet import gl
-except ImportError:  # pragma: no cover
-    has_visualize = False
-else:
-    has_visualize = True
-
-
-def circle_model(radius, num_points=32):
-    """Vertices and order in which to draw lines for a circle.
-
-    Args:
-        radius: Radius of the circle.
-        num_points: Number of vertices of the circle.
-
-    Returns:
-        np.ndarray: Position of the vertices in a Nx2-shaped array.
-        list: Indicies indicating the start and endpoints of lines that will
-        form the circle, has langth 2N.
-    """
-    # vertices on the circle
-    angles = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
-    xy = (np.cos(angles), np.sin(angles))
-    vertices = radius * np.stack(xy, axis=1)
-
-    # indices for drawing lines
-    indices = []
-    for i in range(num_points):
-        indices.extend([i, i + 1])
-    indices[-1] = 0
-
-    return vertices, indices
-
 
 class Obstacle:  # pragma: no cover
     """Obstacle base class.
@@ -90,27 +57,6 @@ class Obstacle:  # pragma: no cover
         """
         raise NotImplementedError("subclasses should implement this!")
 
-    def model(self):
-        """Vertices, indices and drawing mode for OpenGL drawing this obstacle.
-
-        The vertices, indices and mode are used for drawing of indexed vertex
-        lists created from a pyglet.graphics.Batch (the vertex array will be
-        flattened later).
-
-        Args:
-            ax: Axes to draw the obstacle on.
-            **kwargs: Keyword arguments for plot.
-
-        Returns:
-            np.ndarray: A Nx2-array of vertex positions.
-            list: Indices for the above array of length 2N.
-            mode: OpenGL drawing mode.
-        """
-        if not has_visualize:
-            raise RuntimeError("can't use model, pyglet is not available")
-
-        raise NotImplementedError("subclasses should implement this!")
-
 
 class Disk(Obstacle):
     """A circluar obstacle where balls are not allowed on the inside."""
@@ -127,12 +73,6 @@ class Disk(Obstacle):
     def collide(self, pos, vel, radius, *args):
         """Calculate the velocity of a ball after colliding with the disk."""
         return elastic_collision(self.center, (0, 0), 1, pos, vel, 0)[1]
-
-    def model(self):  # pragma: no cover
-        """Vertices, indices and drawing mode for OpenGL drawing the disk."""
-        vertices, indices = circle_model(self.radius)
-        vertices += self.center
-        return (vertices, indices, gl.GL_LINES)
 
 
 class InfiniteWall(Obstacle):
@@ -202,12 +142,6 @@ class InfiniteWall(Obstacle):
 
         return vel + 2 * (headway * self._normal)
 
-    def model(self):  # pragma: no cover
-        """Vertices, indices and drawing mode for OpenGL drawing the wall."""
-        vertices = np.asarray([self.start_point, self.end_point])
-        indices = [0, 1]
-        return (vertices, indices, gl.GL_LINES)
-
 
 class LineSegment(Obstacle):
     """A line segment with collisions from both sides."""
@@ -261,9 +195,3 @@ class LineSegment(Obstacle):
 
         # collision with the line part of the segment
         return vel - 2 * self._normal.dot(vel) * self._normal
-
-    def model(self):  # pragma: no cover
-        """Vertices, indices and drawing mode for OpenGL drawing the line segment."""
-        vertices = np.asarray([self.start_point, self.end_point])
-        indices = [0, 1]
-        return (vertices, indices, gl.GL_LINES)

@@ -1,7 +1,7 @@
 numpy
 matplotlib
 tqdm
-pyglet
+pyglet>=2.0.0
 setuptools>=40.8.0
 build
 pytest
