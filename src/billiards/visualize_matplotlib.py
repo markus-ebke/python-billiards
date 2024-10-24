@@ -67,7 +67,7 @@ Possible keys for this mapping are:
   set the color used for all obstacles, all balls with positive radius
   (``"balls"``) and all balls with zero radius (``"particles"``).
   These keys must always be present.
-* an integer ``i`` in the range from 0 to ``bld.num``:
+* an integer ``i`` in the range from 0 to ``bld.count``:
   set the color of the ball with index ``i`` (takes priority over the setting
   for ``"balls"``, ``"particles``" and ``"velocities"``).
 * an obstacle class (e.g., ``obstacle.Disk``):
@@ -365,7 +365,7 @@ def plot_balls(bld, ax, color_scheme=None, **kwargs):
         bld: Plot balls of this billiard.
         ax: Axes to draw onto.
         color_scheme (optional): Settings for the color of the balls. Will use
-            as keys the integers in the range ``range(bld.num)`` (color for a
+            as keys the integers in the range ``range(bld.count)`` (color for a
             specific ball) or the string ``"balls"`` (default color for all balls)
             in decreasing order of priority.
             The default values for these keys are taken from the global variable
@@ -393,7 +393,7 @@ def plot_balls(bld, ax, color_scheme=None, **kwargs):
     # Set custom ball color
     if any(draw_as_circles[key] for key in color_scheme.keys() if isinstance(key, int)):
         col = []
-        for i in range(bld.num):
+        for i in range(bld.count):
             if not draw_as_circles[i]:
                 continue
 
@@ -453,7 +453,7 @@ def plot_particles(
             Defaults to ".".
         particle_size (optional): The marker size in points**2. Defaults to 20.
         color_scheme (optional): Settings for the color of the balls. Will use
-            as keys the integers in the range ``range(bld.num)`` (color for a
+            as keys the integers in the range ``range(bld.count)`` (color for a
             specific ball) or the string ``"particles"`` (default color for all point
             particles) in decreasing order of priority.
             The default values for these keys are taken from the global variable
@@ -481,7 +481,7 @@ def plot_particles(
     # Set custom ball color
     if any(draw_as_markers[key] for key in color_scheme.keys() if isinstance(key, int)):
         col = []
-        for i in range(bld.num):
+        for i in range(bld.count):
             if not draw_as_markers[i]:
                 continue
 
@@ -525,7 +525,7 @@ def plot_velocities(bld, ax, arrow_size=1.0, color_scheme=None, **kwargs):
             ``ball velocity * arrow_size``. A size of zero disables arrows.
             Defaults to 1.0.
         color_scheme (optional): Settings for the color of the arrows. Will use
-            as keys the integers in the range ``range(bld.num)`` (color for the
+            as keys the integers in the range ``range(bld.count)`` (color for the
             arrow of a specific ball) or the strings ``"balls"`` and
             ``"particles"`` (default color for all arrows) in decreasing order
             of priority.
@@ -546,11 +546,11 @@ def plot_velocities(bld, ax, arrow_size=1.0, color_scheme=None, **kwargs):
     default_particle_color = color_scheme["particles"]
 
     # filter out invisible balls
-    draw_velocities = np.full(bld.num, True, dtype=bool)
+    draw_velocities = np.full(bld.count, True, dtype=bool)
 
     # Set custom arrow color
     col = []
-    for i in range(bld.num):
+    for i in range(bld.count):
         if bld.balls_radius[i] > 0:
             c = color_scheme.get(i, default_ball_color)
         else:
@@ -741,13 +741,13 @@ def animate(
     # draw point particles only as markers
     draw_as_circles = np.asarray(bld.balls_radius) > 0
     draw_as_markers = np.logical_not(draw_as_circles)
-    draw_velocities = np.full(bld.num, True, dtype=bool)
+    draw_velocities = np.full(bld.count, True, dtype=bool)
 
     # remove balls and arrows where color is set to None
     color_scheme = _merge_color_scheme(color_scheme)
     default_ball_color = color_scheme["balls"]
     default_particle_color = color_scheme["particles"]
-    for i in range(bld.num):
+    for i in range(bld.count):
         if bld.balls_radius[i] > 0:
             c = color_scheme.get(i, default_ball_color)
         else:

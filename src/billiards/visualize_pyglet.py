@@ -25,7 +25,6 @@ from .simulation import Billiard
 try:
     import pyglet
     from pyglet import gl, shapes
-    from pyglet.graphics import Group
     from pyglet.graphics.shader import Shader, ShaderProgram
     from pyglet.window import key
 except Exception as ex:
@@ -268,7 +267,7 @@ class ShapeCollection:
     invisible, set their scale to zero.
     To draw the collection, use the draw method of the batch.
 
-    Attributes (read-only):
+    Attributes:
         num_verts (int): Number of vertices of the template shape.
         count (int): Number of shapes in the collection.
         program (ShaderProgram): The shader program that is used to draw the shapes.
@@ -280,10 +279,9 @@ class ShapeCollection:
         self,
         shape_vertices,
         shape_indices,
-        draw_mode: int,
-        count: int,
-        batch: pyglet.graphics.Batch | None = None,
-        group: Group | None = None,
+        draw_mode,
+        count,
+        batch=None,
     ):
         """Set up the collection with a template shape.
 
@@ -308,7 +306,7 @@ class ShapeCollection:
         frag_shader = Shader(fragment_source, "fragment")
         self.program = ShaderProgram(vert_shader, frag_shader)
         self.group = pyglet.shapes._ShapeGroup(
-            gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA, self.program, group
+            gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA, self.program
         )
 
         # Create one vertex list to manage all shapes in the collection
@@ -578,7 +576,7 @@ ESC: Close window and exit"""
             verts,
             indices,
             gl.GL_TRIANGLES,
-            count=self.billiard.num,
+            count=self.billiard.count,
             batch=self.ball_batch,
         )
 
@@ -593,8 +591,10 @@ ESC: Close window and exit"""
 
         # Set ball colors
         colors = (90, 120, 225)
-        # colors = np.tile(colors, (self.billiard.num, 1))
-        colors += np.random.randint(0, 30, size=(self.billiard.num, 3), dtype=np.ubyte)
+        # colors = np.tile(colors, (self.billiard.count, 1))
+        colors += np.random.randint(
+            0, 30, size=(self.billiard.count, 3), dtype=np.ubyte
+        )
         self.ball_collection.set_color(colors)
 
     def _setup_gui(self):

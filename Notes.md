@@ -8,7 +8,9 @@ A list of features that might be useful, but for which I have no time or interes
 - https://www.bernat.tech/the-state-of-type-hints-in-python/
 
 ## Simulation
+- Add `max_ball_collisions` parameter to `Billiard.evolve` as alternative stopping condition (int: total number of collisions, tuple: ball-ball and ball-obstacle collisions). Compare https://github.com/ssnl/python-billiards/commit/a862f1fe9984f974b229f2a05f6aaff8794a341a
 - Make Simulation attributes readonly / automatically recalculate toi after changing position, velocity or radius
+- Make `_obstacles_toi` and `_obstacle_obs` public (i.e. without underscore)? Also rename them?
 - ParticleBilliard: Simulate point particles that only collide with the obstacles, use parallelization in evolve
 - Write time-intensive functions in Cython (better: convert the whole Simulation class to Cython and use prange where possible)
 
@@ -47,8 +49,8 @@ A list of features that might be useful, but for which I have no time or interes
 
 ## More obstacles
 - Change "exterior" to "outside" or "outer" or use the opposite "interior", "inside", "inner"?
-- Implement as class Rotation(Obstacle) with `__init__(obstacle, angle)`, in `calc_toi` and `collide` inversely rotates the ball and then call the obstacle method.
-- The pos argument for Obstacle.collide is mutable. We could use this to teleport balls at collision, e.g. to create a box with periodic boundary conditions or portal objects.
+- Implement as class Rotation(Obstacle) with `__init__(obstacle, angle)`, in `detect_collision` and `collide` inversely rotates the ball and then call the obstacle method.
+- The pos argument for Obstacle.resolve_collision is mutable. This could be used to teleport balls at collision, e.g. to create a box with periodic boundary conditions or portal objects.
 
 Regions in 1D (collisions from both sides):
 - InfiniteLine(point1, point2) and InfiniteLine(point1, None, direction)

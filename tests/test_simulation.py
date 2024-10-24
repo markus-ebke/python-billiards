@@ -36,7 +36,7 @@ def test_index():
         idx = bld.add_ball((i, 0), (0, i))
         assert idx == i
 
-    assert bld.num == n
+    assert bld.count == n
 
     # check that the indices are actually right
     for idx in range(n):
@@ -45,11 +45,6 @@ def test_index():
 
 
 def test_add():
-    # missing required positional arguments
-    bld = Billiard()
-    with pytest.raises(TypeError):
-        bld.add_ball((0, 0))
-
     # wrong type send to numpy
     bld = Billiard()
     with pytest.raises(ValueError):
@@ -103,7 +98,7 @@ def test_toi_structure():
 
     for i in range(1, 10):
         bld.add_ball((i, 0), (0, 1))
-        assert bld.num == i
+        assert bld.count == i
 
         assert len(bld.toi_table) == i
         assert bld.toi_table[i - 1].shape == (i - 1,)
@@ -139,10 +134,10 @@ def test_toi_contents():
     assert bld._balls_idx == [-1, 0, 0]
     assert bld.next_ball_ball_collision == (1.0, 0, 2)
 
-    # test simulation.calc_toi
-    assert bld.calc_toi(0, 1) == 2.0
-    assert bld.calc_toi(0, 2) == 1.0
-    assert bld.calc_toi(1, 2) == approx(2.0)
+    # test simulation.detect_collision
+    assert bld._detect_ball_collision(0, 1) == 2.0
+    assert bld._detect_ball_collision(0, 2) == 1.0
+    assert bld._detect_ball_collision(1, 2) == approx(2.0)
 
 
 def test_simple_collision():
@@ -393,6 +388,19 @@ def test_callbacks(create_newtons_cradle):
     with pytest.raises(TypeError):
         bld.evolve(15.0, ball_callbacks=[lambda bla: bla])
 
+    with pytest.raises(TypeError):
+        bld.evolve(15.0, obstacle_callbacks=lambda bla: bla)
+
+    with pytest.raises(TypeError):
+        bld.evolve(15.0, obstacle_callbacks=[lambda bla: bla])
+
+    # exception for wrong type of key
+    with pytest.raises(ValueError):
+        bld.evolve(15.0, ball_callbacks={"1": lambda bla: bla})
+
+    with pytest.raises(ValueError):
+        bld.evolve(15.0, obstacle_callbacks={42: lambda bla: bla})
+
     # create recorder for time
     times = []
 
@@ -411,13 +419,32 @@ def test_callbacks(create_newtons_cradle):
 
         return record
 
-    callbacks = {i: record_i(i) for i in range(bld.num)}
+    ball_callbacks = {i: record_i(i) for i in range(bld.count)}
+
+    # create recorders for every collision with an obstacle, but only save time and
+    # obstacle and ball index
+    obs_collision = []
+
+    def record_obs(obs):
+        def record(t, p, u, v, args, i):
+            nonlocal obs_collision
+            obs_collision.append((t, obs, i))
+
+        return record
+
+    obstacle_callbacks = {obs: record_obs(obs) for obs in bld.obstacles}
 
     # evolve until first ball-ball collision
-    ret = bld.evolve(15.0, time_callback=record_time, ball_callbacks=callbacks)
+    ret = bld.evolve(
+        15.0,
+        time_callback=record_time,
+        ball_callbacks=ball_callbacks,
+        obstacle_callbacks=obstacle_callbacks,
+    )
     assert ret == (2, 2)
     assert len(times) == 4
     assert times == [3.0, 7.0, 11.0, 14.0]
+
     assert len(collisions) == 2 * ret[0] + ret[1]
     assert collisions[0] == (3.0, 0, 1)
     assert collisions[1] == (3.0, 1, 0)
@@ -425,6 +452,10 @@ def test_callbacks(create_newtons_cradle):
     assert collisions[3] == (11.0, 0, 1)
     assert collisions[4] == (11.0, 1, 0)
     assert collisions[5] == (14.0, 0, left_wall)
+
+    assert len(obs_collision) == 2
+    assert obs_collision[0] == (7.0, right_wall, 1)
+    assert obs_collision[1] == (14.0, left_wall, 0)
 
 
 def test_step_consistency():
@@ -483,7 +514,7 @@ def copy_and_check(bld):
     # 'copy' billiard table
     bld_check = Billiard(obstacles=bld.obstacles)
     bld_check.time = bld.time
-    for idx in range(bld.num):
+    for idx in range(bld.count):
         p = bld.balls_position[idx]
         v = bld.balls_velocity[idx]
         r = bld.balls_radius[idx]
@@ -492,7 +523,7 @@ def copy_and_check(bld):
 
     # compare ball parameters
     assert bld.time == bld_check.time
-    assert bld.num == bld_check.num
+    assert bld.count == bld_check.count
     assert bld.balls_position.tolist() == bld_check.balls_position.tolist()
     assert bld.balls_velocity.tolist() == bld_check.balls_velocity.tolist()
     assert bld.balls_radius == bld_check.balls_radius

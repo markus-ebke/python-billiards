@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Static obstacles on the billiard table.
 
 You can import the obstacles from the top-level module::
@@ -22,11 +21,11 @@ from .physics import (
 class Obstacle:  # pragma: no cover
     """Obstacle base class.
 
-    Subclasses must implement the calc_toi and collide methods. Optionally they
-    can implement the plot method for visualization with matplotlib.
+    Subclasses must implement the ``detect_collision`` and ``resolve_collision``
+    methods.
     """
 
-    def calc_toi(self, pos, vel, radius):
+    def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with this obstacle.
 
         Args:
@@ -35,27 +34,29 @@ class Obstacle:  # pragma: no cover
             radius: Ball radius.
 
         Returns:
-            A tuple ``(t, args)``, where ``t`` (a float) is the time until the given
-            ball collides with this obstacle. If there is no collision, ``t`` will be
-            infinite. The tuple ``args`` contains optional arguments for the collide
-            method. These arguments will be unpacked, i.e. if the collide method needs
-            no optional arguments then ``args`` should be ``()``.
+            A tuple ``(t, args)``, where ``t`` (a float) is the time until the ball
+            collides with this obstacle. If there is no collision, ``t`` should be
+            infinite. The tuple ``args`` contains optional arguments for the
+            ``resolve_collision`` method. These arguments will be unpacked, i.e. if the
+            resolve method needs no optional arguments, then ``args`` should be ``()``
+            (an empty tuple).
         """
-        raise NotImplementedError("subclasses should implement this!")
+        raise NotImplementedError("Subclasses should implement this!")
 
-    def collide(self, pos, vel, radius, *args):
+    def resolve_collision(self, pos, vel, radius, *args):
         """Calculate the velocity of a ball after colliding with this obstacle.
 
         Args:
             pos: Center of the ball.
-            vel: Velocity of the ball.
+            vel: Velocity of the ball before the impact.
             radius: Ball radius.
             *args: Optional arguments for more collision info.
 
         Returns:
-            np.ndarray: Velocity after impact.
+            The velocity of the ball after the impact as a numpy array of the form
+            np.ndarray(shape=(2,), dtype=np.float64).
         """
-        raise NotImplementedError("subclasses should implement this!")
+        raise NotImplementedError("Subclasses should implement this!")
 
 
 class Disk(Obstacle):
@@ -66,11 +67,11 @@ class Disk(Obstacle):
         self.center = np.asarray(center)
         self.radius = radius
 
-    def calc_toi(self, pos, vel, radius):
+    def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the disk."""
         return toi_ball_ball(self.center, (0, 0), self.radius, pos, vel, radius), ()
 
-    def collide(self, pos, vel, radius, *args):
+    def resolve_collision(self, pos, vel, radius, *args):
         """Calculate the velocity of a ball after colliding with the disk."""
         return elastic_collision(self.center, (0, 0), 1, pos, vel, 0)[1]
 
@@ -108,7 +109,7 @@ class InfiniteWall(Obstacle):
             # if inside is not "right", then it MUST be "left"
             raise ValueError(f'exterior must be "left" or "right", not {exterior}')
 
-    def calc_toi(self, pos, vel, radius):
+    def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the wall."""
         # headway: speed towards the wall, is positive if the ball moves from
         # inside to outside (i.e. on a collision course)
@@ -131,7 +132,7 @@ class InfiniteWall(Obstacle):
         else:
             return t, (headway,)
 
-    def collide(self, pos, vel, radius, headway):
+    def resolve_collision(self, pos, vel, radius, headway):
         """Calculate the velocity of a ball after colliding with the wall."""
         # if headway is None:
         #    headway = -np.dot(vel, self._normal)
@@ -162,13 +163,13 @@ class LineSegment(Obstacle):
             raise ValueError("this is not a line")
 
         # Direction of the line, dividing by the squared length simplifies some
-        # calculations in calc_toi
+        # calculations in detect_collision
         self._covector = direction / length_sqrd
 
         # normalized vector perpendicular to the line
         self._normal = np.array([-direction[1], direction[0]]) / sqrt(length_sqrd)
 
-    def calc_toi(self, pos, vel, radius):
+    def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the line segment."""
         t, u = toi_and_param_ball_segment(
             pos, vel, radius, self.start_point, self._covector, self._normal
@@ -181,7 +182,7 @@ class LineSegment(Obstacle):
 
         return t, (u,)
 
-    def collide(self, pos, vel, radius, u):
+    def resolve_collision(self, pos, vel, radius, u):
         """Calculate the velocity of a ball after colliding with the line segment."""
         # dpos = np.subtract(pos, self.start_point)
         # if abs(dpos.dot(dpos) - radius**2) < 1e-14:
