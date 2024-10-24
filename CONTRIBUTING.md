@@ -13,7 +13,7 @@ Here is how you can help:
 
 ## Development
 
-Before you start, make sure that you have Python version >= 3.7.
+Before you start, make sure that you have Python version >= 3.8.
 
 1. Fork this project (via the button on the Github page) and clone your fork locally:
 
@@ -63,7 +63,18 @@ Before you start, make sure that you have Python version >= 3.7.
 
    and now you can start on your new feature, bugfix, etc.
 
-5. Regularly run tests with [pytest](https://pypi.org/project/pytest/), note that this will also create a coverage report via [pytest-cov](https://pypi.org/project/pytest-cov/) (summary on the command line, details in `htmlcov/index.html`).
+5. Commit the changes and push your branch to GitHub:
+
+   ```shell
+   git add .
+   git commit -m "Write a description of your changes"
+   git push origin <name-of-your-feature>
+   ```
+
+   Helpful: [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/)
+
+6. Before submitting a pull request, please run the unit tests with [pytest](https://pypi.org/project/pytest/).
+   Note that pytest will also create a coverage report via [pytest-cov](https://pypi.org/project/pytest-cov/) (summary on the command line, details in `htmlcov/index.html`).
    Depending on the kind of changes you made, there are some additional steps you should take to keep everything consistent:
 
    - If you changed code in `visualize_matplotlib.py`, please regenerate the images and videos for the documentation with:
@@ -80,9 +91,9 @@ Before you start, make sure that you have Python version >= 3.7.
       ```
 
       The first command will run [pydocstyle](https://pypi.org/project/pydocstyle/) on the `src/billiards` folder and [doc8](https://pypi.org/project/doc8/) followed by [Sphinx](https://pypi.org/project/Sphinx/) doctest and linkcheck on the `docs` folder.
-      The second command will generate the documentation in the `build/docs` folder.
+      The second command will generate the documentation and place it in the `build/docs` folder.
 
-   - If you want to run the tests against other versions of Python that you have installed, use [tox](https://tox.readthedocs.io/en/latest/install.html).
+   - If you want to run the unit tests against other versions of Python, use [tox](https://tox.readthedocs.io/en/latest/install.html).
      The command
 
       ```shell
@@ -90,13 +101,13 @@ Before you start, make sure that you have Python version >= 3.7.
       ```
 
       will list all Python versions that *billiards* should be compatible with.
-      For example, to run against Python 3.13 (assuming the corresponding Python interpreter is already installed on your computer):
+      For example, to run against Python 3.13 (assuming the corresponding Python interpreter is already installed on your system):
 
       ```shell
       tox -e py313
       ```
 
-      This will run pytest and also create a coverage report in `htmlcov/index.html`.
+      This will run pytest and also overwrite the coverage report in `htmlcov/index.html`.
 
    - While modifing the markdown files `README.md` or `CONTRIBUTING.md`, you can preview the changes in your browser with [grip](https://pypi.org/project/grip/) (not included in `requirements_dev.txt`):
 
@@ -110,30 +121,20 @@ Before you start, make sure that you have Python version >= 3.7.
       grip -b CONTRIBUTING.md
       ```
 
-6. Commit the changes and push your branch to GitHub:
-
-   ```shell
-   git add .
-   git commit -m "Write a description of your changes"
-   git push origin <name-of-your-feature>
-   ```
-
-   Helpful: [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/)
-
 7. Submit a pull request through the GitHub website and I will have a look!
 
 
 
 ## Pull Request Guidelines
 
-If you need some code review or feedback while you're developing the code, just make the pull request.
+If you need some code review or feedback while you're developing the code, just make a pull request.
 
 Before merging, you should:
 
-1. Include new tests (if any) and make sure they pass (run *pytest* or *tox*).
+1. Include new tests (if any) and make sure they pass (run pytest or tox).
 2. Update docstrings and the documentation files if you changed the API or added functionality.
    For docstrings, use the [Google style guide](https://google.github.io/styleguide/pyguide.html).
-   Example file: https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html.
+   Example file: <https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html>.
 3. Add a note in the top section of `CHANGELOG.md` describing the changes.
 4. Add yourself to the *Authors* section in the `README.md` file.
 
@@ -143,34 +144,46 @@ Before merging, you should:
 
 ### How to make a new release
 
-- Update `CHANGELOG.md` and close off the topmost section with `**v<new_version>**` (write it exactly as stated here, later *bump2version* will replace `<new_version>` with the updated version number).
+1. Complete the notes in `CHANGELOG.md` and close off the topmost section with `**v<new_version>**` (write it exactly as stated here, later *bump2version* will replace `<new_version>` with the updated version number).
 
-- Commit, message: `Update CHANGELOG.md` or similar.
+2. Commit, message: `Update CHANGELOG.md` or similar.
 
-- Go to master branch and merge develop into master:
+3. Go to master branch and merge develop into master:
 
    ```shell
    git checkout master
    git merge develop
    ```
 
-- Use [bump2version](https://pypi.org/project/bump2version/) to change the version number in the files:
+4. In the master branch use [bump2version](https://pypi.org/project/bump2version/) to update the version number in the files.
+   The version identifier should always be of the form `N.N.N[.devN]`.
+   To prepare a new release, use
 
    ```shell
-   bump2version minor
+   bump2version part
    ```
 
-(alternative: `major` or `patch`).
-This will create another commit and a tag with the new version number of the form `v<major.minor.patch>`.
+   where `part` is `major`, `minor` or `patch`.
+   This will set the version number to `major.minor.patch.dev0`, i.e. it is automatically a development version.
+   To bump the development number, use `dev_number` for `part`; to promote the development version to final, use
 
-- Push to Github:
+   ```shell
+   bump2version dev_label --tag
+   ```
+
+   The tag will be `v<major.minor.patch>`.
+
+   To skip development versions (e.g. when using `patch`), use the `--new-version` argument and set the version number explicitly.
+   Other useful arguments: `--dry-run` and `--list`.
+
+5. Push to Github:
 
    ```shell
    git push --all
    git push --tags
    ```
 
-- The *tox* environment *metadata* checks that the project can be correctly packaged, it runs [check-manifest](https://pypi.org/project/check-manifest/) (configuration settings in `tox.ini`) and [twine check](https://twine.readthedocs.io/en/stable/index.html#twine-check) to make sure the important files are included.
+6. The *tox* environment *metadata* checks that the project can be correctly packaged, it runs [check-manifest](https://pypi.org/project/check-manifest/) (configuration settings in `tox.ini`) and [twine check](https://twine.readthedocs.io/en/stable/index.html#twine-check) to make sure the important files are included.
 To check the metadata and build the package use
 
    ```shell
@@ -178,14 +191,16 @@ To check the metadata and build the package use
    python3 -m build
    ```
 
-Note that I haven't figured out a good way to put this package on [PyPi](https://pypi.org/) (yet).
+   TODO: Figure out a way to upload this package to [PyPi](https://pypi.org/).
 
-- Return to develop branch and merge master branch (to get current version number):
+7. Return to develop branch and merge master branch (to get current version number):
 
    ```shell
    git checkout develop
    git merge master
    ```
+
+   Then continue working.
 
 ### Useful commands and settings
 
@@ -196,7 +211,7 @@ Note that I haven't figured out a good way to put this package on [PyPi](https:/
    pre-commit autoupdate
    ```
 
-- The configuration settings are in `pyproject.toml`, `setup.cfg` (TODO: move to `pyproject.toml`), `tox.ini` (TODO: can move to `pyproject.toml`, but requires version >=v4.21.0?) and `.flake8` (doesn't support `pyproject.toml`, workaround: Flake8-pyproject?)
+- The configuration settings are in `pyproject.toml`, `setup.cfg` (TODO: move to `pyproject.toml`), `tox.ini` (TODO: can move to `pyproject.toml`, but requires version >=v4.21.0?) and `.flake8` (doesn't support `pyproject.toml`, workaround: [Flake8-pyproject](https://pypi.org/project/Flake8-pyproject/)?)
 
 - I don't include `Pipfile.lock` in git because the [official recommendation](https://pipenv.pypa.io/en/latest/basics/#general-recommendations-version-control) is
   > Do not keep `Pipfile.lock` in version control if multiple versions of Python are being targeted.
@@ -205,13 +220,14 @@ Note that I haven't figured out a good way to put this package on [PyPi](https:/
 
 - I used [markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint) when writing the readme and this file.
 
-- Using pandoc, I converted the readme file to rst and copied some of the text to the documentation
+- Using [pandoc](https://pandoc.org/), I converted the readme file to rst and copied some of the text to the documentation
 
    ```shell
    pandoc README.md --from markdown --to rst -s -o readme.rst
    ```
 
 - Generate the API documentation templates:
+
    ```shell
    sphinx-apidoc -f -o {toxinidir}/docs/api_reference {toxinidir}/src/billiards
    ```
