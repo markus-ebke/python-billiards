@@ -8,7 +8,7 @@ Usage (assuming ``bld`` is an instance of the ``Billiard`` class)::
     visualize_pyglet.interact(bld)
 
 This will create a pyglet Window, print keyboard controls to the console and
-call `pyglet.app.run()`.
+call ``pyglet.app.run()``.
 """
 
 import ctypes
@@ -286,7 +286,6 @@ class ShapeCollection:
 
         self.num_verts = shape_vertices.shape[0]
         self.count = int(count)
-        print(self.num_verts, shape_indices.shape[0], self.count)
 
         # Create shader program
         vert_shader = Shader(vertex_source, "vertex")
@@ -509,7 +508,29 @@ ESC: Close window and exit"""
         self.billiard = billiard
         self.particle_size = float(particle_size)
 
-        # Set up camera
+        # Simulation controls
+        self.running = False
+        self.advance_one_frame = False  # used when running=False
+        self.advance_to_next_collision = False  # used when running=False
+        self.simulation_speed = float(simulation_speed)
+
+        self._setup_camera(camera_position, camera_zoom)
+        self._setup_billiard_drawing()
+        self._setup_gui()
+
+        self.keyboard_state = key.KeyStateHandler()
+        self.push_handlers(self.keyboard_state)
+
+        # Schedule simulation updates at 60 fps
+        pyglet.clock.schedule_interval(self.update, 1 / 60)
+
+        # For recording statistics and timing information
+        self.collision_count = [0, 0]
+        self.collision_list = deque(maxlen=60)
+        self.timing_simulate = deque(maxlen=60)
+        self.timing_draw = deque(maxlen=60)
+
+    def _setup_camera(self, camera_position, camera_zoom):
         cam_pos = [float(c) for c in camera_position]
         if len(cam_pos) != 2:
             msg = f"Camera position must be length 2, not {len(cam_pos)}"
@@ -525,28 +546,6 @@ ESC: Close window and exit"""
 
         # cam_pos, cam_zoom = self.autoscale()
         self.camera = CenteredCamera(self, cam_pos, cam_zoom, scroll_speed=0.5)
-
-        # Presentation settings
-        self.running = False
-        self.advance_one_frame = False  # used when running=False
-        self.advance_to_next_collision = False  # used when running=False
-        self.simulation_speed = float(simulation_speed)
-
-        # Timing information
-        self.timing_simulate = deque(maxlen=60)
-        self.timing_draw = deque(maxlen=60)
-
-        self._setup_billiard_drawing()
-        self._setup_gui()
-
-        self.keyboard_state = key.KeyStateHandler()
-        self.push_handlers(self.keyboard_state)
-
-        # Schedule simulation updates at 60 fps
-        pyglet.clock.schedule_interval(self.update, 1 / 60)
-
-    def _resize_markers(self):
-        pass
 
     def _setup_billiard_drawing(self):
         # Setup obstacles
@@ -567,15 +566,6 @@ ESC: Close window and exit"""
             batch=self.ball_batch,
         )
 
-        # Set ball positions
-        self.ball_collection.set_offset(self.billiard.balls_position)
-
-        # Set ball radii and particle marker radii
-        new_diameter = sqrt(self.particle_size) / (self.width * self.camera.zoom)
-        scale = np.asarray(self.billiard.balls_radius)
-        scale[scale == 0] = new_diameter / 2
-        self.ball_collection.set_scale(scale)
-
         # Set ball colors
         colors = (90, 120, 225)
         # colors = np.tile(colors, (self.billiard.count, 1))
@@ -584,11 +574,11 @@ ESC: Close window and exit"""
         )
         self.ball_collection.set_color(colors)
 
-    def _setup_gui(self):
-        # For recording statistics
-        self.bounces_list = deque(maxlen=60)
-        self.bounces_count = [0, 0]
+        # Flags for updating the shape offsets and scales, see update method
+        self._stale_position = True
+        self._stale_scale = True
 
+    def _setup_gui(self):
         # For displaying the GUI
         self.gui_batch = pyglet.graphics.Batch()
 
@@ -667,6 +657,9 @@ ESC: Close window and exit"""
         """Handle window resize event."""
         super().on_resize(width, height)
 
+        # If width changed we need to update the particle scale
+        self._stale_scale = True
+
         # move labels
         self.label_info.x = 4
         self.label_info.y = height - 4
@@ -679,44 +672,43 @@ ESC: Close window and exit"""
         tic = clock()
         self.clear()
 
-        # draw billiard objects
-        with self.camera:
-            self.obs_batch.draw()
-            self.ball_batch.draw()
+        # Update data on the GPU (if needed)
+        if self._stale_position:
+            self.ball_collection.set_offset(self.billiard.balls_position)
+            self._stale_position = False
 
-        # draw GUI
-        self.gui_batch.draw()
-        self.fps_display.draw()
-
-        toc = clock()
-        self.timing_draw.append(toc - tic)
-
-    def update(self, dt):
-        """Update the camera, the simulation and the GUI."""
-        # Update using keystate, i.e. which keys are currently pressed down
-        stale_scale = self._update_keyboard(dt=min(dt, 0.2))  # not slower than 5 fps
-
-        # If we zoom, then also update the particle radii on the GPU
-        if stale_scale:
+        if self._stale_scale:
             new_diameter = sqrt(self.particle_size) / (self.width * self.camera.zoom)
             scale = np.asarray(self.billiard.balls_radius)
             scale[scale == 0] = new_diameter / 2
             self.ball_collection.set_scale(scale)
+            self._stale_scale = False
 
-        # Update simulation, send new positions to GPU
-        tic = clock()
-        stale_position = self._update_simulation(dt=1 / 60)  # always update at 60fps
-        if stale_position:
-            self.ball_collection.set_offset(self.billiard.balls_position)
+        # Draw billiard objects
+        with self.camera:
+            self.obs_batch.draw()
+            self.ball_batch.draw()
+
         toc = clock()
-        self.timing_simulate.append(toc - tic)
+        self.timing_draw.append(toc - tic)
+
+        # Draw GUI
+        self.gui_batch.draw()
+        self.fps_display.draw()
+
+    def update(self, dt):
+        """Update the camera, the simulation and the GUI."""
+        # Update using keystate, i.e. which keys are currently pressed down
+        self._update_keyboard(dt=min(dt, 0.2))  # not slower than 5 fps
+
+        # Update simulation
+        self._update_simulation(dt=1 / 60)  # always update at 60fps
 
         # Update GUI
         self._update_gui(dt)
 
     def _update_keyboard(self, dt):
         keys = self.keyboard_state
-        stale_scale = False  # check if we need to update the particle marker radius
 
         # Update camera position
         if keys[key.A]:  # left
@@ -731,67 +723,77 @@ ESC: Close window and exit"""
         # Update camera zoom
         if keys[key.Q]:
             self.camera.zoom *= 2.0**dt
-            stale_scale = True
+            self._stale_scale = True
         if keys[key.E]:
             self.camera.zoom /= 2.0**dt
-            stale_scale = True
+            self._stale_scale = True
 
         # Update simulation speed
-        if keys[key.PLUS]:  # inccrease speed
+        if keys[key.PLUS] or keys[key.NUM_ADD]:  # increase speed
             self.simulation_speed *= 2.0**dt
-        if keys[key.MINUS]:  # decrease speed
+        if keys[key.MINUS] or keys[key.NUM_SUBTRACT]:  # decrease speed
             self.simulation_speed /= 2.0**dt
 
-        return stale_scale
-
     def _update_simulation(self, dt):
-        stale_position = False  # check if we need to update ball positions on the GPU
-
         if self.running or self.advance_one_frame:
+            tic = clock()
             timestep = self.simulation_speed * dt
             collisions = self.billiard.evolve(self.billiard.time + timestep)
+            toc = clock()
+            self.timing_simulate.append(toc - tic)
 
-            self.bounces_count[0] += collisions[0]
-            self.bounces_count[1] += collisions[1]
-            self.bounces_list.append((timestep, *collisions))
+            self.collision_count[0] += collisions[0]
+            self.collision_count[1] += collisions[1]
+            self.collision_list.append((timestep, *collisions))
 
             self.advance_one_frame = False
-            stale_position = True
+            self._stale_position = True
         elif self.advance_to_next_collision:
             if self.billiard.next_collision[0] < float("inf"):
+                tic = clock()
                 start_time = self.billiard.time
                 collisions = self.billiard.evolve(self.billiard.next_collision[0])
+                timestep = self.billiard.time - start_time
+                toc = clock()
+                self.timing_simulate.append(toc - tic)
 
-                self.bounces_count[0] += collisions[0]
-                self.bounces_count[1] += collisions[1]
-                self.bounces_list.append((self.billiard.time - start_time, *collisions))
+                self.collision_count[0] += collisions[0]
+                self.collision_count[1] += collisions[1]
+                self.collision_list.append((timestep, *collisions))
 
-                stale_position = True
+                self._stale_position = True
 
             self.advance_to_next_collision = False
 
-        return stale_position
-
     def _update_gui(self, dt):
+        textlines = []
+
         # First line: billiard info
-        bb_count, ob_count = self.bounces_count
-        timeframe = sum(t for t, _, _ in self.bounces_list)
-        ball_bounces = sum(b for _, b, _ in self.bounces_list)
-        obstacle_bounces = sum(o for _, _, o in self.bounces_list)
-        bb_per_sec = ball_bounces / timeframe if timeframe > 0 else float("nan")
-        ob_per_sec = obstacle_bounces / timeframe if timeframe > 0 else float("nan")
         info = [
             f"Time: {self.billiard.time:.3f} (x{self.simulation_speed:.5})",
-            f"Bounces: {bb_count} (+{bb_per_sec:.0f}/s)  "
-            f"{ob_count} (+{ob_per_sec:.0f}/s)",
+            f"Balls: {self.billiard.count:,}",
+            f"Obstacles: {len(self.billiard.obstacles):,}",
         ]
-        first_line = "    ".join(info)
+        textlines.append("    ".join(info))
 
         # Second line: camera info
         cx, cy = self.camera.position
-        second_line = f"Camera: [{cx:.4}, {cy:.4}]  Zoom: {self.camera.zoom:.5}"
+        textlines.append(f"Camera: [{cx:.4}, {cy:.4}]    Zoom: {self.camera.zoom:.5}")
 
-        # Third line: timing info
+        # Third line: number of ball-ball and ball-obstacle collisions
+        bb_count, ob_count = self.collision_count
+        timeframe = sum(t for t, _, _ in self.collision_list)
+        ball_bounces = sum(b for _, b, _ in self.collision_list)
+        obstacle_bounces = sum(o for _, _, o in self.collision_list)
+        bb_per_sec = ball_bounces / timeframe if timeframe > 0 else float("nan")
+        ob_per_sec = obstacle_bounces / timeframe if timeframe > 0 else float("nan")
+        info = [
+            f"Collisions: {bb_count:,} (+{bb_per_sec:.0f}/s)",
+            f"{ob_count:,} (+{ob_per_sec:.0f}/s)",
+        ]
+        textlines.append("    ".join(info))
+
+        # Fourth line: timing info
         time_sim = mean(self.timing_simulate) if self.timing_simulate else 0.0
         time_draw = mean(self.timing_draw) if self.timing_draw else 0.0
         info = [
@@ -799,10 +801,14 @@ ESC: Close window and exit"""
             f"Simulate: {time_sim * 1000:.2f}ms",
             f"Draw: {time_draw * 1000:.2f}ms",
         ]
-        third_line = "    ".join(info)
+        textlines.append("    ".join(info))
+
+        # Last line: Unpause
+        if not self.running:
+            textlines.append("Press SPACE to unpause")
 
         # Assemble complete text
-        self.label_info.text = "\n".join([first_line, second_line, third_line])
+        self.label_info.text = "\n".join(textlines)
 
 
 def interact(billiard, *args, **kwargs):

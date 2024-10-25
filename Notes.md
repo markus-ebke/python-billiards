@@ -40,6 +40,7 @@ A list of features that might be useful, but for which I have no time or interes
 - Show/hide velocities as arrows starting at the balls center
 - When paused, drag-and-drop balls around and edit velocities by dragging-and-dropping the arrow tips
 - Draw balls using instancing (see documentation for pyglet.graphics.instance and pyglet.graphics.ShaderProgram.vertex_list_instanced_indexed)
+- Add motion blur for fast balls and particles
 
 ## Better Testing
 - How to write proper tests for matplotlib?
