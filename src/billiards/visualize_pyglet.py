@@ -18,26 +18,13 @@ from statistics import mean
 from time import perf_counter as clock
 
 import numpy as np
+import pyglet
+from pyglet import gl, shapes
+from pyglet.graphics.shader import Shader, ShaderProgram
+from pyglet.window import key
 
 from .obstacles import Disk, InfiniteWall, LineSegment
 from .simulation import Billiard
-
-try:
-    import pyglet
-    from pyglet import gl, shapes
-    from pyglet.graphics.shader import Shader, ShaderProgram
-    from pyglet.window import key
-except Exception as ex:
-    print(repr(ex))
-    # When testing with tox this happens:
-    # pyglet.canvas.xlib.NoSuchDisplayException: Cannot connect to "None"
-    # I don't know how to prevent it, except with this hacky except case
-#    import warnings
-#     warnings.warn(
-#         f"Imported pyglet, but then something went wrong: {repr(ex)}", stacklevel=1
-#     )
-#     Window = object  # mock window
-
 
 ###############################################################################
 # Helper functions

@@ -1,5 +1,5 @@
 numpy
-matplotlib
+matplotlib>=3.5.0
 tqdm
 pyglet>=2.0.0
 setuptools>=40.8.0
