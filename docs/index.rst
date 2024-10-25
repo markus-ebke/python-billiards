@@ -23,7 +23,7 @@ Features
 -  Optional features: plotting and animation with
    `matplotlib <https://matplotlib.org>`__, interaction with
    `pyglet <https://pyglet.org>`__.
--  Free software: GPLv3+ license.
+-  Free and open source software under the MIT license.
 
 
 

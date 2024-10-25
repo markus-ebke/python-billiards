@@ -1,10 +1,15 @@
 # Changelog
 
 **v<new_version>**
-- Implement recalculation of internal time-of-impact tables, now changing the balls position, velocity or radius is possible in the middle of the simulation
-- Fix a floating point issue when stopping and resuming simulations (for complicated billiards the end result of `visualize.animate`, which calls `Billiard.evolve` multiple times, would be different from calling `Billiard.evolve` once)
-- Add callbacks to `Billiard.evolve` to keep track of simulation progress or to observe certain balls
-- Rename several Billiard attributes (API change!)
+- Many API changes, mostly to make method and function names more descriptive
+- Split visualization into a matplotlib and a pyglet file. Add more customization for plotting with matplotlib (including a color scheme for billiard objects). Rewrite the pyglet visualization for pyglet version 2.0, add camera controls.
+- Implement LineSegment obstacle, collisions at the end-points are handled as if they are rounded
+- The obstacle.detect_collision method returns some more info about the collision location which is used when resolving collisions. This should prevent unnecessary re-computations for more complex obstacles.
+- Implement selective recalculation of internal time-of-impact tables, now changing the balls position, velocity or radius is possible in the middle of the simulation
+- Derive the balls' positions at the current time from the variables `balls_initial_time` and `balls_initial_position`, these are only updated when the ball collides and changes direction. This fixes a floating point issue when stopping and resuming simulations (for complicated billiards the end result of `visualize.animate`, which calls `Billiard.evolve` multiple times, would be different from calling `Billiard.evolve` once).
+- Add callbacks to `Billiard.evolve` to keep track of simulation progress or to observe certain balls or obstacles
+- Adopt a modern packaging workflow: Use a `pyproject.toml` file for configuration, place all metadata in the `setup.cfg` file and remove the now empty `setup.py` file. Also remove nonessential development packages and rework the development workflow (refactor tox environments, decide on versioning scheme of the form `N.N.N[.devN]`, don't include example pictures and videos in source distribution).
+- Change to MIT license
 
 **v0.5.0**
 - Use numpy's `argmin`-function for finding next collision, billiards with many ball-ball collisions are now up to 3x faster!

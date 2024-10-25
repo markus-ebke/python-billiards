@@ -14,7 +14,7 @@ It simulates the movement and elastic collisions of hard, disk-shaped particles 
 - Static obstacles to construct a proper billiard table.
 - Balls with zero radii behave like point particles, useful for simulating [dynamical billiards](https://en.wikipedia.org/wiki/Dynamical_billiards) (although this library is not optimized for point particles).
 - Optional features: plotting and animation with [matplotlib](https://matplotlib.org), interaction with [pyglet](https://pyglet.org).
-- Free software: GPLv3+ license.
+- Free and open source software under the MIT license.
 
 
 

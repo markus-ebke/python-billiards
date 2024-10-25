@@ -7,6 +7,7 @@ repos:
     hooks:
     -   id: trailing-whitespace
         exclude: ^docs/_images/  # don't touch svg files
+        exclude: .bumpversion.cfg  # https://github.com/c4urself/bump2version/issues/58
     -   id: end-of-file-fixer
     -   id: check-toml
     -   id: check-ast
