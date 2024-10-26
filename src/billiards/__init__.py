@@ -25,7 +25,7 @@ __all__ = [
 ]
 
 
-__version__ = "0.5.0"
+__version__ = "1.0.0.dev0"
 
 
 def _parse_to_version_info(version_str):
