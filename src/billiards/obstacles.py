@@ -14,6 +14,7 @@ from .physics import (
     elastic_collision,
     toi_and_param_ball_segment,
     toi_ball_ball,
+    toi_ball_disk_exterior,
     toi_ball_point,
 )
 
@@ -60,37 +61,53 @@ class Obstacle:  # pragma: no cover
 
 
 class Disk(Obstacle):
-    """A circluar obstacle where balls are not allowed on the inside."""
+    """A circluar obstacle where balls are not allowed on the inside.
 
-    def __init__(self, center, radius):
+    To create a circular hole where balls are not allowed on the outside
+    use ``no_go = "outside"`` when creating the obstacle.
+    """
+
+    def __init__(self, center, radius, no_go="inside"):
         """Create a circular obstacle with the given center and radius."""
         self.center = np.asarray(center)
-        self.radius = radius
+        self.radius = float(radius)
+
+        if no_go not in {"inside", "outside"}:
+            raise ValueError("'no_go' must be either 'inside' or 'outside'")
+        self.no_go = no_go
 
     def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the disk."""
-        return toi_ball_ball(self.center, (0, 0), self.radius, pos, vel, radius), ()
+        if self.no_go == "inside":
+            t = toi_ball_ball(pos, vel, radius, self.center, (0, 0), self.radius)
+        else:
+            t = toi_ball_disk_exterior(pos, vel, radius, self.center, self.radius)
+        return t, ()
 
     def resolve_collision(self, pos, vel, radius, *args):
         """Calculate the velocity of a ball after colliding with the disk."""
-        return elastic_collision(self.center, (0, 0), 1, pos, vel, 0)[1]
+        # Switch to coordinate system of the disk
+        dpos = np.subtract(pos, self.center)
+
+        # Compute the change in velocity (normal = dpos / |dpos|)
+        return vel - 2 * (dpos.dot(vel) * dpos) / dpos.dot(dpos)
 
 
 class InfiniteWall(Obstacle):
     """An infinite wall where balls can collide only from one side."""
 
-    def __init__(self, start_point, end_point, exterior="left"):
+    def __init__(self, start_point, end_point, no_go="left"):
         """Create an infinite wall through two points.
 
         Going from the starting point to the end, the inside of the billiard is on the
-        side indicated by the argument 'exterior', i.e. balls coming from the exterior
-        side will be reflected at the wall, balls that cross the wall from the interior
-        to the exterior side will not be reflected.
+        side indicated by the ``no_go`` argument, i.e. balls coming from the exterior
+        side will be reflected at the wall, balls that cross the wall from the no-go
+        side to the outside will not be reflected.
 
         Args:
             start_point: x and y coordinates of the lines starting point.
             end_point: x and y of the end point.
-            exterior: Either "left" or "right" of the line, defaults to "left".
+            no_go: Either "left" or "right" of the line, defaults to "left".
         """
         self.start_point = np.asarray(start_point)
         self.end_point = np.asarray(end_point)
@@ -103,11 +120,11 @@ class InfiniteWall(Obstacle):
         self._normal = np.asarray([-dy, dx])  # normal on the left
         self._normal = self._normal / np.linalg.norm(self._normal)
 
-        if exterior == "right":
+        if no_go == "right":
             self._normal *= -1  # switch normal to the other side
-        elif not exterior == "left":
+        elif not no_go == "left":
             # if inside is not "right", then it MUST be "left"
-            raise ValueError(f'exterior must be "left" or "right", not {exterior}')
+            raise ValueError(f'no_go must be "left" or "right", not {no_go}')
 
     def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the wall."""
@@ -123,7 +140,8 @@ class InfiniteWall(Obstacle):
         gap = np.dot(pos - self.start_point, self._normal) - radius
 
         t = gap / headway  # time of impact: size of gap / speed of closing
-        if t < -1e-10:
+        t_eps = 1e-10 if radius == 0 else -1e-10  # point particles need a buffer zone
+        if t < t_eps:
             # If t is negative, then the ball overlaps with the wall. This
             # doesn't count as an impact, but if t is close to zero, then a
             # collision might have happened and we miss it just because of
@@ -171,8 +189,9 @@ class LineSegment(Obstacle):
 
     def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the line segment."""
+        t_eps = 1e-10 if radius == 0 else -1e-10  # point particles need a buffer zone
         t, u = toi_and_param_ball_segment(
-            pos, vel, radius, self.start_point, self._covector, self._normal
+            pos, vel, radius, self.start_point, self._covector, self._normal, t_eps
         )
         if isinf(t):
             if u == 0:

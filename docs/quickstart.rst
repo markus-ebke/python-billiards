@@ -3,7 +3,8 @@ Quickstart
 
 All important classes (the billiard simulation and obstacles) are
 accessible from the top-level module. The visualization modules must be
-imported separately and will load *matplotlib*, *tqdm* and *pyglet*.
+imported separately and will load *matplotlib* or *pyglet*. For the following
+examples we will use matplotlib visualizations.
 
 .. doctest::
 
@@ -21,7 +22,7 @@ vertical wall and two balls:
 
 .. doctest::
 
-   >>> obstacles = [billiards.InfiniteWall((0, -1), (0, 1), exterior="right")]
+   >>> obstacles = [billiards.InfiniteWall((0, -1), (0, 1), no_go="right")]
    >>> bld = billiards.Billiard(obstacles)
    >>> bld.add_ball((3, 0), (0, 0), radius=0.2, mass=1)  # position, velocity, radius, mass
    0

@@ -40,7 +40,8 @@ pip install .[visualize]
 ## Quickstart
 
 All important classes (the billiard simulation and obstacles) are accessible from the top-level module.
-The visualization modules must be imported separately and will load *matplotlib*, *tqdm* and *pyglet*.
+The visualization modules must be imported separately and will load *matplotlib* or *pyglet*.
+For the following examples we will use matplotlib visualizations.
 
 ```pycon
 >>> import billiards  # access to Billiard, Disk and InfiniteWall
@@ -55,7 +56,7 @@ Let's compute the first few digits of π using a billiard simulation following t
 We need a billiard table with a vertical wall and two balls:
 
 ```pycon
->>> obstacles = [billiards.obstacles.InfiniteWall((0, -1), (0, 1), exterior="right")]
+>>> obstacles = [billiards.obstacles.InfiniteWall((0, -1), (0, 1), no_go="right")]
 >>> bld = billiards.Billiard(obstacles)
 >>> bld.add_ball((3, 0), (0, 0), radius=0.2, mass=1)  # returns index of new ball
 0

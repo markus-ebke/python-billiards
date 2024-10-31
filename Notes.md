@@ -49,7 +49,6 @@ A list of features that might be useful, but for which I have no time or interes
 - Use TravisCI (and other internet services?)
 
 ## More obstacles
-- Change "exterior" to "outside" or "outer" or use the opposite "interior", "inside", "inner"?
 - Implement as class Rotation(Obstacle) with `__init__(obstacle, angle)`, in `detect_collision` and `collide` inversely rotates the ball and then call the obstacle method.
 - The pos argument for Obstacle.resolve_collision is mutable. This could be used to teleport balls at collision, e.g. to create a box with periodic boundary conditions or portal objects.
 
@@ -61,26 +60,26 @@ Regions in 1D (collisions from both sides):
 - Arc(center, radius=radius or (radius_x, radius_y), start_angle, stop_angle) (for circular and elliptic arcs)
 - Reference: DynamicalBilliards.jl, https://reference.wolfram.com/language/guide/GeometricSpecialRegions.html "Regions in 1D"
 
-Regions in 2D (exterior="outside" or "inside"):
-- Hyperplane(point, normal) (normal points towards the exterior)
-- Triangle(point1, point2, point3, exterior=exterior or "left" or "right")
-- Rectangle(bottomleft, topright, exterior) (supports infinite corner points)
-- Polygon(list of points, exterior=exterior or "left" or "right") (built from finite lines, polyline can be self-intersecting and how holes are treated depends on the value of exterior)
-- RegularPolygon(center, radius, numsides, rotate, exterior)
-- CenteredSquare(center, sidelength, exterior) (see https://github.com/nirnayroy/python-billiards/commit/71dcb950eac5e9eefea885e01cb74bcbfdfbe437)
-- Parallelogram(origin, direction1, direction2, exterior) (implement as skewed rectangle?)
-- Ellipse: Disk(center, radii=radius or (radius_x, radius_y), exterior)
-- DiskSector(center, radii=radius or (radius_x, radius_y), start_angle, stop_angle, exterior) (a Wedge shape)
-- DiskSegment(center, radii=radius or (radius_x, radius_y), start_angle, stop_angle, exterior) (circular arc closed by a chord)
-- AnnulusSector(center, outer_radius, inner_radius, start_angle, stop_angle, exterior)
-- Stadium(point1, point2, radius, exterior)
+Regions in 2D (no_go="outside" or "inside"):
+- Halfplane(point, normal) (normal points towards the outside)
+- Triangle(point1, point2, point3, no_go="outside" or "inside" or "left" or "right")
+- Rectangle(bottomleft, topright) (supports corner points at infinity)
+- Polygon(list of points, no_go="left" or "right") (built from finite lines, how to treat holes if polyline is self-intersecting?)
+- RegularPolygon(center, radius, numsides, rotate)
+- CenteredSquare(center, sidelength) (see https://github.com/nirnayroy/python-billiards/commit/71dcb950eac5e9eefea885e01cb74bcbfdfbe437)
+- Parallelogram(origin, direction1, direction2) (implement as skewed rectangle?)
+- Ellipse: Disk(center, radii=radius or (radius_x, radius_y))
+- DiskSector(center, radii=radius or (radius_x, radius_y), start_angle, stop_angle) (a Wedge shape)
+- DiskSegment(center, radii=radius or (radius_x, radius_y), start_angle, stop_angle) (circular arc closed by a chord)
+- AnnulusSector(center, outer_radius, inner_radius, start_angle, stop_angle)
+- Stadium(point1, point2, radius)
 2D to 1D Conversion functions:
 - create_triangle_line, create_rectangle_line, create_regular_polyline, create_centered_square_line, create_parallelogram_line -> PolyLine
 - create_disk_sector_line, create_disk_segment_line, create_annulus_sector_line, create_stadium_line -> list of Polylines and Arcs with shared endpoints
 - Reference: DynamicalBilliards.jl, https://reference.wolfram.com/language/guide/GeometricSpecialRegions.html "Regions in 2D"
 
 Further changes:
-- Remove InfiniteWall (equivalent to Hyperplane)
+- Remove InfiniteWall (equivalent to Halfplane)
 - Implement rounding of corners: Polyline -> list of Arcs and Polylines, Polygon -> shorter lines and virtual balls inside the corners?
 - In README.md write "Static obstacles to construct billiard tables with arbitrary shapes"
 - Helper functions: circle_through(p1, p2, p3) -> center, radius (circle through 3 points); circle_around(list of points) -> center, radius (smallest circle containing all points)

@@ -1,4 +1,4 @@
-from math import cos, pi, sin, sqrt
+from math import asin, cos, pi, sin, sqrt
 
 import numpy as np
 import pytest
@@ -8,11 +8,12 @@ from billiards.physics import (
     elastic_collision,
     toi_and_param_ball_segment,
     toi_ball_ball,
+    toi_ball_disk_exterior,
     toi_ball_point,
 )
 
 INF = float("inf")
-np.seterr(divide="raise")  # use pytest.raises to catch them
+np.seterr(divide="raise")  # use pytest.raises to catch numpy errors
 
 
 def test_toi_ball_ball():
@@ -22,52 +23,113 @@ def test_toi_ball_ball():
     assert toi_ball_ball((0, 42), (42, 0), 1, (5, 42), (41, 0), 1) == 3
 
     # for convenience
-    def toi(p2, v2, r2, t_eps=-0.0):
-        return toi_ball_ball((0, 0), (0, 0), 1, p2, v2, r2, t_eps)
+    def toi(pos, vel, radius, t_eps=-0.0):
+        return toi_ball_ball(pos, vel, radius, (0, 0), (0, 0), 1, t_eps)
+
+    # check zero velocity
+    assert toi((3, 0), (0, 0), 1) == INF  # outside
+    assert toi((2, 0), (0, 0), 1) == INF  # touching
+    assert toi((1, 0), (0, 0), 1) == INF  # overlap
+
+    # check one inside the other
+    assert toi((0.5, 0), (-42, 0), 0.1) == INF
+    assert toi((1, 0), (-42, 0), 1) == INF
+    assert toi((1, 0), (-42, 0), 10) == INF
 
     # check miss
     assert toi((2, 0), (1, 0), 1) == INF
     assert toi((2, 0), (0, 1), 1) == INF
-
-    # check head-on impact
-    assert toi((3, 0), (-1, 0), 1) == 1.0
-    assert toi((0, 101), (0, -33), 1) == approx(3.0)
+    assert toi((sqrt(2) + 0.5, sqrt(2) - 0.5 + 1e-10), (-1, 1), 1) == INF
 
     # check sliding past each other
     assert toi((2, 0), (0, 1), 1) == INF
     assert toi((2, 10), (0, -1), 1) == INF
-    assert toi((sqrt(2), sqrt(2)), (1 - 1e-7, -1), 1) == approx(0.0, abs=1e-8)
+    assert toi((sqrt(2) - 0.5, sqrt(2) + 0.5 + 1e-10), (1, -1), 1) == INF
 
-    # check sideways collision
-    # length of diagonal of a unit square is sqrt(2)
-    assert toi((1, 2), (0, -1), sqrt(2) - 1) == approx(1.0)
+    # check collision
+    assert toi((3, 0), (-1, 0), 1) == 1.0  # head-on collision
+    assert toi((3, 0), (-1, 1e-10), 1) == 1.0  # slightly skewed collision
+    assert toi((0, 101), (0, -33), 1) == approx(3.0)
+    assert toi((1, 2), (0, -1), sqrt(2) - 1) == approx(1.0)  # sideways collision
+    assert toi((sqrt(2) - 0.5, sqrt(2) + 0.5 - 1e-10), (1, -1), 1) == approx(
+        0.49998810787885, abs=2e-11
+    )
+
+    # throw balls from (10, 0) and see which ones collide
+    px, r = 10, 2
+    for a in np.linspace(-pi / 2, pi / 2):
+        vx, vy = -cos(a), sin(a)
+        if abs(vy) < (r + 1) / px:  # the critical angle is asin((r1 + r2) / px)
+            t = -px * vx - sqrt((r + 1) ** 2 - px**2 * vy**2)
+        else:
+            t = INF
+        assert toi((px, 0), (vx, vy), r) == approx(t, abs=1e-12), a
+
+    # throw balls slightly above the critical angle (no collision)
+    for a in [asin((r + 1) / px) + da for da in [1e-5, 1e-10, 1e-11, 1e-13, 1e-15]]:
+        vx, vy = -cos(a), sin(a)
+        assert abs(vy) >= (r + 1) / px, a
+        assert toi((px, 0), (vx, vy), r) == INF, a
+
+    # throw balls slightly below the critical angle (collision)
+    for a in [asin((r + 1) / px) - da for da in [1e-5, 1e-10, 1e-11, 1e-13, 1e-15]]:
+        vx, vy = -cos(a), sin(a)
+        assert abs(vy) < (r + 1) / px, a
+        t = -px * vx - sqrt((r + 1) ** 2 - px**2 * vy**2)
+        assert toi((px, 0), (vx, vy), r) == approx(t, abs=4e-8), a
+
+    # pos_dot_vel and sqrt(delta_over_4) close => cancellation of significant digits
+    assert toi((sqrt(2) + 1e-4, sqrt(2)), (-1e-4, 0), 1) == approx(1.0, abs=1e-11)
+    assert toi((sqrt(2) + 1e-6, sqrt(2)), (-1e-6, 0), 1) == approx(1.0, abs=1e-10)
+    assert toi((sqrt(2) + 1e-8, sqrt(2)), (-1e-8, 0), 1) == approx(1.0, abs=1e-7)
+    assert toi((sqrt(2) + 1e-10, sqrt(2)), (-1e-10, 0), 1) == approx(1.0, abs=1e-5)
+    assert toi((sqrt(2) + 1e-12, sqrt(2)), (-1e-12, 0), 1) == approx(1.0, abs=1e-3)
+    assert toi((sqrt(2) + 1e-14, sqrt(2)), (-1e-14, 0), 1) == approx(1.0, abs=5e-3)
+
+    # pos_dot_vel + sqrt(delta_over_4) == 0, also cancellation => t1 = 0 * ...
+    r = 10
+    xy = (r + 1) / sqrt(2)
+    assert toi((xy + 1e-15, xy), (-1e-8, 0), r) == 0.0
 
     # check touching, note that this might not work so nicely with floating
     # point numbers
     assert toi((2, 0), (-1, 0), 1) == 0
-    assert toi((1 + 1e-12, 1), (0, -1), sqrt(2) - 1) == approx(0.0)
-
-    # check one inside the other
-    assert toi((1, 0), (-42, 0), 1) == INF
-    assert toi((1, 0), (-42, 0), 10) == INF
-
-    # check point particle
-    assert toi((2, 0), (-1, 0), 0) == 1  # head-on
-    assert toi((1, 0), (0, 1), 0) == INF  # slide
-    # cos(60°) == 1/2 => pythagoras: sin(60°) == sqrt(1 - 1/2**2) == sqrt(3/4)
-    assert toi((0.5, 1), (0, -1), 0) == approx(1 - sqrt(3 / 4))  # side
+    assert toi((1 + 1e-12, 1), (0, -1), sqrt(2) - 1) == approx(1e-12, abs=1e-15)
 
     # test touching balls and t_eps
+    assert toi((2, 0), (-1, 0), radius=1 + 1e-5) == INF
+    assert toi((2, 0), (-1, 0), radius=1 + 1e-5, t_eps=-1e-4) == approx(0.0, abs=2e-5)
+    assert toi((2, 0), (-1, 0), radius=1, t_eps=-1e-10) == approx(0.0)
     diag = (sqrt(2), sqrt(2))
-    assert toi(diag, (-1, 0), r2=1 + 1e-5) == INF
-    assert toi(diag, (-1, 0), r2=1 + 1e-5, t_eps=-1e-4) == approx(0.0, abs=2e-5)
-    assert toi(diag, (-1, 0), r2=1) == approx(0.0)
+    assert toi(diag, (-1, 0), radius=1 + 1e-5) == INF
+    assert toi(diag, (-1, 0), radius=1 + 1e-5, t_eps=-1e-4) == approx(0.0, abs=2e-5)
+    assert toi(diag, (-1, 0), radius=1, t_eps=-1e-10) == approx(0.0)
 
     # using t_eps to detect collision
     x, y = 2 * cos(1 / 4), 2 * sin(1 / 4)
     assert (x * x + y * y) - (1 + 1) ** 2 < 0  # rounding error => not zero
     assert toi((x, y), (-1, 0), 1) == INF  # fails to detect collision
     assert toi((x, y), (-1, 0), 1, t_eps=-1e-10) == approx(0.0)
+
+    # check point particle
+    assert toi((2, 0), (-1, 0), 0) == 1.0  # head-on
+    assert toi((2, 0), (-1, 1e-15), 0) == approx(1.0, abs=1e-12)  # slightly skewed
+    assert toi((1, 0), (0, 1), 0) == INF  # slide
+    # cos(60°) == 1/2 => pythagoras: sin(60°) == sqrt(1 - 1/2**2) == sqrt(3/4)
+    assert toi((0.5, 1), (0, -1), 0) == approx(1 - sqrt(3 / 4))  # side
+
+
+def test_toi_particle_particle():
+    # for convenience
+    def toi(pos, vel, t_eps=-0.0):
+        return toi_ball_ball(pos, vel, 0, (0, 0), (0, 0), 0, t_eps)
+
+    # point particles do not collide with each other
+    for eps in [1e-5, 1e-10, 1e-15, 0.0]:  # mess up floating point calculations
+        for a in range(10):
+            x, y = cos(a), sin(a)
+            vx, vy = -x, -y * (1 + eps)  # fly towards origin, arrive at time t = 1
+            assert toi((x, y), (vx, vy)) == INF, (eps, a)
 
 
 def test_toi_ball_point():
@@ -80,44 +142,172 @@ def test_toi_ball_point():
     def toi(pos, vel, radius, t_eps=-0.0):
         return toi_ball_point(pos, vel, radius, (0, 0), t_eps)
 
+    # check zero velocity
+    assert toi((2, 0), (0, 0), 1) == INF  # outside
+    assert toi((1, 0), (0, 0), 1) == INF  # touching
+    assert toi((0.5, 0), (0, 0), 1) == INF  # overlap
+
+    # check point inside ball
+    assert toi((1 - 1e-12, 0), (-42, 0), 1) == INF
+
     # check miss
     assert toi((2, 0), (1, 0), 1) == INF
     assert toi((2, 0), (0, 1), 1) == INF
+    assert toi((sqrt(1 / 2) + 0.5, sqrt(1 / 2) - 0.5 + 1e-10), (-1, 1), 1) == INF
 
-    # check head-on impact
-    assert toi((2, 0), (-1, 0), 1) == 1.0
-    assert toi((0, 100), (0, -33), 1) == approx(3.0)
-
-    # check sliding past each other
+    # check sliding past the point
     assert toi((1, 0), (0, 1), 1) == INF
     assert toi((1, 10), (0, -1), 1) == INF
-    assert toi((sqrt(1 / 2), sqrt(1 / 2)), (1 - 1e-7, -1), 1) == approx(0.0, abs=1e-8)
+    assert toi((sqrt(1 / 2), sqrt(1 / 2)), (1 + 1e-10, -1), 1) == INF
 
-    # check sideways collision
-    # length of diagonal of a unit square is sqrt(2)
-    assert toi((1, 2), (0, -1), sqrt(2)) == approx(1.0)
+    # check collision
+    assert toi((2, 0), (-1, 0), 1) == 1.0  # head-on collision
+    assert toi((2, 0), (-1, 1e-10), 1) == 1.0  # slightly skewed collision
+    assert toi((0, 100), (0, -33), 1) == approx(3.0)
+    assert toi((1, 2), (0, -1), sqrt(2)) == approx(1.0)  # sideways collision
+    assert toi((sqrt(1 / 2) - 0.5, sqrt(1 / 2) + 0.5 - 1e-10), (1, -1), 1) == approx(
+        0.499991590985848, abs=3e-12
+    )
+
     # cos(60°) == 1/2 => pythagoras: sin(60°) == sqrt(1 - 1/2**2) == sqrt(3/4)
     assert toi((0.5, 1), (0, -1), 1) == approx(1 - sqrt(3 / 4))
+
+    # throw balls from (10, 0) and see which ones collide
+    px, r = 10, 2
+    for a in np.linspace(-pi / 2, pi / 2):
+        vx, vy = -cos(a), sin(a)
+        if abs(vy) < (r + 0) / px:  # the critical angle is asin((r1 + r2) / px)
+            t = -px * vx - sqrt((r + 0) ** 2 - px**2 * vy**2)
+        else:
+            t = INF
+        assert toi((px, 0), (vx, vy), r) == approx(t, abs=1e-8), a
+
+    # throw balls slightly above the critical angle (no collision)
+    for a in [asin((r + 0) / px) + da for da in [1e-5, 1e-10, 1e-11, 1e-13, 1e-15]]:
+        vx, vy = -cos(a), sin(a)
+        assert abs(vy) >= (r + 0) / px, a
+        assert toi((px, 0), (vx, vy), r) == INF, a
+
+    # throw balls slightly below the critical angle (collision)
+    for a in [asin((r + 0) / px) - da for da in [1e-5, 1e-10, 1e-11, 1e-13, 1e-15]]:
+        vx, vy = -cos(a), sin(a)
+        assert abs(vy) < (r + 1) / px, a
+        t = -px * vx - sqrt((r + 0) ** 2 - px**2 * vy**2)
+        assert toi((px, 0), (vx, vy), r) == approx(t, abs=1e-7), a
 
     # check touching, note that this might not work so nicely with floating
     # point numbers
     assert toi((1, 0), (-1, 0), 1) == 0
     assert toi((1 + 1e-12, 1), (0, -1), sqrt(2)) == approx(0.0)
 
-    # check point inside ball
-    assert toi((1 - 1e-12, 0), (-42, 0), 1) == INF
-
     # test touching with t_eps
     diag = (sqrt(1 / 2), sqrt(1 / 2))
     assert toi(diag, (-1, 0), 1 + 1e-5) == INF
     assert toi(diag, (-1, 0), 1 + 1e-5, t_eps=-1e-4) == approx(0.0, abs=2e-5)
-    assert toi(diag, (-1, 0), 1) == approx(0.0)
+    assert toi(diag, (-1, 0), 1, t_eps=-1e-10) == approx(0.0)
 
     # using t_eps to detect collision
     x, y = 2 * cos(1 / 4), 2 * sin(1 / 4)
     assert (x * x + y * y) - (1 + 1) ** 2 < 0  # rounding error => not zero
     assert toi((x, y), (-1, 0), 2) == INF  # fails to detect collision
     assert toi((x, y), (-1, 0), 2, t_eps=-1e-10) == approx(0.0)
+
+    # check point particle (never collide)
+    assert toi((1, 0), (-1, 0), 0) == INF
+    assert toi((1, 1e-15), (-1, 0), 0) == INF
+    assert toi((1, 0), (-1, 1e-15), 0) == INF
+
+
+def test_toi_ball_disk_exterior():
+    assert toi_ball_disk_exterior((1, 0), (1, 0), 1, (0, 0), 5) == 3
+
+    # check that only relative coordinates are important
+    assert toi_ball_disk_exterior((1, 42), (1, 0), 1, (0, 42), 5) == 3
+
+    # for convenience
+    def toi(pos, vel, radius, t_eps=-0.0):
+        return toi_ball_disk_exterior(pos, vel, radius, (0, 0), 5, t_eps)
+
+    # check zero velocity
+    assert toi((1, 0), (0, 0), 1) == INF  # inside
+    assert toi((4, 0), (0, 0), 1) == INF  # touching
+    assert toi((4.5, 0), (0, 0), 1) == INF  # overlap
+
+    # check ball too large
+    assert toi((1, 2), (0, -1), 5) == INF
+
+    # check miss (outside and moving away)
+    assert toi((6, 0), (1, 0), 1) == INF
+    assert toi((6, 0), (0, 1), 1) == INF
+
+    # always a bit overlapping with the outside
+    for eps in [1e-3, 1e-8, 1e-10, 1e-15]:
+        x = 4 / sqrt(2) * (1 + eps)
+        assert toi((x + 10, x - 10), (-1, 1), 1) == INF
+
+    # check head-on impact
+    assert toi((3, 0), (-1, 0), 1) == 7.0
+    assert toi((0, 95), (0, -33), 1) == approx(3.0)
+
+    # check sliding along the boundary
+    assert toi((4, 0), (0, 1), 1) == INF
+    assert toi((4, 10), (0, -1), 1) == INF
+    assert toi((sqrt(8), sqrt(8)), (1 + 1e-7, -1), 1) == INF
+    assert toi((1, 2), (0, -1), 4) == INF
+
+    # check collision
+    assert toi((1, 2), (0, -1), 1) == approx(2 + sqrt((5 - 1) ** 2 - 1))
+    assert toi((1, 2), (0, -1), 2) == approx(2 + sqrt((5 - 2) ** 2 - 1))
+    assert toi((1, 2), (0, -1), 3) == approx(2 + sqrt((5 - 3) ** 2 - 1))
+
+    # ball just a bit smaller than disk
+    for eps in [1e-3, 1e-5, 1e-10, 1e-12]:
+        for v in [0.01, 1.0, 1.0000001, 1000.01]:
+            assert toi((0, 0), (0, -v), 5 - eps) == approx(eps / v, abs=1e-13)
+
+    # throw balls
+    px, r = 2, 2
+    for a in np.linspace(-pi / 2, pi / 2):
+        vx, vy = cos(a), sin(a)
+        t = -px * vx + sqrt((5 - r) ** 2 - px**2 * vy**2)
+        assert toi((px, 0), (vx, vy), r) == approx(t, abs=1e-12), a
+
+    # check touching, note that this might not work so nicely with floating
+    # point numbers
+    assert toi((4, 0), (1, 0), 1) == 0
+    assert toi((sqrt(8), sqrt(8)), (1 - 1e-7, -1), 1) == approx(0.0, abs=3e-7)
+    assert toi((sqrt(8) - 1e-12, sqrt(8)), (0, 1), 1) == approx(0.0)
+
+    # check next collision when we start at the boundary
+    vx = vy = -sqrt(1 / 2)
+    for eps in [1e-3, 1e-6, 1e-9, 1e-12, 1e-13, 1e-14, 1e-15, 1e-16, 0.0]:
+        t = -(4 * sqrt(2) - eps + sqrt(32 - eps**2)) / (2 * vx)
+        assert toi((sqrt(8) - eps, sqrt(8)), (vx, vy), 1) == approx(t, abs=1e-14), eps
+
+    # check small speed
+    vx, vy = -1e-14, 1e-8
+    assert toi((4, 0), (vx, vy), radius=1) == approx(-8 * vx / (vx**2 + vy**2))
+
+    # test touching balls and t_eps
+    diag = (sqrt(8), sqrt(8))
+    assert toi(diag, (1, 0), radius=1 + 1e-5) == INF
+    assert toi(diag, (1, 0), radius=1 + 1e-5, t_eps=-1e-4) == approx(0.0, abs=2e-5)
+    assert toi(diag, (1, 0), radius=1, t_eps=-1e-10) == approx(0.0)
+
+    # using t_eps to detect collision
+    x, y = 4 * cos(5 / 13), 4 * sin(5 / 13)
+    assert (x**2 + y**2) > (5 - 1) ** 2  # rounding error => not zero
+    assert toi((x, y), (1, 0), 1) == INF  # fails to detect collision
+    assert toi((x, y), (1, 0), 1, t_eps=-1e-10) == approx(0.0)
+
+    # check point particle
+    assert toi((2, 0), (-1, 0), 0) == 7  # head-on
+    assert toi((5, 0), (0, 1), 0) == INF  # slide
+    assert toi((1, 2), (0, -1), 0) == approx(2 + sqrt((5 - 0) ** 2 - 1))
+
+    for eps in [1e-3, 1e-5, 1e-8, 1e-11, 1e-14, 1e-15]:
+        t = sqrt(-eps * (eps - 10))
+        assert toi((5 - eps, 0), (0, 1), 0) == approx(t, abs=2e-8), eps  # slide inside
 
 
 def test_toi_ball_segment():
@@ -212,6 +402,13 @@ def test_toi_ball_segment():
     assert toi((1, 1 / 3), (-1, -1), 1 / 2) == (INF, None)
     assert toi((1.1, 1 / 3), (-1, -1), 1 / 2) == (INF, 1)
 
+    # test almost touching
+    # assert toi((-1.1 - 1e-12, 0), (0, 1), 1.1) == (1e-12, 0)  # with endpoints
+    assert toi((-1.1 - 1e-12, 0), (0, 1), 1.1) == (INF, 0)
+    # assert toi((-1e-10, -1), (0, 1), 1) == (1 - sqrt(-(1e-10 - 1) * (1e-10 + 1)), 0)
+    assert toi((-1e-10, -1), (0, 1), 1) == (INF, 0)
+    assert toi((0.3, -1 - 1e-10), (0, 1), 1) == (approx(1e-10, abs=1e-16), 0.3)
+
     # toi was in the past
     assert toi((2, 2), (1, 1), 1) == (INF, None)
 
@@ -219,6 +416,32 @@ def test_toi_ball_segment():
     pos, vel, radius = (0.1, 1), (0, -1), 1 + 1e-5
     assert toi(pos, vel, radius) == (INF, None)
     assert toi(pos, vel, radius, t_eps=-1e-4) == (approx(-1e-5, abs=1e-14), 0.1)
+
+
+def test_toi_particle_segment():
+    angle = 0.5
+
+    start, end = np.asarray([0, 0]), np.asarray([cos(angle), sin(angle)])
+    direction = end - start
+    length_sqrd = direction.dot(direction)
+    covector = direction / length_sqrd
+    normal = np.asarray([-direction[1], direction[0]]) / sqrt(length_sqrd)
+
+    # for convenience
+    def toi(pos, vel, t_eps=-0.0):
+        return toi_and_param_ball_segment(pos, vel, 0, start, covector, normal, t_eps)
+
+    # particle starts from x axis and moves upwards
+    for x in [1e-10, 1e-3, 0.1, cos(angle) - 1e-3, cos(angle) - 1e-10]:
+        t, u = sin(angle) / cos(angle) * x, x / cos(angle)
+        assert toi((x, 0), (0, 1)) == (approx(t), approx(u)), (angle, x)
+
+    # particle starts close to the line and moves upwards
+    for dy in [0.1, 1e-3, 1e-10]:
+        for x in [1e-10, 1e-3, 0.1, cos(angle) - 1e-3, cos(angle) - 1e-10]:
+            y = sin(angle) / cos(angle) * x - dy
+            t, u = dy, x / cos(angle)
+            assert toi((x, y), (0, 1)) == (approx(t), approx(u)), (angle, x, y, dy)
 
 
 def test_elastic_collision():

@@ -3,7 +3,8 @@ Usage
 
 All important classes (the billiard simulation and obstacles) are
 accessible from the top-level module. The visualization modules must be
-imported separately and will load *matplotlib*, *tqdm* and *pyglet*.
+imported separately and will load *matplotlib* or *pyglet*. For the following
+examples we will use matplotlib visualizations.
 
 .. doctest::
 
@@ -33,8 +34,8 @@ in the list ``walls``, then we create a billiard:
 .. doctest::
 
    >>> walls = [
-   ...     billiards.InfiniteWall((-4, -2), (-4, 2), exterior="right"),
-   ...     billiards.InfiniteWall((10, -2), (10, 2), exterior="left"),
+   ...     billiards.InfiniteWall((-4, -2), (-4, 2), no_go="right"),
+   ...     billiards.InfiniteWall((10, -2), (10, 2), no_go="left"),
    ... ]
    >>> bld = billiards.Billiard(obstacles=walls)
 
