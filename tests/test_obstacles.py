@@ -6,9 +6,43 @@ import pytest
 from numpy.testing import assert_allclose
 from pytest import approx
 
-from billiards.obstacles import Disk, InfiniteWall, LineSegment
+from billiards.obstacles import Circle, Disk, InfiniteWall, LineSegment
 
 INF = float("inf")
+
+# To compute the exact results: use sympy
+# from sympy import *
+
+# def toi(pos, vel, r, center, radius):
+#     """Compute the time(s) at which the moving ball touches the circle."""
+#     t = symbols("t")
+#     dx = pos[0] + t * vel[0] - center[0]
+#     dy = pos[1] + t * vel[1] - center[1]
+#     return solveset(Eq(dx**2 + dy**2, (r + radius) ** 2), t)
+
+# center, radius = (Rational("1.7"), Rational("2.3")), 1
+# sol = toi((0, 0), (1, 1), 1 / sqrt(2), center, radius)
+# print(min(sol))  # exact formula
+# print(min(sol).evalf())  # numeric approximation
+
+
+# For Circle.resolve_collision use:
+# def vadd(v, w):
+#     return (v[0] + w[0], v[1] + w[1])
+#
+# def vmul(scalar, vec):
+#     return (scalar * vec[0], scalar * vec[1])
+#
+# def vdot(v, w):
+#     return v[0] * w[0] + v[1] * w[1]
+#
+# def circle_resolve(collpos, vel, center):
+#     dpos = vadd(collpos, vmul(-1, center))
+#     return vadd(vel, vmul(-2 * vdot(dpos, vel) / vdot(dpos, dpos), dpos))
+#
+# collvel = circle_resolve(vadd(pos, mul(min(sol), vel)), vel, center)
+# print(collvel)  # exact formulas
+# print(collvel[0].evalf(), colvel[1].evalf())  # numeric approximation
 
 
 def test_disk():
@@ -35,6 +69,110 @@ def test_disk():
     uvel = d.resolve_collision(upos, vel, r)
     assert tuple(uvel) == approx((-0.663553336824114, 0.753632159610709), abs=1e-15)
     assert d.detect_collision(upos, uvel, 1) == (INF, ())
+
+
+def test_circle():
+    c = Circle((0, 0), 1)
+
+    # check properties
+    assert tuple(c.center) == (0, 0)
+    assert c.radius == 1
+
+    # check time of impact, velocity after collision and new time of impact
+    pos, vel, r = (-10, 0), (1, 0), 1
+    t, args = c.detect_collision(pos, vel, r)
+    assert (t, args) == (8.0, ()), (pos, vel, r)
+
+    collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
+    assert collpos[0] ** 2 + collpos[1] ** 2 == approx((c.radius + r) ** 2), collpos
+
+    collvel = c.resolve_collision(collpos, vel, r)
+    assert tuple(collvel) == (-1, 0)
+    assert c.detect_collision(collpos, collvel, 1) == (INF, ())
+
+    pos, vel, r = (-10, 0), (1, 1 / 11), 1
+    t_ref = -2 * sqrt(1 - 24 * vel[1] ** 2) / (vel[1] ** 2 + 1) + 10 / (vel[1] ** 2 + 1)
+    t, args = c.detect_collision(pos, vel, r)
+    assert (t, args) == (t_ref, ()), (pos, vel, r)
+
+    collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
+    assert collpos[0] ** 2 + collpos[1] ** 2 == approx((c.radius + r) ** 2), collpos
+
+    collvel = c.resolve_collision(collpos, vel, r)
+    assert tuple(collvel) == approx((-0.663553336824114, 0.753632159610709), abs=1e-15)
+    assert c.detect_collision(collpos, collvel, 1) == (INF, ())
+
+    c = Circle((1.7, 2.3), 3)
+
+    # check properties
+    assert tuple(c.center) == (1.7, 2.3)
+    assert c.radius == 3
+
+    # check time of impact, velocity after collision and new time of impact
+    pos, vel, r = (0, 0), (1, 1), 1
+    t, args = c.detect_collision(pos, vel, r)
+    assert (t, args) == (approx(2 + sqrt(191) / 10), ()), (pos, vel, r)
+
+    collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
+    assert (collpos[0] - 1.7) ** 2 + (collpos[1] - 2.3) ** 2 == approx((3 - r) ** 2)
+
+    collvel = c.resolve_collision(collpos, vel, r)
+    assert tuple(collvel) == approx(
+        (-0.91 - 0.03 * sqrt(191), -0.91 + 0.03 * sqrt(191))
+    )
+    assert c.detect_collision(collpos, collvel, 1) == (approx(sqrt(191) / 5), ())
+
+    # "slide" along the inner boundary
+    pos, vel, r = (1.7, 2.3 - 3 + 2e-8), (1, 0), 1e-8
+    for i in range(100):
+        t, args = c.detect_collision(pos, vel, r)
+        if i == 0:
+            assert t == approx(sqrt(599999997) / 100000000)
+        else:
+            assert t == approx(2 * sqrt(599999997) / 100000000)
+
+        collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
+        assert (collpos[0] - 1.7) ** 2 + (collpos[1] - 2.3) ** 2 == approx((3 - r) ** 2)
+
+        collvel = c.resolve_collision(collpos, vel, r)
+        assert collvel[0] ** 2 + collvel[1] ** 2 == approx(1.0), collvel
+
+        pos, vel = collpos, collvel
+
+    # check very small balls
+    for rexp in range(2, 20):
+        pos, vel, r = (-1, -1), (1 - 1e-8, 1 + 1e5), 2 ** (-rexp)
+        t, args = c.detect_collision(pos, vel, r)
+        assert t < 1, (rexp, pos, vel, r)
+
+        collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
+        collvel = c.resolve_collision(collpos, vel, r)
+        t, args = c.detect_collision(collpos, collvel, r)
+        assert t == float("inf"), (rexp, collpos, collvel, r)
+
+    # check point particle
+    c = Circle((1, 0), 1)
+
+    pos, vel = (-1e-3, 0), (2.5, 0)
+    t, args = c.detect_collision(pos, vel, 0.0)
+    assert t == approx(1e-3 / 2.5)
+
+    collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
+    collvel = c.resolve_collision(collpos, vel, 0.0, args)
+    assert tuple(collvel) == (-2.5, 0.0)
+
+    assert c.detect_collision(collpos, collvel, 0.0)[0] == INF
+
+    for dx in [1e-3, 1e-6, 1e-9, 1e-12, 2**-40]:
+        for vx in [2.5, 1e-3, 1e-6, 1e-9, 1e-12]:
+            pos, vel = ((1 - sqrt(1 / 2) - dx), sqrt(1 / 2)), (vx, 0)
+            abserr = abs((pos[0] - 1 + sqrt(1 / 2)) / vx) * 8
+            t, args = c.detect_collision(pos, vel, 0.0)
+            assert t == approx(dx / vx, abs=abserr), (dx, vx)
+
+            collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
+            collvel = c.resolve_collision(collpos, vel, 0.0, args)
+            assert c.detect_collision(collpos, collvel, 0.0)[0] == INF, (dx, vx)
 
 
 def test_infinite_wall():

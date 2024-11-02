@@ -93,6 +93,60 @@ class Disk(Obstacle):
         return vel - 2 * (dpos.dot(vel) * dpos) / dpos.dot(dpos)
 
 
+class Circle(Obstacle):
+    """A circluar obstacle where balls can collide from the outside or the inside."""
+
+    def __init__(self, center, radius):
+        """Create a circular obstacle with the given center and radius."""
+        self.center = np.asarray(center)
+        self.radius = float(radius)
+
+    def detect_collision(self, pos, vel, radius):
+        """Calculate the time of impact of a ball with the circle."""
+        # Point particles are problematic if they just collided with the circle and we
+        # test them again. Due to floating point inaccuaries a particle on the outside
+        # moving away from the circle may have a distance to the circle center that is
+        # smaller than the circle radius. The toi_ball_circle function would detect that
+        # this particle is colliding again. A similar situation can arise for particles
+        # that collide from the inside but whose distance from the center is larger than
+        # the circle radius.
+        # We can create a buffer zone for particles near the circle by dismissing
+        # collision times that are too close to zero. For particles that are not close
+        # to the circle line nothing will change.
+        t_eps = 1e-10 if radius == 0 else 0.0  # point particles need a buffer zone
+
+        # TODO how to implement buffer zone for point particles?
+        # if radius == 0:
+        #     t_buffer, t_eps = 1e-10, 0.0
+        #     pos = (pos[0] + t_buffer * vel[0], pos[1] + t_buffer * vel[1])
+        # else:
+        #     t_buffer, t_eps = 0.0, 0.0
+
+        dpos = np.subtract(pos, self.center)
+        dist_sqrd = dpos.dot(dpos)
+        if dist_sqrd >= (self.radius + radius) ** 2:
+            # ball is outside => circle is equivalent to disk
+            t = toi_ball_ball(pos, vel, radius, self.center, (0, 0), self.radius, t_eps)
+        elif dist_sqrd >= (self.radius - radius) ** 2 and dpos.dot(vel) > 0:
+            # ball overlaps the circle but moves away => no collision
+            t = INF
+        else:
+            # ball is inside (or partly inside) => circle is equivalent to disk exterior
+            t = toi_ball_disk_exterior(
+                pos, vel, radius, self.center, self.radius, t_eps
+            )
+        return (t, ())
+        # return (t + t_buffer, ())
+
+    def resolve_collision(self, pos, vel, radius, *args):
+        """Calculate the velocity of a ball after colliding with the circle."""
+        # Switch to coordinate system of circle
+        dpos = np.subtract(pos, self.center)
+
+        # Compute the change in velocity (normal = dpos / norm(dpos))
+        return vel - 2 * dpos.dot(vel) * dpos / dpos.dot(dpos)
+
+
 class InfiniteWall(Obstacle):
     """An infinite wall where balls can collide only from one side."""
 

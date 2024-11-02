@@ -53,7 +53,7 @@ except ImportError:  # pragma: no cover
     trange = range
 
 
-from .obstacles import Disk, InfiniteWall, LineSegment
+from .obstacles import Circle, Disk, InfiniteWall, LineSegment
 
 default_color_scheme = {
     "obstacles": "C2",  # green
@@ -169,6 +169,18 @@ def plot_disk(obs, ax, color, **kwargs):
 
 
 obstacle_plot_functions[Disk] = plot_disk
+
+
+def plot_circle(obs, ax, color, **kwargs):
+    """Draw the disk onto the given *matplotlib* axes."""
+    assert isinstance(obs, Circle), type(obs)
+    assert isinstance(ax, maxes.Axes), type(ax)
+
+    patch = mpatches.Circle(obs.center, obs.radius, color=color, fill=False, **kwargs)
+    ax.add_patch(patch)
+
+
+obstacle_plot_functions[Circle] = plot_circle
 
 
 def plot_infinite_wall(obs, ax, color, **kwargs):

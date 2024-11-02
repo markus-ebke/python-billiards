@@ -23,7 +23,7 @@ from pyglet import gl, shapes
 from pyglet.graphics.shader import Shader, ShaderProgram
 from pyglet.window import key
 
-from .obstacles import Disk, InfiniteWall, LineSegment
+from .obstacles import Circle, Disk, InfiniteWall, LineSegment
 from .simulation import Billiard
 
 ###############################################################################
@@ -172,6 +172,25 @@ def model_disk(obs, batch):
 
 
 obstacle_shape_functions[Disk] = model_disk
+
+
+def model_circle(obs, batch):
+    """Vertices, indices and drawing mode for OpenGL drawing the disk."""
+    assert isinstance(obs, Circle), type(obs)
+
+    # vertices, indices = create_circle_line(obs.radius)
+    # vertices += obs.center
+    # return (vertices, indices, gl.GL_LINES)
+
+    x, y = obs.center
+    color = (20, 100, 30, 255)
+    shape = shapes.Arc(
+        x, y, obs.radius, segments=64, thickness=0.01, color=color, batch=batch
+    )
+    return shape
+
+
+obstacle_shape_functions[Circle] = model_circle
 
 
 def model_infinite_wall(obs, batch):

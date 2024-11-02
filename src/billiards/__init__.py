@@ -11,7 +11,7 @@ The visualization modules have to be imported on their own::
 
 # Local
 from . import obstacles, physics, simulation
-from .obstacles import Disk, InfiniteWall, LineSegment
+from .obstacles import Circle, Disk, InfiniteWall, LineSegment
 from .simulation import Billiard
 
 __all__ = [
@@ -20,6 +20,7 @@ __all__ = [
     "simulation",
     "Billiard",
     "Disk",
+    "Circle",
     "InfiniteWall",
     "LineSegment",
 ]
