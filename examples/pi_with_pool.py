@@ -24,7 +24,7 @@ import billiards.visualize_matplotlib as visualize
 digits = 6  # number of digits of pi
 
 # setup the billiard table: Wall -- mass -<- MASS
-obstacles = [billiards.obstacles.InfiniteWall((0, -1), (0, 1), no_go="right")]
+obstacles = [billiards.obstacles.InfiniteWall((0, -1), (0, 1), no_go="left")]
 bld = billiards.Billiard(obstacles)
 bld.add_ball((3, 0), (0, 0), radius=0.2)
 bld.add_ball((6, 0), (-1, 0), radius=1, mass=100 ** (digits - 1))

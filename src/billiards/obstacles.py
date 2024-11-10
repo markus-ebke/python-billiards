@@ -150,7 +150,7 @@ class Circle(Obstacle):
 class InfiniteWall(Obstacle):
     """An infinite wall where balls can collide only from one side."""
 
-    def __init__(self, start_point, end_point, no_go="left"):
+    def __init__(self, start_point, end_point, no_go="right"):
         """Create an infinite wall through two points.
 
         Going from the starting point to the end, the inside of the billiard is on the
@@ -161,7 +161,7 @@ class InfiniteWall(Obstacle):
         Args:
             start_point: x and y coordinates of the lines starting point.
             end_point: x and y of the end point.
-            no_go: Either "left" or "right" of the line, defaults to "left".
+            no_go: Either "left" or "right" of the line, defaults to "right".
         """
         self.start_point = np.asarray(start_point)
         self.end_point = np.asarray(end_point)
@@ -174,46 +174,39 @@ class InfiniteWall(Obstacle):
         self._normal = np.asarray([-dy, dx])  # normal on the left
         self._normal = self._normal / np.linalg.norm(self._normal)
 
-        if no_go == "right":
+        if no_go == "left":
             self._normal *= -1  # switch normal to the other side
-        elif not no_go == "left":
-            # if inside is not "right", then it MUST be "left"
+        elif not no_go == "right":
+            # if inside is not "left", then it MUST be "right"
             raise ValueError(f'no_go must be "left" or "right", not {no_go}')
 
     def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the wall."""
-        # headway: speed towards the wall, is positive if the ball moves from
-        # inside to outside (i.e. on a collision course)
-        headway = -np.dot(vel, self._normal)
-        if headway <= 0:
-            # ball does not get closer to the wall, no collision
-            return INF, ()
+        # vel_normal: speed away from the wall, is positive if the ball
+        # moves away and negative if it moves toward the no-go area
+        vel_normal = self._normal.dot(vel)
+        if vel_normal >= 0:
+            # No collision if the ball doesn't move towards the wall
+            return INF, (vel_normal,)
 
-        # size of the gap between the perimeter of the ball and the wall, is
-        # negative if the ball is not completely on the inside
-        gap = np.dot(pos - self.start_point, self._normal) - radius
+        # Compute the relative position between the ball and the wall
+        dpos = np.subtract(pos, self.start_point)
 
-        t = gap / headway  # time of impact: size of gap / speed of closing
-        t_eps = 1e-10 if radius == 0 else -1e-10  # point particles need a buffer zone
-        if t < t_eps:
-            # If t is negative, then the ball overlaps with the wall. This
-            # doesn't count as an impact, but if t is close to zero, then a
-            # collision might have happened and we miss it just because of
-            # rounding errors
-            return INF, ()
-        else:
-            return t, (headway,)
+        # The ball collides with the wall when the gap between ball and
+        # wall becomes equal to the ball radius:
+        # <normal, dpos + t * vel> == radius
+        # Rearranged: <normal, dpos> - radius == - t * <normal, vel>,
+        # note that <normal, dpos> - radius is the size of the gap and
+        # <normal, vel> is the speed of closing the gap.
+        t = -(self._normal.dot(dpos) - radius) / vel_normal
 
-    def resolve_collision(self, pos, vel, radius, headway):
+        t_eps = 0.0  # t negative => ball overlaps with wall => no collision
+        return t if t >= t_eps else INF, (vel_normal,)
+
+    def resolve_collision(self, pos, vel, radius, vel_normal):
         """Calculate the velocity of a ball after colliding with the wall."""
-        # if headway is None:
-        #    headway = -np.dot(vel, self._normal)
-        # else:
-        #    ref = -np.dot(vel, self._normal)
-        #    assert np.linalg.norm(headway - ref) <= 1e-14, (headway, ref)
-        assert headway > 0  # if the ball is colliding, it can't move away
-
-        return vel + 2 * (headway * self._normal)
+        assert vel_normal < 0  # if the ball is colliding, it shouldn't move away
+        return vel - 2 * vel_normal * self._normal
 
 
 class LineSegment(Obstacle):

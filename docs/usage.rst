@@ -34,8 +34,8 @@ in the list ``walls``, then we create a billiard:
 .. doctest::
 
    >>> walls = [
-   ...     billiards.InfiniteWall((-4, -2), (-4, 2), no_go="right"),
-   ...     billiards.InfiniteWall((10, -2), (10, 2), no_go="left"),
+   ...     billiards.InfiniteWall((-4, -2), (-4, 2), no_go="left"),
+   ...     billiards.InfiniteWall((10, -2), (10, 2), no_go="right"),
    ... ]
    >>> bld = billiards.Billiard(obstacles=walls)
 
@@ -81,7 +81,7 @@ collision:
    >>> bld.next_ball_ball_collision
    (0.5, 0, 1)
    >>> bld.next_ball_obstacle_collision
-   (6.0, 0, (<billiards.obstacles.InfiniteWall object at 0x...>, (np.float64(2.0),)))
+   (6.0, 0, (<billiards.obstacles.InfiniteWall object at 0x...>, (np.float64(-2.0),)))
    >>> bld.next_collision  # the minimum of the two above
    (0.5, 0, 1)
 

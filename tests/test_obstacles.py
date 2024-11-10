@@ -192,15 +192,15 @@ def test_infinite_wall():
     assert tuple(w._normal) == (0.0, 1.0)
 
     # check time of impact from inside
-    assert w.detect_collision((0, 10), (0, -1), 1) == (9, (1.0,))
-    assert w.detect_collision((-100, 10), (0, -1), 1) == (9, (1.0,))
-    assert w.detect_collision((0, 10), (100, -1), 1) == (9, (1.0,))
+    assert w.detect_collision((0, 10), (0, -1), 1) == (9, (-1.0,))
+    assert w.detect_collision((-100, 10), (0, -1), 1) == (9, (-1.0,))
+    assert w.detect_collision((0, 10), (100, -1), 1) == (9, (-1.0,))
 
     # check problematic cases
     assert w.detect_collision((0, -10), (0, 1), 1)[0] == INF  # coming from the outside
     assert w.detect_collision((0, 10), (0, -1), 10) == (
         0,
-        (1.0,),
+        (-1.0,),
     )  # touching and colliding
     assert (
         w.detect_collision((0, 10), (0, 1), 10)[0] == INF
@@ -211,23 +211,39 @@ def test_infinite_wall():
     assert w.detect_collision((0, 10), (0, 1), 11)[0] == INF
 
     # check point particles
-    assert w.detect_collision((0, 1), (0, -1), 0) == (1, (1.0,))
-    assert w.detect_collision((0, 0), (0, -1), 0) == (INF, ())  # too close
-    assert w.detect_collision((0, 1e-8), (1, -1e-3), 0) == (1e-5, (1e-3,))
+    assert w.detect_collision((0, 1), (0, -1), 0) == (1, (-1.0,))
+    assert w.detect_collision((0, 0), (0, -1), 0) == (0.0, (-1.0,))
+    assert w.detect_collision((0, 1e-8), (1, -1e-3), 0) == (1e-5, (-1e-3,))
     assert w.detect_collision((0, 0), (0, 1), 0)[0] == INF
 
     # check collision
-    assert tuple(w.resolve_collision((0, 10), (0, -1), 1, 1.0)) == (0, 1)
-    assert tuple(w.resolve_collision((0, 10), (10, -1), 1, 1.0)) == (10, 1)
+    assert tuple(w.resolve_collision((0, 10), (0, -1), 1, -1.0)) == (0, 1)
+    assert tuple(w.resolve_collision((0, 10), (10, -1), 1, -1.0)) == (10, 1)
 
     assert w.detect_collision((0, -10), (10, 1), 1)[0] == INF  # wrong side
     with pytest.raises(AssertionError):
-        w.resolve_collision((0, -10), (10, 1), 1, -np.dot((10, 1), w._normal))
+        w.resolve_collision((0, -10), (10, 1), 1, w._normal.dot((10, 1)))
 
     # use wall as ceiling
+    w = InfiniteWall((-1, 0), (1, 0), no_go="left")
+    assert w.detect_collision((0, -10), (10, 1), 1) == (9, (-1.0,))
+    assert tuple(w.resolve_collision((0, -10), (10, 1), 1, -1.0)) == (10, -1)
+
+    # test repeated collision for decreasing distances
     w = InfiniteWall((-1, 0), (1, 0), no_go="right")
-    assert w.detect_collision((0, -10), (10, 1), 1) == (9, (1.0,))
-    assert tuple(w.resolve_collision((0, -10), (10, 1), 1, 1.0)) == (10, -1)
+    for dy in [10 ** (-e) for e in range(15)] + [0.0]:
+        for vy in [10 ** (-e) for e in range(-2, 15)]:
+            for r in [10 ** (-e) for e in range(15)] + [0.0]:
+                pos, vel = (0, r + dy), (0, -vy)
+                t, args = w.detect_collision(pos, vel, r)
+                relerr = max(1e-6, 1e-16 * (r + dy) / max(1e-16, dy))
+                assert t == approx(dy / vy, rel=relerr), (dy, vy, r, pos, vel)
+
+                collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
+                collvel = w.resolve_collision(collpos, vel, r, *args)
+                assert tuple(collvel) == (0, vy), (dy, vy, r, collpos, vel)
+
+                assert w.detect_collision(collpos, collvel, r)[0] == INF
 
 
 def test_line_segment():
