@@ -203,6 +203,55 @@ def toi_ball_disk_exterior(pos, vel, radius, disk_center, disk_radius, t_eps=-1e
     return t2 if t2 >= t_eps else INF
 
 
+def toi_ball_circle(pos, vel, radius, circle_center, circle_radius, t_eps=0.0):
+    """Calculate the time of impact of a moving ball and a circle.
+
+    Balls can collided from the outside or the inside of the circle, a
+    ball overlapping the circle is not colliding with it.
+
+    Args:
+        pos: Center of the ball.
+        vel: Velocity of the ball.
+        radius: Radius of the ball.
+        circle_center: Center of the circle.
+        circle_radius: Radius of the circle.
+        t_eps (optional): Return infinity if the calculated time of
+            impact is less than ``t_eps``. Ideally we should use
+            ``t_eps = 0.0``, but to account for rounding errors a value
+            slightly lower than zero may be more useful in practice.
+            Default: 0.0.
+
+    Returns:
+        Time of impact, which is infinite if there is no collision at or
+        after the time ``t_eps``.
+    """
+    dpos = np.subtract(pos, circle_center)
+    dist_sqrd = dpos.dot(dpos)
+
+    # Keep track of absolute errors in floating point computations
+    dpos_x_err = 2 * 2**-53 * max(abs(pos[0]), abs(circle_center[0]))
+    dpos_y_err = 2 * 2**-53 * max(abs(pos[1]), abs(circle_center[1]))
+    dist_sqrd_err = 2 * max(abs(dpos[0]) * dpos_x_err, abs(dpos[1]) * dpos_y_err)
+
+    # Decide how the ball will collide with the circle
+    if dist_sqrd - (circle_radius + radius) ** 2 > 2 * dist_sqrd_err:
+        # Ball is outside => circle is equivalent to disk
+        return toi_ball_ball(
+            pos, vel, radius, circle_center, (0, 0), circle_radius, t_eps
+        )
+    elif (
+        dist_sqrd - (circle_radius - radius) ** 2 > -2 * dist_sqrd_err
+        and dpos.dot(vel) > 0
+    ):
+        # Ball overlaps the circle but moves away => no collision
+        return INF
+    else:
+        # Ball is inside (or partly inside) => circle is equivalent to disk exterior
+        return toi_ball_disk_exterior(
+            pos, vel, radius, circle_center, circle_radius, t_eps
+        )
+
+
 def toi_and_param_ball_segment(
     pos, vel, radius, line_start, covector, normal, t_eps=-1e-10
 ):

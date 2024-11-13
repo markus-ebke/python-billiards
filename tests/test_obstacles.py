@@ -163,8 +163,8 @@ def test_circle():
 
     assert c.detect_collision(collpos, collvel, 0.0)[0] == INF
 
-    for dx in [1e-3, 1e-6, 1e-9, 1e-12, 2**-40]:
-        for vx in [2.5, 1e-3, 1e-6, 1e-9, 1e-12]:
+    for dx in [1e-3, 1e-6, 1e-9, 1e-12, 2**-40, 2**-50, 2**-51]:
+        for vx in [2.5, 1e-3, 1e-6, 1e-9, 1e-12, 1e-15]:
             pos, vel = ((1 - sqrt(1 / 2) - dx), sqrt(1 / 2)), (vx, 0)
             abserr = abs((pos[0] - 1 + sqrt(1 / 2)) / vx) * 8
             t, args = c.detect_collision(pos, vel, 0.0)
