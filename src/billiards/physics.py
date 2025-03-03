@@ -2,19 +2,62 @@
 
 from math import sqrt
 
+try:
+    from math import ulp
+except ImportError:  # Python < 3.9
+    from math import frexp
+
+    def ulp(x):
+        """Return the value of the least significant bit of the float x."""
+        # Unit in the Last Place for 64-bit (double precision) floating point numbers
+        return 2 ** (frexp(x)[1] - 53)
+
+
 import numpy as np
 
 INF = float("inf")
 
 
-def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2, t_eps=-1e-10):
+def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2, pos_unreliable_ulps=1):
     """Calculate the time of impact of two moving balls.
 
-    Already overlapping balls are not colliding (because the collision
-    has already occurred). But due to rounding errors, we could miss a
-    collision if the two balls are very close and moving towards each
-    other. Setting ``t_eps`` to a small negative value will catch this
-    potential collision.
+    If the balls are not colliding in the present or future (i.e., at a
+    time >= 0.0), the returned time is infinite. Already overlapping
+    balls are not considered to be colliding (because the collision has
+    already occurred).
+
+    However, due to floating-point precision issues, we may incorrectly
+    conclude that two balls are overlapping when in fact they collide
+    slightly in the future. I.e., if the positions were given with
+    infinite precision the collision time would be >= 0.0. But due to
+    the finite precision of floating point numbers, the computed
+    distance of `pos1` and `pos2` may be less than the sum of `radius1`
+    and `radius2` by a few ULPs (Units in the Last Place). Furthermore,
+    previous calculations of the positions can introduce rounding errors
+    or cancel significant digits so that multiple ULPs of the positions
+    will be incorrect.
+
+    The `pos_unreliable_ulps` parameter allows to account for these
+    precision errors. By setting it to the number of least significant
+    bits in the position vectors that may not be accurate, a collision
+    that would be missed due to insufficient precision is now properly
+    detected. Note that in such a case the returned time is negative!
+
+    Notes:
+        Two balls are colliding at a present or future time if
+
+        - at least one of them is not a point particle,
+        - they move towards each other (the dot product of
+          ``pos1 - pos2`` and ``vel1 - vel2`` is >= 0),
+        - they don't overlap (the distance between ``pos1`` and ``pos2``
+          is larger than ``radius1 + radius2`` plus some tolerance to
+          account for inaccuracies of the position vectors),
+        - they don't miss and don't just touch (determined via the
+          discriminant of a quadratic equation).
+
+        If any of the above checks fails, we return infinity. Otherwise
+        we compute the toi as the smaller of the two solutions to a
+        quadratic equation.
 
     Args:
         pos1: Center of the first ball.
@@ -23,14 +66,20 @@ def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2, t_eps=-1e-10):
         pos2: Center of the second ball.
         vel2: Velocity of the second ball.
         radius2: Radius of the second ball.
-        t_eps (optional): Return infinity if the calculated time of
-            impact is less than ``t_eps``. Ideally we should use
-            ``t_eps = 0.0``, but to account for rounding errors a value
-            slightly lower than zero is more useful in practice.
-            Default: -1e-10.
+        pos_unreliable_ulps (optional): The number of least significant
+            bits in the position vectors `pos1` and `pos2` that may not
+            be accurate. The worst case error is propagated through the
+            computation. If the computed overlap (= distance minus sum
+            of radii) is larger than the propagated error, we can prove
+            that there is no collision in the present or future and
+            return infinity. Otherwise, we continue the computation and
+            may return a negative time.
+            To disable error propagation, use ``float("-inf")``.
+            Default: 1 (i.e., only the last bit may not be accurate).
 
     Returns:
-        Time of impact, which is infinite if there is no collision.
+        Time of impact, is infinite if there is no collision at the
+        present or a future time.
     """
     if radius1 == 0 and radius2 == 0:
         return INF  # point particles cannot collide with each other
@@ -51,7 +100,7 @@ def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2, t_eps=-1e-10):
     # |p + t v|^2 = a t^2 + 2b t + c, with a := <v, v>, b := <p, v>, c := <p, p>
     # To compute the time of impact t we need to solve |p + t v| == radius1 + radius2.
     # By squaring both sides we see that t is a solution of the quadratic equation
-    # a t^2 + 2b t + c - (radius1 + radius2)^2 == 0.
+    # a t^2 + 2 b t + c - (radius1 + radius2)^2 == 0.
     # Depending on the value of the discriminant delta = b'^2 - 4 a c', we can have:
     # - no solution (when the balls miss),
     # - one solution (when the balls slide past each other, this is not a collision),
@@ -63,53 +112,65 @@ def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2, t_eps=-1e-10):
     if delta_over_4 <= 0:
         return INF  # no collision if the balls miss or slide past each other
 
+    # The sign of c - (radius1 + radius2)^2 determines if the balls overlap:
+    # c_minus_r2 < 0: the balls overlap,
+    # c_minus_r2 == 0: the balls touch,
+    # c_minus_r2 > 0: there is a gap separating the balls
+    # In practice, we don't want to check c_minus_r2 against zero because the least
+    # significant bits of the position vectors may be inaccurate. Instead we propagate
+    # the uncertainty of position 2**(pos_unreliable_ulps - 1) * ulp(pos[i]) and check
+    # against the error of dist_sqrd. To propagate the absolute errors, we use
+    # (x + x_err) + (y + y_err) = (x + y) + (x_err + y_err)
+    # (x + x_err) - (y + y_err) = (x - y) + (x_err + y_err)
+    # (x + x_err) * (y + y_err) = (x * y) + (|x| * y_err + |y| * x_err) + (negligible)
+    # (x + x_err) ** n = x ** n + n * |x| * x_err + (negligible), n > 0
+    # Finally, we multiply the error by (1 + eps) for some small eps to account for
+    # rounding errors of the operations +, - and *.
+    # I chose eps = 0.0001 / 2 to avoid a line break. In theory, a much smaller value
+    # should also work.
+    dpos_x_err = 2 ** (pos_unreliable_ulps - 1) * (ulp(pos1[0]) + ulp(pos2[0]))
+    dpos_y_err = 2 ** (pos_unreliable_ulps - 1) * (ulp(pos1[1]) + ulp(pos2[1]))
+    dist_sqrd_err = 2.0001 * (abs(dpos[0]) * dpos_x_err + abs(dpos[1]) * dpos_y_err)
+
+    # Return infinity if we can prove that the balls will not collide in
+    # the present or the future
+    if c_minus_r2 < -dist_sqrd_err:  # equivalent: toi + toi_err < 0
+        return INF
+
     # Write out the solutions t12 = (-b -+ sqrt(delta_over_4)) / a. Since t1 < t2
     # the time of impact is t1 and we don't actually need to compute t2.
     # t1 = (-pos_dot_vel - sqrt(delta_over_4)) / speed_sqrd
     # t2 = (-pos_dot_vel + sqrt(delta_over_4)) / speed_sqrd
 
-    # Alternative for computing t1: compute t2 which is not affected by cancellation
-    # of significant digits (because -b > 0 and sqrt(...) > 0), then use that from
+    # A better way to compute t1 with minimal rounding error goes as follows:
+    # First, compute t2 which is not affected by cancellation of significant digits
+    # (because -b > 0 and sqrt(...) > 0). Then use that from
     # a (t - t1) (t - t2) = a t^2 - a (t1 + t2) t + a t1 t2 == a t^2 + 2b t + c
-    # we can derive t1 = c / (a t2), but this only works if t2 is not zero.
-    # Note that pos_dot_vel != sqrt(delta_over_4), because pos_dot_vel < 0
-    t1 = c_minus_r2 / (-pos_dot_vel + sqrt(delta_over_4))
-    # and t2 = (-pos_dot_vel + sqrt(delta_over_4)) / speed_sqrd
-
-    # Note that t2 >= 0 (because sqrt(b'^2-4ac') >= sqrt(b'^2) = b'). If t1 is negative,
-    # then t1 < 0 <= t2 which means that the balls overlap. This doesn't count as
-    # a collision, so we return infinity.
-    # However, if t1 is close to zero, then a valid collision might have
-    # happened and we miss it just because of rounding errors. That's why we
-    # check t1 >= t_eps (note t_eps < 0) instead of t1 >= 0.
-    return t1 if t1 >= t_eps else INF
+    # we can derive t1 = c / (a t2) when t2 is not zero.
+    # Note that pos_dot_vel != sqrt(delta_over_4) because pos_dot_vel < 0
+    return c_minus_r2 / (-pos_dot_vel + sqrt(delta_over_4))
 
 
-def toi_ball_point(pos, vel, radius, point, t_eps=-1e-10):
+def toi_ball_point(pos, vel, radius, point, pos_unreliable_ulps=1):
     """Calculate the time of impact of a moving ball and a static point.
 
-    A ball containing the point is not colliding with it (because the
-    collision has already occurred). But due to rounding errors, we
-    could miss a collision if the point is very close to the boundary of
-    the ball and the ball is moving towards the point. Setting ``t_eps``
-    to a small negative value will catch this potential collision.
-
-    This function is equivalent to (but slightly faster than)
-    ``toi_ball_ball(pos, vel, radius, point, (0, 0), 0, t_eps)``.
+    This function is similar to (but slightly faster than)
+    ``toi_ball_ball(pos, vel, radius, point, (0, 0), 0, pos_unreliable_ulps)``
+    except that here we assume that all digits of `point` are accurate.
+    See the documentation of `toi_ball_ball` for more information.
 
     Args:
         pos: Center of the ball.
         vel: Velocity of the ball.
         radius: Radius of the ball.
         point: Position of the point.
-        t_eps (optional): Return infinity if the calculated time of
-            impact is less than ``t_eps``. Ideally we should use
-            ``t_eps = 0.0``, but to account for rounding errors a value
-            slightly lower than zero is more useful in practice.
-            Default: -1e-10.
+        pos_unreliable_ulps (optional): The number of least significant
+            bits in the position vector `pos` that may not be accurate.
+            Default: 1 (i.e., only the last bit may not be accurate).
 
     Returns:
-        Time of impact, which is infinite if there is no collision.
+        Time of impact, is infinite if there is no collision at the
+        present or a future time.
     """
     if radius == 0:
         return INF  # point particles cannot collide with a point
@@ -133,21 +194,27 @@ def toi_ball_point(pos, vel, radius, point, t_eps=-1e-10):
     if delta_over_4 <= 0:
         return INF
 
-    t = c_minus_r2 / (-pos_dot_vel + sqrt(delta_over_4))
-    return t if t >= t_eps else INF
+    # Progate uncertainty of pos, analogous to toi_ball_ball
+    dpos_x_err = 2 ** (pos_unreliable_ulps - 1) * ulp(pos[0])
+    dpos_y_err = 2 ** (pos_unreliable_ulps - 1) * ulp(pos[1])
+    dist_sqrd_err = 2.0001 * (abs(dpos[0]) * dpos_x_err + abs(dpos[1]) * dpos_y_err)
+
+    # Return infinity if we can prove that the ball will not collide in
+    # the present or the future
+    if c_minus_r2 < -dist_sqrd_err:  # equivalent: toi + toi_err < 0
+        return INF
+
+    return c_minus_r2 / (-pos_dot_vel + sqrt(delta_over_4))
 
 
-def toi_ball_disk_exterior(pos, vel, radius, disk_center, disk_radius, t_eps=-1e-10):
+def toi_ball_disk_exterior(
+    pos, vel, radius, disk_center, disk_radius, pos_unreliable_ulps=1
+):
     """Calculate the time of impact of a moving ball and the exterior of a disk.
 
-    Balls can collide with the disk exterior only from the inside of the
-    disk and only if they fit inside it (i.e. `ball radius < disk
-    radius`).
-
-    A ball already overlapping the exterior is not colliding with it.
-    But due to rounding errors, we could miss a collision if the ball is
-    very close to the boundary of the disk. Setting ``t_eps`` to a small
-    negative value will catch this potential collision.
+    Balls can collide with the exterior of the disk only from the inside
+    of the disk and only if they fit inside it (i.e., if ball radius <
+    disk radius).
 
     Args:
         pos: Center of the ball.
@@ -155,14 +222,15 @@ def toi_ball_disk_exterior(pos, vel, radius, disk_center, disk_radius, t_eps=-1e
         radius: Radius of the ball.
         disk_center: Center of the disk.
         disk_radius: Radius of the disk.
-        t_eps (optional): Return infinity if the calculated time of
-            impact is less than ``t_eps``. Ideally we should use
-            ``t_eps = 0.0``, but to account for rounding errors a value
-            slightly lower than zero is more useful in practice.
-            Default: -1e-10.
+        pos_unreliable_ulps (optional): The number of least significant
+            bits in the position vector `pos` that may not be accurate.
+            We assume that all bits of `disk_center` are accurate.
+            For an explanation see the documentation of `toi_ball_ball`.
+            Default: 1 (i.e., only the last bit may not be accurate).
 
     Returns:
-        Time of impact, which is infinite if there is no collision.
+        Time of impact, is infinite if there is no collision at the
+        present or a future time.
     """
     if disk_radius <= radius:
         return INF  # no collision if the ball is larger than the disk
@@ -194,13 +262,23 @@ def toi_ball_disk_exterior(pos, vel, radius, disk_center, disk_radius, t_eps=-1e
     # in the t1-computation => t1 has more significant digits
 
     if pos_dot_vel <= 0:  # equivalent: abs(t1) < abs(t2)
-        t2 = (-pos_dot_vel + sqrt(delta_over_4)) / speed_sqrd
+        # Note that due to the sign of pos_dot_vel and sqrt the collision time is
+        # guaranteed to be >= 0.0
+        return (-pos_dot_vel + sqrt(delta_over_4)) / speed_sqrd
     else:
+        # Progate uncertainty of pos, analogous to toi_ball_ball
+        dpos_x_err = 2 ** (pos_unreliable_ulps - 1) * ulp(pos[0])
+        dpos_y_err = 2 ** (pos_unreliable_ulps - 1) * ulp(pos[1])
+        dist_sqrd_err = 2.0001 * (abs(dpos[0]) * dpos_x_err + abs(dpos[1]) * dpos_y_err)
+
+        # Return infinity if we can prove that the ball will not collide in
+        # the present or the future
+        if c_minus_r2 > dist_sqrd_err:  # equivalent: toi + toi_err < 0
+            return INF
+
         # Use the t2 = c / (a t1) trick to get the same number of significant digits
         # as in t1
-        t2 = c_minus_r2 / (-pos_dot_vel - sqrt(delta_over_4))
-
-    return t2 if t2 >= t_eps else INF
+        return c_minus_r2 / (-pos_dot_vel - sqrt(delta_over_4))
 
 
 def toi_ball_circle(pos, vel, radius, circle_center, circle_radius, t_eps=0.0):
