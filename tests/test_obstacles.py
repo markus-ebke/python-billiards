@@ -7,6 +7,7 @@ from numpy.testing import assert_allclose
 from pytest import approx
 
 from billiards.obstacles import Circle, Disk, InfiniteWall, LineSegment
+from billiards.physics import set_pos_accuracy
 
 INF = float("inf")
 
@@ -56,7 +57,10 @@ def test_disk():
     pos, vel, r = (-10, 0), (1, 0), 1
     t, args = d.detect_collision(pos, vel, r)
     assert (t, args) == (8.0, ()), (pos, vel, r)
+
     upos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
+    assert upos[0] ** 2 + upos[1] ** 2 == approx((d.radius + r) ** 2), upos
+
     uvel = d.resolve_collision(upos, vel, r)
     assert tuple(uvel) == (-1, 0)
     assert d.detect_collision(upos, uvel, 1) == (INF, ())
@@ -65,10 +69,51 @@ def test_disk():
     t_ref = -2 * sqrt(1 - 24 * vel[1] ** 2) / (vel[1] ** 2 + 1) + 10 / (vel[1] ** 2 + 1)
     t, args = d.detect_collision(pos, vel, r)
     assert (t, args) == (t_ref, ()), (pos, vel, r)
+
     upos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
+    assert upos[0] ** 2 + upos[1] ** 2 == approx((d.radius + r) ** 2), upos
+
     uvel = d.resolve_collision(upos, vel, r)
     assert tuple(uvel) == approx((-0.663553336824114, 0.753632159610709), abs=1e-15)
     assert d.detect_collision(upos, uvel, 1) == (INF, ())
+
+
+def test_disk_exterior():
+    d = Disk((1.7, 2.3), 3, no_go="outside")
+
+    # check properties
+    assert tuple(d.center) == (1.7, 2.3)
+    assert d.radius == 3
+    assert d.no_go == "outside"
+
+    # check time of impact, velocity after collision and new time of impact
+    pos, vel, r = (0, 0), (1, 1), 1
+    t, args = d.detect_collision(pos, vel, r)
+    assert (t, args) == (approx(2 + sqrt(191) / 10), ()), (pos, vel, r)
+
+    upos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
+    assert (upos[0] - 1.7) ** 2 + (upos[1] - 2.3) ** 2 == approx((3 - r) ** 2)
+
+    uvel = d.resolve_collision(upos, vel, r)
+    assert tuple(uvel) == approx((-0.91 - 0.03 * sqrt(191), -0.91 + 0.03 * sqrt(191)))
+    assert d.detect_collision(upos, uvel, 1) == (approx(sqrt(191) / 5), ())
+
+    # "slide" along the inner boundary
+    pos, vel, r = (1.7, 2.3 - 3 + 2e-8), (1, 0), 1e-8
+    for i in range(100):
+        t, args = d.detect_collision(pos, vel, r)
+        if i == 0:
+            assert t == approx(sqrt(599999997) / 100000000)
+        else:
+            assert t == approx(2 * sqrt(599999997) / 100000000)
+
+        upos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
+        assert (upos[0] - 1.7) ** 2 + (upos[1] - 2.3) ** 2 == approx((3 - r) ** 2)
+
+        uvel = d.resolve_collision(upos, vel, r)
+        assert uvel[0] ** 2 + uvel[1] ** 2 == approx(1.0), uvel
+
+        pos, vel = upos, uvel
 
 
 def test_circle():
@@ -163,6 +208,7 @@ def test_circle():
 
     assert c.detect_collision(collpos, collvel, 0.0)[0] == INF
 
+    set_pos_accuracy(52 - 1)
     for dx in [1e-3, 1e-6, 1e-9, 1e-12, 2**-40, 2**-50, 2**-51]:
         for vx in [2.5, 1e-3, 1e-6, 1e-9, 1e-12, 1e-15]:
             pos, vel = ((1 - sqrt(1 / 2) - dx), sqrt(1 / 2)), (vx, 0)

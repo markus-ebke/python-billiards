@@ -13,8 +13,8 @@ from .physics import (
     INF,
     elastic_collision,
     toi_and_param_ball_segment,
-    toi_ball_ball,
     toi_ball_circle,
+    toi_ball_disk,
     toi_ball_disk_exterior,
     toi_ball_point,
 )
@@ -80,7 +80,7 @@ class Disk(Obstacle):
     def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the disk."""
         if self.no_go == "inside":
-            t = toi_ball_ball(pos, vel, radius, self.center, (0, 0), self.radius)
+            t = toi_ball_disk(pos, vel, radius, self.center, self.radius)
         else:
             t = toi_ball_disk_exterior(pos, vel, radius, self.center, self.radius)
         return t, ()
