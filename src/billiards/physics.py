@@ -405,6 +405,62 @@ def toi_ball_circle(pos, vel, radius, circle_center, circle_radius):
         return toi_ball_disk_exterior(pos, vel, radius, circle_center, circle_radius)
 
 
+def toi_and_param_ball_line_onesided(pos, vel, radius, line_point, line_normal):
+    """Calculate the time of impact of a moving ball and a halfplane.
+
+    The halfplane is an infinite line that detects collisions only from
+    one side.
+
+    Args:
+        pos: Center of the ball.
+        vel: Velocity of the ball.
+        radius: Radius of the ball.
+        line_point: A point on the boundary of the halfplane. Ideally,
+            it should be a point that is close to the origin (to
+            minimize rounding errors).
+        line_normal: The normal vector perpendicular to the boundary,
+            pointing towards the outside (the allowed area) of the
+            halfplane. The input vector must be normalized (have a
+            euclidean length of 1), otherwise the computed time is not
+            correct.
+
+    Returns:
+        Time of impact, is infinite if there is no collision at the
+        present or a future time.
+    """
+    # vel_normal: speed away from the wall, is negative if the ball
+    # moves toward the no-go area and positive if it moves away from it
+    vel_normal = line_normal.dot(vel)
+    if vel_normal >= 0:
+        # No collision if the ball doesn't move towards the halfplane
+        return INF, (vel_normal,)
+
+    # Compute the relative position between the ball and the halfplane
+    dpos = np.subtract(pos, line_point)
+    dpos_x_err = POS_RELIABLE_BITS * ulp(pos[0]) + ulp(line_point[0]) / 2
+    dpos_y_err = POS_RELIABLE_BITS * ulp(pos[1]) + ulp(line_point[1]) / 2
+
+    dpos_normal = line_normal.dot(dpos)
+    dpos_normal_err = (
+        abs(line_normal[0]) * dpos_x_err
+        + ulp(line_normal[0]) / 2 * abs(dpos[0])
+        + abs(line_normal[1]) * dpos_y_err
+        + ulp(line_normal[1]) / 2 * abs(dpos[1])
+    )
+
+    if dpos_normal - radius < -(dpos_normal_err + ulp(radius) / 2):
+        # No collision because we can prove that the ball already overlaps the halfplane
+        return INF, (vel_normal,)
+
+    # The ball collides with the wall when the gap between ball and
+    # wall becomes equal to the ball radius:
+    # <normal, dpos + t * vel> == radius
+    # Rearranged: <normal, dpos> - radius == - t * <normal, vel>,
+    # note that <normal, dpos> - radius is the size of the gap and
+    # -<normal, vel> is the speed of closing the gap.
+    return -(dpos_normal - radius) / vel_normal, (vel_normal,)
+
+
 def toi_and_param_ball_segment(
     pos, vel, radius, line_start, covector, normal, t_eps=-1e-10
 ):

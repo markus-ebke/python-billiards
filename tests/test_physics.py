@@ -7,6 +7,7 @@ from pytest import approx
 from billiards.physics import (
     elastic_collision,
     set_pos_accuracy,
+    toi_and_param_ball_line_onesided,
     toi_and_param_ball_segment,
     toi_ball_ball,
     toi_ball_circle,
@@ -625,6 +626,50 @@ def test_toi_ball_circle_error():
         pos, vel = circle_center + (5 - eps, 0), (0, 1)
         t = sqrt(-eps * (eps - 10))
         assert toi(pos, vel, 0) == approx(t, abs=2e-8), eps  # slide inside
+
+
+def test_toi_and_param_ball_line_onesided():
+    start, end = np.asarray([0, 1]), np.asarray([1, 0])
+    direction = end - start
+    normal = np.asarray([-direction[1], direction[0]])  # to the right (no-go: left)
+    normal = normal / np.linalg.norm(normal)
+
+    # for convenience
+    def toi(pos, vel, radius, ubits=1):
+        set_pos_accuracy(52 - ubits)
+        return toi_and_param_ball_line_onesided(pos, vel, radius, start, normal)
+
+    # check time of impact from outside going in
+    assert toi((1, 11), (0, -1), sqrt(2)) == (approx(9), (approx(-sqrt(1 / 2)),))
+    assert toi((-99, 111), (0, -1), sqrt(2)) == (approx(9), (approx(-sqrt(1 / 2)),))
+    assert toi((101, -89), (0, -1), sqrt(2)) == (approx(9), (approx(-sqrt(1 / 2)),))
+    assert toi((1, 11), (1, -2), sqrt(2)) == (approx(9), (approx(-sqrt(1 / 2)),))
+
+    # check that time of impact for inside going out is infinite
+    assert toi((0, -10), (0, 1), 1)[0] == INF
+    assert toi((0, -10), (1, 0), 1)[0] == INF
+    assert toi((0, -10), (0, -1), 1)[0] == INF
+
+    # check that time of impact for outside going away is infinite
+    assert toi((2, 2), (0, 1), sqrt(2))[0] == INF
+
+    # check problematic cases
+    assert toi((1, 2), (0, -1), sqrt(2)) == (
+        approx(0.0, abs=1e-15),
+        (approx(-sqrt(1 / 2)),),
+    )  # touching and colliding
+    assert toi((1, 2), (0, 1), sqrt(2))[0] == INF  # touching but not colliding
+    assert toi((1, 1), (0, -1), sqrt(2))[0] == INF  # overlap but not colliding
+
+    # check point particles
+    assert toi((0, 2), (0, -1), 0) == (approx(1.0, abs=1e-15), (approx(-sqrt(1 / 2)),))
+    assert toi((0, 1), (0, -1), 0) == (approx(0.0, abs=1e-15), (approx(-sqrt(1 / 2)),))
+    assert toi((0, 1 + 2**-50), (0, -(2**-30)), 0, ubits=1) == (
+        approx(2**-20),
+        (approx(-sqrt(1 / 2) * 2**-30),),
+    )
+    assert toi((0, 0), (0, -1), 0)[0] == INF
+    assert toi((0, 0), (0, 1), 0)[0] == INF
 
 
 def test_toi_ball_segment():

@@ -10,8 +10,8 @@ from math import isinf, sqrt
 import numpy as np
 
 from .physics import (
-    INF,
     elastic_collision,
+    toi_and_param_ball_line_onesided,
     toi_and_param_ball_segment,
     toi_ball_circle,
     toi_ball_disk,
@@ -137,40 +137,23 @@ class InfiniteWall(Obstacle):
 
         dx, dy = self.end_point - self.start_point
         if dx == 0.0 and dy == 0.0:
-            raise ValueError("this is not a line")
+            raise ValueError("start and end are the same point, this is not a line")
 
-        # normal = vector perpendicular to the wall, used for collision
-        self._normal = np.asarray([-dy, dx])  # normal on the left
-        self._normal = self._normal / np.linalg.norm(self._normal)
-
-        if no_go == "left":
-            self._normal *= -1  # switch normal to the other side
-        elif not no_go == "right":
-            # if inside is not "left", then it MUST be "right"
+        # The normal vector is perpendicular to the wall and points towards the allowed
+        # area (so that normal.dot(pos) is the signed distance to the wall)
+        if no_go == "right":
+            self._normal = np.asarray([-dy, dx])
+        elif no_go == "left":
+            self._normal = np.asarray([dy, -dx])
+        else:
             raise ValueError(f'no_go must be "left" or "right", not {no_go}')
+        self._normal = self._normal / np.linalg.norm(self._normal)
 
     def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the wall."""
-        # vel_normal: speed away from the wall, is positive if the ball
-        # moves away and negative if it moves toward the no-go area
-        vel_normal = self._normal.dot(vel)
-        if vel_normal >= 0:
-            # No collision if the ball doesn't move towards the wall
-            return INF, (vel_normal,)
-
-        # Compute the relative position between the ball and the wall
-        dpos = np.subtract(pos, self.start_point)
-
-        # The ball collides with the wall when the gap between ball and
-        # wall becomes equal to the ball radius:
-        # <normal, dpos + t * vel> == radius
-        # Rearranged: <normal, dpos> - radius == - t * <normal, vel>,
-        # note that <normal, dpos> - radius is the size of the gap and
-        # <normal, vel> is the speed of closing the gap.
-        t = -(self._normal.dot(dpos) - radius) / vel_normal
-
-        t_eps = 0.0  # t negative => ball overlaps with wall => no collision
-        return t if t >= t_eps else INF, (vel_normal,)
+        return toi_and_param_ball_line_onesided(
+            pos, vel, radius, self.start_point, self._normal
+        )
 
     def resolve_collision(self, pos, vel, radius, vel_normal):
         """Calculate the velocity of a ball after colliding with the wall."""

@@ -237,13 +237,17 @@ def test_infinite_wall():
     assert tuple(w.end_point) == (1.0, 0.0)
     assert tuple(w._normal) == (0.0, 1.0)
 
-    # check time of impact from inside
+    # check time of impact from outside going in
     assert w.detect_collision((0, 10), (0, -1), 1) == (9, (-1.0,))
     assert w.detect_collision((-100, 10), (0, -1), 1) == (9, (-1.0,))
     assert w.detect_collision((0, 10), (100, -1), 1) == (9, (-1.0,))
 
+    # check that time of impact for inside going out is infinite
+    assert w.detect_collision((0, -10), (0, 1), 1)[0] == INF
+    assert w.detect_collision((0, -10), (1, 0), 1)[0] == INF
+    assert w.detect_collision((0, -10), (0, -1), 1)[0] == INF
+
     # check problematic cases
-    assert w.detect_collision((0, -10), (0, 1), 1)[0] == INF  # coming from the outside
     assert w.detect_collision((0, 10), (0, -1), 10) == (
         0,
         (-1.0,),
