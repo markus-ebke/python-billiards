@@ -14,12 +14,12 @@ import billiards
 import billiards.visualize_matplotlib as visualize
 
 # setup the billiard table
-width, length = 112, 224
+breadth, length = 112, 224
 bounds = [
     billiards.InfiniteWall((0, 0), (length, 0)),  # bottom side
-    billiards.InfiniteWall((length, 0), (length, width)),  # right side
-    billiards.InfiniteWall((length, width), (0, width)),  # top side
-    billiards.InfiniteWall((0, width), (0, 0)),  # left side
+    billiards.InfiniteWall((length, 0), (length, breadth)),  # right side
+    billiards.InfiniteWall((length, breadth), (0, breadth)),  # top side
+    billiards.InfiniteWall((0, breadth), (0, 0)),  # left side
 ]
 bld = billiards.Billiard(obstacles=bounds)
 
@@ -28,11 +28,11 @@ radius = 2.85
 for i in range(5):
     for j in range(i + 1):
         x = 0.75 * length + radius * sqrt(3) * i
-        y = width / 2 + radius * (2 * j - i)
+        y = breadth / 2 + radius * (2 * j - i)
         bld.add_ball((x, y), (0, 0), radius)
 
 # add the white ball and give it a push
-bld.add_ball((0.25 * length, width / 2), (length / 3, 0), radius)
+bld.add_ball((0.25 * length, breadth / 2), (length / 3, 0), radius)
 
 # start the animation
 anim, fig, ax = visualize.animate(bld, end_time=30, figsize=(10, 5.5))

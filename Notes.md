@@ -11,8 +11,9 @@ A list of features that might be useful, but for which I have no time or interes
 - Add `max_ball_collisions` parameter to `Billiard.evolve` as alternative stopping condition (int: total number of collisions, tuple: ball-ball and ball-obstacle collisions). Compare https://github.com/ssnl/python-billiards/commit/a862f1fe9984f974b229f2a05f6aaff8794a341a
 - Make Simulation attributes readonly / automatically recalculate toi after changing position, velocity or radius
 - Make `_obstacles_toi` and `_obstacle_obs` public (i.e. without underscore)? Also rename them?
-- ParticleBilliard: Simulate point particles that only collide with the obstacles, use parallelization in evolve
-- Write time-intensive functions in Cython (better: convert the whole Simulation class to Cython and use prange where possible)
+- Add ParticleBilliard: Simulate point particles that only collide with the obstacles, use parallelization in evolve
+- Rename class Billiard to BallBilliard, but set Billiard = BallBilliard to convencience
+- Write time-intensive functions in Cython (better: convert the whole Billiard class to Cython and use prange where possible?)
 
 ## Improve documentation
 - Get Sphinx autodoc to document a class's __init__ method
@@ -51,17 +52,20 @@ A list of features that might be useful, but for which I have no time or interes
 ## More obstacles
 - Implement as class Rotation(Obstacle) with `__init__(obstacle, angle)`, in `detect_collision` and `collide` inversely rotates the ball and then call the obstacle method.
 - The pos argument for Obstacle.resolve_collision is mutable. This could be used to teleport balls at collision, e.g. to create a box with periodic boundary conditions or portal objects.
+- Modify the pos argument to place the ball such that it really touches the obstacle to prevent accumulation of accuracy errors
 
-Regions in 1D (collisions from both sides):
-- InfiniteLine(point1, point2) and InfiniteLine(point1, None, direction)
-- HalfLine(point1, point2) and HalfLine(point1, None, direction) (semi-infinite line)
+Regions in 1D (collisions from both sides, no_go="none"):
+- LineSegment(line_start, line_stop, no_go="none") (two-sided line segment)
+- InfiniteLine(point1, point2, no_go="none") or InfiniteLine(point1, None, direction, no_go="none") (two-sided infinite line)
+- HalfLine(point1, point2) and HalfLine(point1, None, direction) (semi-infinite line) (alternative name: Ray or InfiniteRay)
 - PolyLine(list of points) (last point = first point => closed polyline)
-- Circle(center, radius=radius or (radius_x, radius_y)) (for circles and ellipses)
+- Circle(center, radius=radius or (radius_x, radius_y), no_go="none") (for circles and ellipses)
 - Arc(center, radius=radius or (radius_x, radius_y), start_angle, stop_angle) (for circular and elliptic arcs)
 - Reference: DynamicalBilliards.jl, https://reference.wolfram.com/language/guide/GeometricSpecialRegions.html "Regions in 1D"
 
-Regions in 2D (no_go="outside" or "inside"):
-- Halfplane(point, normal) (normal points towards the outside)
+Regions in 2D (no_go="outside" or "inside" for implicit regions, "left" or "right" for poly-lines):
+- LineSegment(line_start, line_stop, no_go="left" or "right") or LineSegment(line_start, None, normal, length) (one-sided line segment)
+- Halfplane(point, normal) or InfiniteLine(point1, point2, no_go="left" or "right") or InfiniteLine(point1, None, direction, no_go="left" or "right") (normal points towards the outside)
 - Triangle(point1, point2, point3, no_go="outside" or "inside" or "left" or "right")
 - Rectangle(bottomleft, topright) (supports corner points at infinity)
 - Polygon(list of points, no_go="left" or "right") (built from finite lines, how to treat holes if polyline is self-intersecting?)
@@ -126,7 +130,6 @@ Conventions:
 - Particles with no radius are point particles
 - Particles with zero mass are massless and don't push others around
 - Particles with infinite mass are not pushed around by other particles
-- Obstacles always have an inside and an outside, collision happens only when a ball comes from the inside and moves towards the outside. This is because point particles on the obstacle
 
 Links:
 - Billiards in Julia: https://juliadynamics.github.io/DynamicalBilliards.jl/dev/

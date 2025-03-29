@@ -693,7 +693,7 @@ ESC: Close window and exit"""
 
     def on_draw(self):
         """Redraw the window contents."""
-        tic = clock()
+        tick = clock()
         self.clear()
 
         # Update data on the GPU (if needed)
@@ -713,8 +713,8 @@ ESC: Close window and exit"""
             self.obs_batch.draw()
             self.ball_batch.draw()
 
-        toc = clock()
-        self.timing_draw.append(toc - tic)
+        tock = clock()
+        self.timing_draw.append(tock - tick)
 
         # Draw GUI
         self.gui_batch.draw()
@@ -760,11 +760,11 @@ ESC: Close window and exit"""
 
     def _update_simulation(self, dt):
         if self.running or self.advance_one_frame:
-            tic = clock()
+            tick = clock()
             timestep = self.simulation_speed * dt
             collisions = self.billiard.evolve(self.billiard.time + timestep)
-            toc = clock()
-            self.timing_simulate.append(toc - tic)
+            tock = clock()
+            self.timing_simulate.append(tock - tick)
 
             self.collision_count[0] += collisions[0]
             self.collision_count[1] += collisions[1]
@@ -774,12 +774,12 @@ ESC: Close window and exit"""
             self._stale_position = True
         elif self.advance_to_next_collision:
             if self.billiard.next_collision[0] < float("inf"):
-                tic = clock()
+                tick = clock()
                 start_time = self.billiard.time
                 collisions = self.billiard.evolve(self.billiard.next_collision[0])
                 timestep = self.billiard.time - start_time
-                toc = clock()
-                self.timing_simulate.append(toc - tic)
+                tock = clock()
+                self.timing_simulate.append(tock - tick)
 
                 self.collision_count[0] += collisions[0]
                 self.collision_count[1] += collisions[1]

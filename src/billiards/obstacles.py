@@ -23,7 +23,7 @@ from .physics import (
 class Obstacle:  # pragma: no cover
     """Obstacle base class.
 
-    Subclasses must implement the ``detect_collision`` and ``resolve_collision``
+    Subclasses must implement the `detect_collision` and `resolve_collision`
     methods.
     """
 
@@ -36,33 +36,44 @@ class Obstacle:  # pragma: no cover
             radius: Ball radius.
 
         Returns:
-            A tuple ``(t, args)``, where ``t`` (a float) is the time until the ball
-            collides with this obstacle. If there is no collision, ``t`` should be
-            infinite. The tuple ``args`` contains optional arguments for the
-            ``resolve_collision`` method. These arguments will be unpacked, i.e. if the
-            resolve method needs no optional arguments, then ``args`` should be ``()``
-            (an empty tuple).
+            A tuple ``(t, args)``, where ``t`` (a float) is the time until
+            the ball collides with this obstacle. If there is no collision
+            in the present or the future, then ``t`` is infinite. The tuple
+            ``args`` contains optional arguments for the `resolve_collision`
+            method. These arguments will be unpacked. In particular,
+            ``args`` is an empty tuple if the resolve method needs no
+            optional arguments.
         """
         raise NotImplementedError("Subclasses should implement this!")
 
     def resolve_collision(self, pos, vel, radius, *args):
         """Calculate the velocity of a ball after colliding with this obstacle.
 
+        The velocity after an elastic collision is::
+
+            vel - 2 * normal.dot(vel) * normal
+
+        where ``normal`` is a unit vector perpendicular to the boundary
+        of the obstacle at the location where the ball touches. (The normal
+        points away from the obstacle.)
+
         Args:
-            pos: Center of the ball.
+            pos: Center of the ball at the moment of collision.
             vel: Velocity of the ball before the impact.
             radius: Ball radius.
             *args: Optional arguments for more collision info.
 
         Returns:
-            The velocity of the ball after the impact as a numpy array of the form
-            np.ndarray(shape=(2,), dtype=np.float64).
+            The velocity of the ball after the impact as a numpy array of
+            the form np.ndarray(shape=(2,), dtype=np.float64).
         """
+        # Compute normal of obstacle boundary at the location where the ball
+        # touches, then return vel - 2 * normal.dot(vel) * normal
         raise NotImplementedError("Subclasses should implement this!")
 
 
 class Disk(Obstacle):
-    """A circluar obstacle where balls are not allowed on the inside.
+    """A circular obstacle where balls are not allowed on the inside or the outside.
 
     To create a circular hole where balls are not allowed on the outside
     use ``no_go = "outside"`` when creating the obstacle.
@@ -91,11 +102,11 @@ class Disk(Obstacle):
         dpos = np.subtract(pos, self.center)
 
         # Compute the change in velocity (normal = dpos / |dpos|)
-        return vel - 2 * (dpos.dot(vel) * dpos) / dpos.dot(dpos)
+        return vel - 2 * dpos.dot(vel) * dpos / dpos.dot(dpos)
 
 
 class Circle(Obstacle):
-    """A circluar obstacle where balls can collide from the outside or the inside."""
+    """A circular obstacle where balls can collide from the outside or the inside."""
 
     def __init__(self, center, radius):
         """Create a circular obstacle with the given center and radius."""

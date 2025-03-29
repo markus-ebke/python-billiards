@@ -52,6 +52,11 @@ def test_disk():
     # check properties
     assert tuple(d.center) == (0, 0)
     assert d.radius == 1
+    assert d.no_go == "inside"
+
+    # check invalid argument for no_go
+    with pytest.raises(ValueError):
+        Disk((0, 0), 1, no_go="outer")
 
     # check time of impact, velocity after collision and new time of impact
     pos, vel, r = (-10, 0), (1, 0), 1

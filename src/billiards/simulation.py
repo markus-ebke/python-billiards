@@ -393,7 +393,7 @@ class Billiard:
                 callback is ignored.
 
         Returns:
-            A tuple containing he number of ball-ball and ball-obstacle collisions.
+            A tuple containing the number of ball-ball and ball-obstacle collisions.
         """
         if ball_callbacks is not None:
             if not isinstance(ball_callbacks, Mapping):

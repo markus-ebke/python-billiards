@@ -165,10 +165,8 @@ def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2):
     dist_sqrd_err = 2 * (abs(dpos[0]) * dpos_x_err + abs(dpos[1]) * dpos_y_err)
     rsum_sqrd_err = 2 * (radius1 + radius2) * (ulp(radius1) + ulp(radius2)) / 2
 
-    # Return infinity if we can prove that the balls will not collide in
-    # the present or the future
     if c_minus_r2 < -(dist_sqrd_err + rsum_sqrd_err):
-        return INF
+        return INF  # No collision because we can prove that the balls already overlap
 
     # Write out the solutions t12 = (-b -+ sqrt(delta_over_4)) / a. Since t1 < t2
     # the time of impact is t1 and we don't actually need to compute t2.
@@ -227,9 +225,8 @@ def toi_ball_disk(pos, vel, radius, disk_center, disk_radius):
     dist_sqrd_err = 2 * (abs(dpos[0]) * dpos_x_err + abs(dpos[1]) * dpos_y_err)
     rsum_sqrd_err = 2 * (radius + disk_radius) * (ulp(radius) + ulp(disk_radius)) / 2
 
-    # Return infinity if we can prove that the balls will not collide in
-    # the present or the future
     if c_minus_r2 < -(dist_sqrd_err + rsum_sqrd_err):
+        # No collision because we can prove that the ball already overlaps the disk
         return INF
 
     return c_minus_r2 / (-pos_dot_vel + sqrt(delta_over_4))
@@ -280,9 +277,8 @@ def toi_ball_point(pos, vel, radius, point):
     dist_sqrd_err = 2 * (abs(dpos[0]) * dpos_x_err + abs(dpos[1]) * dpos_y_err)
     radius_sqrd_err = 2 * radius * (ulp(radius) / 2)
 
-    # Return infinity if we can prove that the ball will not collide with
-    # the point in the present or the future
     if c_minus_r2 < -(dist_sqrd_err + radius_sqrd_err):
+        # No collision because we can prove that the ball already overlaps the point
         return INF
 
     return c_minus_r2 / (-pos_dot_vel + sqrt(delta_over_4))
@@ -349,9 +345,10 @@ def toi_ball_disk_exterior(pos, vel, radius, disk_center, disk_radius):
             2 * (disk_radius - radius) * (ulp(radius) + ulp(disk_radius)) / 2
         )
 
-        # Return infinity if we can prove that the ball will not collide with
-        # the disk in the present or the future
         if c_minus_r2 > dist_sqrd_err + rsum_sqrd_err:
+            # No collision because we can prove that the ball already overlaps the
+            # exterior of the disk (and because pos_dot_vel > 0 so it can only move
+            # further away from the center)
             return INF
 
         # Use the t2 = c / (a t1) trick to get the same number of significant digits

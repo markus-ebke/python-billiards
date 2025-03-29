@@ -9,7 +9,6 @@ The visualization modules have to be imported on their own::
     from billiards import visualize_matplotlib, visualize_pyglet
 """
 
-# Local
 from . import obstacles, physics, simulation
 from .obstacles import Circle, Disk, InfiniteWall, LineSegment
 from .simulation import Billiard
