@@ -8,7 +8,8 @@ from billiards.physics import (
     elastic_collision,
     set_pos_accuracy,
     toi_and_param_ball_line_onesided,
-    toi_and_param_ball_segment,
+    toi_and_param_ball_segment_onesided,
+    toi_and_param_ball_segment_twosided,
     toi_ball_ball,
     toi_ball_circle,
     toi_ball_disk,
@@ -672,53 +673,206 @@ def test_toi_and_param_ball_line_onesided():
     assert toi((0, 0), (0, 1), 0)[0] == INF
 
 
-def test_toi_ball_segment():
+def test_toi_and_param_ball_line_onesided_error():
+    start, end = np.asarray([0, 1]), np.asarray([1, 0])
+    direction = end - start
+    normal = np.asarray([-direction[1], direction[0]])  # to the right (no-go: left)
+    normal = normal / np.linalg.norm(normal)
+
+    # for convenience
+    def toi(pos, vel, radius, ubits=1):
+        set_pos_accuracy(52 - ubits)
+        return toi_and_param_ball_line_onesided(pos, vel, radius, start, normal)
+
+    # touching and colliding
+    assert toi((1, 2 - 2**-42), (0, -1), sqrt(2), ubits=1)[0] == INF
+    assert toi((1, 2 - 2**-42), (0, -1), sqrt(2), ubits=9)[0] == INF
+    assert toi((1, 2 - 2**-42), (0, -1), sqrt(2), ubits=11) == (
+        approx(-(2**-42), abs=1e-15),
+        (approx(-sqrt(1 / 2)),),
+    )
+
+    # touching but not colliding
+    assert toi((1, 2), (0, 1), sqrt(2), ubits=1)[0] == INF
+    assert toi((1, 2), (0, 1), sqrt(2), ubits=10)[0] == INF
+    assert toi((1, 2), (0, 1), sqrt(2), ubits=30)[0] == INF
+    assert toi((1, 2), (0, 1), sqrt(2), ubits=52)[0] == INF
+
+    # check touching and colliding for point particles
+    assert toi((0, 1 - 2**-43), (0, -1), 0, ubits=1)[0] == INF
+    assert toi((0, 1 - 2**-43), (0, -1), 0, ubits=9)[0] == INF
+    assert toi((0, 1 - 2**-43), (0, -1), 0, ubits=11) == (
+        approx(-(2**-43), abs=1e-15),
+        (approx(-sqrt(1 / 2)),),
+    )
+
+
+def test_toi_ball_segment_onesided():
+    start, end = np.asarray([0, 1]), np.asarray([1, 0])
+    direction = end - start
+    length_sqrd = direction.dot(direction)
+    normal = np.asarray([-direction[1], direction[0]]) / sqrt(length_sqrd)
+    covector = direction / length_sqrd
+
+    pos_init = np.asarray([0.3 + sqrt(1 / 2), 0.7 + sqrt(1 / 2) + 1])
+    ball = pos_init, (0, -1), 1
+    line = (start, end, normal, covector)
+    toi_and_param = approx(1.0), approx((-sqrt(1 / 2), 0.3))
+    assert toi_and_param_ball_segment_onesided(*ball, *line) == toi_and_param
+
+    # check that only relative coordinates are important
+    ball = (42, 0) + pos_init, (0, -1), 1
+    line = (start + (42, 0), end + (42, 0), normal, covector)
+    assert toi_and_param_ball_segment_onesided(*ball, *line) == toi_and_param
+
+    # check that scale doesn't matter
+    ball = 10 * pos_init, (0, -10), 10
+    line = (10 * start, 10 * end, normal, covector / 10)
+    toi_and_param = approx(1.0), approx((-10 * sqrt(1 / 2), 0.3))
+    assert toi_and_param_ball_segment_onesided(*ball, *line) == toi_and_param
+
+    # for convenience
+    def toi(pos, vel, radius, ubits=1):
+        set_pos_accuracy(52 - ubits)
+        return toi_and_param_ball_segment_onesided(
+            pos, vel, radius, start, end, normal, covector
+        )
+
+    # check that time of impact for inside going out is infinite
+    assert toi((0, -10), (0, 1), 1)[0] == INF
+    assert toi((0, -10), (1, 0), 1)[0] == INF
+    assert toi((0, -10), (0, -1), 1)[0] == INF
+
+    # check that time of impact for outside going away is infinite
+    assert toi((2, 2), (0, 1), sqrt(2))[0] == INF
+
+    # collision at left endpoint
+    r = 1 / 2
+    for a in [1e-10, 1 / 6, 1 / 4, pi / 2 - 1e-6, pi / 2]:
+        angle = 3 / 4 * pi - a
+        pos, vel = (0 + cos(angle), 1 + sin(angle)), (-cos(angle), -sin(angle))
+        assert toi(pos, vel, r) == (approx(1 - r), (approx(-sin(a)), approx(0))), a
+
+    for dx in [-r + 1e-10, -r / 2, r * sqrt(1 / 2) - 1e-10]:
+        pos, vel = (dx, 2), (0, -1)
+        t, (vel_normal, u) = toi(pos, vel, r)
+        assert t < 1.0, dx
+        assert vel_normal == approx(vel[1] * sqrt(1 / 2)), dx
+        assert u == 0, dx
+
+    # collision along the line
+    t_ref = 1.0
+    for r in [1.0, 0.1, 1e-8, 2**-40]:
+        pos_init = np.asarray([0.3 + r * sqrt(1 / 2), 0.7 + r * sqrt(1 / 2)])
+        for a in [3 / 4 * pi - 1e-8, pi / 2, 0, -pi / 4 + 1e-8]:
+            pos, vel = pos_init + (t_ref * cos(a), t_ref * sin(a)), (-cos(a), -sin(a))
+            t, (vel_normal, u) = toi(pos, vel, r)
+            assert t == approx(t_ref), (r, a)
+            assert u == approx(0.3), (r, a)
+
+    # collision along the line before collision with endpoint
+    for r in [1.0, 0.1, 1e-8]:
+        t, (vel_normal, u) = toi((2, 1), (-1, 0), r)
+        assert t == approx(2 - sqrt(2) * r), r
+        assert vel_normal == approx(-sqrt(1 / 2)), r
+        assert u == approx(sqrt(1 / 2) * r), r
+
+        t, (vel_normal, u) = toi((1, 2), (0, -1), r)
+        assert t == approx(2 - sqrt(2) * r), r
+        assert vel_normal == approx(-sqrt(1 / 2)), r
+        assert u == approx(1 - sqrt(1 / 2) * r), r
+
+    # miss
+    assert toi((0, 0), (0, 1), 1)[0] == INF
+    assert toi((-1, -1), (0, 1), 1)[0] == INF
+    assert toi((-1, 2), (1, -1), 1)[0] == INF
+
+
+def test_toi_and_param_ball_segment_onesided_error():
+    start, end = np.asarray([0, 1]), np.asarray([1, 0])
+    direction = end - start
+    length_sqrd = direction.dot(direction)
+    normal = np.asarray([-direction[1], direction[0]]) / sqrt(length_sqrd)
+    covector = direction / length_sqrd
+
+    # for convenience
+    def toi(pos, vel, radius, ubits=1):
+        set_pos_accuracy(52 - ubits)
+        return toi_and_param_ball_segment_onesided(
+            pos, vel, radius, start, end, normal, covector
+        )
+
+    # touching and colliding
+    assert toi((1, 2 - 2**-42), (0, -1), sqrt(2), ubits=1)[0] == INF
+    assert toi((1, 2 - 2**-42), (0, -1), sqrt(2), ubits=9)[0] == INF
+    assert toi((1, 2 - 2**-42), (0, -1), sqrt(2), ubits=11) == (
+        approx(-(2**-42), abs=1e-15),
+        (approx(-sqrt(1 / 2)), 0),
+    )
+
+    # touching but not colliding
+    assert toi((1, 2), (0, 1), sqrt(2), ubits=1)[0] == INF
+    assert toi((1, 2), (0, 1), sqrt(2), ubits=10)[0] == INF
+    assert toi((1, 2), (0, 1), sqrt(2), ubits=30)[0] == INF
+    assert toi((1, 2), (0, 1), sqrt(2), ubits=52)[0] == INF
+
+    # check touching and colliding for point particles
+    assert toi((0, 1 - 2**-43), (0, -1), 0, ubits=1)[0] == INF
+    assert toi((0, 1 - 2**-43), (0, -1), 0, ubits=9)[0] == INF
+    assert toi((0, 1 - 2**-43), (0, -1), 0, ubits=11) == (
+        approx(-(2**-43), abs=1e-15),
+        (approx(-sqrt(1 / 2)), 0),
+    )
+
+
+def test_toi_ball_segment_twosided():
     start, end = np.asarray([0, 0]), np.asarray([1, 0])
     direction = end - start
     length_sqrd = direction.dot(direction)
-    covector = direction / length_sqrd
     normal = np.asarray([-direction[1], direction[0]]) / sqrt(length_sqrd)
+    covector = direction / length_sqrd
 
-    line = (start, covector, normal)
-    assert toi_and_param_ball_segment((1 / 2, 2), (0, -1), 1, *line) == (1, 1 / 2)
+    ball = (1 / 2, 2), (0, -1), 1
+    line = (start, end, normal, covector)
+    assert toi_and_param_ball_segment_twosided(*ball, *line) == (1.0, (-1.0, 0.5))
 
     # check that only relative coordinates are important
-    line = (start + (42, 0), covector, normal)
-    assert toi_and_param_ball_segment((1 / 2 + 42, 2), (0, -1), 1, *line) == (1, 1 / 2)
+    ball = (1 / 2 + 42, 2), (0, -1), 1
+    line = (start + (42, 0), end + (42, 0), normal, covector)
+    assert toi_and_param_ball_segment_twosided(*ball, *line) == (1.0, (-1.0, 0.5))
 
     # check that scale doesn't matter
-    line = (10 * start, covector / 10, normal)
-    assert toi_and_param_ball_segment((5, 20), (0, -10), 10, *line) == (1, 1 / 2)
+    ball = (5, 20), (0, -10), 10
+    line = (10 * start, 10 * end, normal, covector / 10)
+    assert toi_and_param_ball_segment_twosided(*ball, *line) == (1.0, (-10.0, 0.5))
 
     # for convenience
-    def toi(pos, vel, radius, t_eps=-0.0):
-        return toi_and_param_ball_segment(
-            pos, vel, radius, start, covector, normal, t_eps
+    def toi(pos, vel, radius, ubits=1):
+        set_pos_accuracy(52 - ubits)
+        return toi_and_param_ball_segment_twosided(
+            pos, vel, radius, start, end, normal, covector
         )
 
     # no collision from left endpoint
     for a in [0, 1 / 6, 1 / 4, -1 / 2, pi / 2 - 1e-6, pi / 2]:
         pos, vel = (-cos(a), sin(a)), (cos(a), -sin(a))
-        # assert toi(pos, vel, 1 / 2) == (approx(0.5), 0), a  # with endpoints
-        assert toi(pos, vel, 1 / 2) == (INF, 0), a
+        assert toi(pos, vel, 1 / 2) == (approx(0.5), (vel[1], 0)), a
 
     pos, vel = (-sqrt(1 / 2) - 1, sqrt(1 / 2) - 1), (1, 1)
-    # assert toi(pos, vel, 1 + 1e-14) == (approx(1.0), 0)  # with endpoints
-    assert toi(pos, vel, 1 + 1e-14) == (INF, 0)
+    assert toi(pos, vel, 1 + 1e-14) == (approx(1.0), (vel[1], 0))
 
     pos, vel = (-sqrt(1 / 2) + 1, sqrt(1 / 2) + 1), (-1, -1)
-    # assert toi(pos, vel, 1 + 1e-14) == (approx(1.0), 0)  # with endpoints
-    assert toi(pos, vel, 1 + 1e-14) == (INF, 0)
+    assert toi(pos, vel, 1 + 1e-14) == (approx(1.0), (vel[1], 0))
 
-    # assert toi((-1, 1 - 1e-14), (1, 0), 1) == (approx(1.0), 0)  # with endpoints
-    assert toi((-1, 1 - 1e-14), (1, 0), 1) == (INF, 0)
+    assert toi((-1, 1 - 1e-14), (1, 0), 1) == (approx(1.0), (0.0, 0))
 
     # collision along the line
     for a in [pi / 2 + 1e-6, 5 / 6 * pi - 1e-15]:
         pos, vel = (-cos(a), sin(a)), (cos(a), -sin(a))
-        t, u = toi(pos, vel, 1 / 2)
+        t, (vel_normal, u) = toi(pos, vel, 1 / 2)
         t_ref = (pos[1] - 1 / 2) / (-vel[1])
         assert t == approx(t_ref), a
+        assert vel_normal == vel[1], a
         assert u is not None and 0 < u < 1, a
 
         ball_pos = np.asarray(pos) + t * np.asarray(vel)
@@ -728,82 +882,94 @@ def test_toi_ball_segment():
     # no collision at right endpoint
     for a in [0, 1 / 6, 1 / 4, -1 / 2, pi / 2 - 1e-6, pi / 2]:
         pos, vel = (-cos(a + pi) + 1, sin(a + pi)), (cos(a + pi), -sin(a + pi))
-        # assert toi(pos, vel, 1 / 2) == (approx(0.5), 1), a  # with endpoints
-        assert toi(pos, vel, 1 / 2) == (INF, 1), a
+        assert toi(pos, vel, 1 / 2) == (approx(0.5), (vel[1], 1)), a
 
     pos, vel = (1 + sqrt(1 / 2) + 1, sqrt(1 / 2) - 1), (-1, 1)
-    # assert toi(pos, vel, 1 + 1e-14) == (approx(1.0), 1)  # with endpoints
-    assert toi(pos, vel, 1 + 1e-14) == (INF, 1)
+    assert toi(pos, vel, 1 + 1e-14) == (approx(1.0), (vel[1], 1))
 
     pos, vel = (1 + sqrt(1 / 2) - 1, sqrt(1 / 2) + 1), (1, -1)
-    # assert toi(pos, vel, 1 + 1e-14) == (approx(1.0), 1)  # with endpoints
-    assert toi(pos, vel, 1 + 1e-14) == (INF, 1)
+    assert toi(pos, vel, 1 + 1e-14) == (approx(1.0), (vel[1], 1))
 
-    # assert toi((2, 1 - 1e-14), (-1, 0), 1) == (approx(1.0), 1)  # with endpoints
-    assert toi((2, 1 - 1e-14), (-1, 0), 1) == (INF, 1)
+    assert toi((2, 1 - 1e-14), (-1, 0), 1) == (approx(1.0), (0.0, 1))
 
     # collision along the line before collision with endpoint
-    assert toi((1, 1), (-1, -1), 1 / 2) == (approx(0.5), approx(1 / 2))
-    assert toi((1, 1), (-1, -1), 1 / 2) == (approx(0.5), approx(1 / 2))
+    assert toi((1, 1), (-1, -1), 1 / 2) == (approx(0.5), (-1.0, approx(1 / 2)))
+    assert toi((1, 1), (-1, -1), 1 / 2) == (approx(0.5), (-1.0, approx(1 / 2)))
 
     # miss
-    assert toi((-1, 0), (0, 1), 1) == (INF, 0)
-    assert toi((-1, -1), (0, 1), 1) == (INF, 0)
-    assert toi((-sqrt(1 / 2) - 1, sqrt(1 / 2) - 1), (1, 1), 1 - 1e-10) == (INF, 0)
-    assert toi((0.1, 1), (1, 0), 1) == (INF, None)  # slide
-    assert toi((-1, 1 + 1e-14), (1, 0), 1) == (INF, None)  # move parallel too far away
+    assert toi((-1, 0), (0, 1), 1) == (INF, (1.0, 0))
+    assert toi((-1, -1), (0, 1), 1) == (INF, (1.0, 0))
+    assert toi((-sqrt(1 / 2) - 1, sqrt(1 / 2) - 1), (1, 1), 1 - 1e-9) == (INF, (1.0, 0))
+    assert toi((0.1, 1), (1, 0), 1)[0] == INF  # slide
+    assert toi((-1, 1 + 1e-14), (1, 0), 1)[0] == INF  # parallel, far away
 
     # overlap is a miss
-    assert toi((-1, 0), (0, 1), 1.1) == (INF, 0)
-    assert toi((-0.1, 0), (0, 1), 1) == (INF, 0)
-    assert toi((0.1, 0), (0, 1), 1) == (INF, None)
-    assert toi((0.1, -0.5), (0, 1), 1) == (INF, None)
-    assert toi((0.1, 0), (0, 1), 10) == (INF, None)
-    assert toi((1 / 2, 0), (-1, 0), 1 / 4) == (INF, None)
-    assert toi((1 / 2, 1 / 3), (-1, -1), 1 / 2) == (INF, None)
-    assert toi((1, 1 / 3), (-1, -1), 1 / 2) == (INF, None)
-    assert toi((1.1, 1 / 3), (-1, -1), 1 / 2) == (INF, 1)
+    assert toi((-1, 0), (0, 1), 1.1) == (INF, (1.0, 0))
+    assert toi((-0.1, 0), (0, 1), 1) == (INF, (1.0, 0))
+    assert toi((0.1, 0), (0, 1), 1)[0] == INF
+    assert toi((0.1, -0.5), (0, 1), 1)[0] == INF
+    assert toi((0.1, 0), (0, 1), 10)[0] == INF
+    assert toi((1 / 2, 0), (-1, 0), 1 / 4)[0] == INF
+    assert toi((1 / 2, 1 / 3), (-1, -1), 1 / 2)[0] == INF
+    assert toi((1.1, 1 / 3), (-1, -1), 1 / 2) == (INF, (-1.0, 1))
+
+    # moving parallel is a miss
+    assert toi((0, 1.1), (1, 0), 1)[0] == INF
+    assert toi((0, 0.9), (1, 0), 1)[0] == INF
+    assert toi((-1, -1), (1, 0), 1) == (INF, (0.0, 0))
+    assert toi((2, 1), (-1, 0), 1) == (INF, (0.0, 1))
+    assert toi((0, -1), (-1, 0), 1)[0] == INF
+
+    # no movement
+    assert toi((-1, 0.9), (0.0, 0.0), 1) == (INF, (0.0, 0))
 
     # test almost touching
-    # assert toi((-1.1 - 1e-12, 0), (0, 1), 1.1) == (1e-12, 0)  # with endpoints
-    assert toi((-1.1 - 1e-12, 0), (0, 1), 1.1) == (INF, 0)
-    # assert toi((-1e-10, -1), (0, 1), 1) == (1 - sqrt(-(1e-10 - 1) * (1e-10 + 1)), 0)
-    assert toi((-1e-10, -1), (0, 1), 1) == (INF, 0)
-    assert toi((0.3, -1 - 1e-10), (0, 1), 1) == (approx(1e-10, abs=1e-16), 0.3)
+    assert toi((-1e-10, -1), (0, 1), 1) == (
+        1 - sqrt(-(1e-10 - 1) * (1e-10 + 1)),
+        (1.0, 0),
+    )
+    assert toi((0.3, -1 - 1e-10), (0, 1), 1) == (approx(1e-10, abs=1e-16), (1.0, 0.3))
+
+    # test touching
+    assert toi((0.1, 0.5), (0, -0.123), 0.5)[0] == INF
+    assert toi((0.1, 0.5), (0, 0.123), 0.5)[0] == INF
 
     # toi was in the past
-    assert toi((2, 2), (1, 1), 1) == (INF, None)
-
-    # toi was in the past, use t_eps
-    pos, vel, radius = (0.1, 1), (0, -1), 1 + 1e-5
-    assert toi(pos, vel, radius) == (INF, None)
-    assert toi(pos, vel, radius, t_eps=-1e-4) == (approx(-1e-5, abs=1e-14), 0.1)
+    assert toi((2, 2), (1, 1), 1)[0] == INF
+    assert toi((0.1, 1 - 2**-50), (0, -1), 1)[0] == INF
 
 
-def test_toi_particle_segment():
-    angle = 0.5
-
-    start, end = np.asarray([0, 0]), np.asarray([cos(angle), sin(angle)])
+def test_toi_and_param_ball_segment_twoided_error():
+    start, end = np.asarray([0, 1]), np.asarray([1, 0])
     direction = end - start
     length_sqrd = direction.dot(direction)
-    covector = direction / length_sqrd
     normal = np.asarray([-direction[1], direction[0]]) / sqrt(length_sqrd)
+    covector = direction / length_sqrd
 
     # for convenience
-    def toi(pos, vel, t_eps=-0.0):
-        return toi_and_param_ball_segment(pos, vel, 0, start, covector, normal, t_eps)
+    def toi(pos, vel, radius, ubits=1):
+        set_pos_accuracy(52 - ubits)
+        return toi_and_param_ball_segment_twosided(
+            pos, vel, radius, start, end, normal, covector
+        )
 
-    # particle starts from x axis and moves upwards
-    for x in [1e-10, 1e-3, 0.1, cos(angle) - 1e-3, cos(angle) - 1e-10]:
-        t, u = sin(angle) / cos(angle) * x, x / cos(angle)
-        assert toi((x, 0), (0, 1)) == (approx(t), approx(u)), (angle, x)
+    # touching and colliding for onesided, here: never colliding (moving away from line)
+    assert toi((1, 2 - 2**-42), (0, -1), sqrt(2), ubits=1)[0] == INF
+    assert toi((1, 2 - 2**-42), (0, -1), sqrt(2), ubits=9)[0] == INF
+    assert toi((1, 2 - 2**-42), (0, -1), sqrt(2), ubits=11)[0] == INF
+    assert toi((1, 2 - 2**-42), (0, -1), sqrt(2), ubits=52)[0] == INF
 
-    # particle starts close to the line and moves upwards
-    for dy in [0.1, 1e-3, 1e-10]:
-        for x in [1e-10, 1e-3, 0.1, cos(angle) - 1e-3, cos(angle) - 1e-10]:
-            y = sin(angle) / cos(angle) * x - dy
-            t, u = dy, x / cos(angle)
-            assert toi((x, y), (0, 1)) == (approx(t), approx(u)), (angle, x, y, dy)
+    # touching but not colliding
+    assert toi((1, 2), (0, 1), sqrt(2), ubits=1)[0] == INF
+    assert toi((1, 2), (0, 1), sqrt(2), ubits=10)[0] == INF
+    assert toi((1, 2), (0, 1), sqrt(2), ubits=30)[0] == INF
+    assert toi((1, 2), (0, 1), sqrt(2), ubits=52)[0] == INF
+
+    # check touching and colliding for point particles
+    assert toi((0, 1 - 2**-43), (0, -1), 0, ubits=1)[0] == INF
+    assert toi((0, 1 - 2**-43), (0, -1), 0, ubits=9)[0] == INF
+    assert toi((0, 1 - 2**-43), (0, -1), 0, ubits=11)[0] == INF
+    assert toi((0, 1 - 2**-43), (0, -1), 0, ubits=52)[0] == INF
 
 
 def test_elastic_collision():

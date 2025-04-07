@@ -301,92 +301,132 @@ def test_infinite_wall():
                 assert w.detect_collision(collpos, collvel, r)[0] == INF
 
 
-def test_line_segment():
+def test_line_segment_onesided():
     # test invalid construction
     with pytest.raises(ValueError):
         LineSegment((-1, 0), (-1, 0))  # not a line
 
+    with pytest.raises(ValueError):
+        LineSegment((-1, 0), (1, 0), "Left")  # side must be lowercase
+
     # check properties
-    line = LineSegment((-1, 0), (1, 0))
+    line = LineSegment((-1, 0), (1, 0), no_go="left")
+    assert_allclose(line.start_point, (-1, 0))
+    assert_allclose(line.end_point, (1, 0))
+    assert_allclose(line._covector, (1 / 2, 0))
+    assert_allclose(line._normal, (0, -1))
+
+    line = LineSegment((-1, 0), (1, 0), no_go="right")
     assert_allclose(line.start_point, (-1, 0))
     assert_allclose(line.end_point, (1, 0))
     assert_allclose(line._covector, (1 / 2, 0))
     assert_allclose(line._normal, (0, 1))
 
+    assert line.detect_collision((0, 1), (0, -1), 1 / 2) == (approx(0.5), (-1.0, 0.5))
+    assert line.detect_collision((0, -1), (0, 1), 1 / 2)[0] == INF
+
     # collision at left endpoint
-    for a in [0, 1 / 6, 1 / 4, -1 / 2, pi / 2 - 1e-6]:
+    for a in [1e-6, 1 / 6, 1 / 4, pi / 2 - 1e-6]:
         pos = np.asarray([-cos(a) - 1, sin(a)])
         vel = np.asarray([cos(a), -sin(a)])
-        assert line.detect_collision(pos, vel, 1 / 2) == (approx(0.5), (0,)), a
+        assert line.detect_collision(pos, vel, 1 / 2) == (approx(0.5), (vel[1], 0.0)), a
 
-        cvel = line.resolve_collision(pos + 0.5 * vel, vel, 1 / 2, 0)
+        cvel = line.resolve_collision(pos + 0.5 * vel, vel, 1 / 2, vel[1], 0.0)
         assert_allclose(cvel, (-vel[0], -vel[1]), atol=1e-14)
 
-    pos = np.asarray([-sqrt(1 / 2) - 2, sqrt(1 / 2) - 1])
-    vel = np.asarray([1, 1])
-    assert line.detect_collision(pos, vel, 1 + 1e-14) == (approx(1.0), (0,))
+    pos = np.asarray([-sqrt(1 / 2) - 2, 1 - sqrt(1 / 2)])
+    vel = np.asarray([1, -1])
+    assert line.detect_collision(pos, vel, 1 + 1e-14) == (approx(1.0), (vel[1], 0.0))
 
     pos = np.asarray([-sqrt(1 / 2), sqrt(1 / 2) + 1])
     vel = np.asarray([-1, -1])
-    assert line.detect_collision(pos, vel, 1 + 1e-14) == (approx(1.0), (0,))
+    assert line.detect_collision(pos, vel, 1 + 1e-14) == (approx(1.0), (vel[1], 0.0))
 
-    pos = np.asarray([-2, 1 - 1e-14])
-    vel = np.asarray([1, 0])
-    assert line.detect_collision(pos, vel, 1) == (approx(1.0), (0,))
-
-    cvel = line.resolve_collision(pos + 1.0 * vel, vel, 1, 0)
-    assert_allclose(cvel, vel, atol=1e-14)
-
-    # collision along the line
-    for a in [pi / 2, pi / 2 + 1e-10, pi / 2 + 1e-6, 5 / 6 * pi - 1e-15]:
+    # no collision if vel_normal > 0
+    for a in [-1e-6, -1 / 6, -1 / 4, -pi / 2 + 1e-6]:
         pos = np.asarray([-cos(a) - 1, sin(a)])
         vel = np.asarray([cos(a), -sin(a)])
-        t, (u,) = line.detect_collision(pos, vel, 1 / 2)
-        t_ref = (pos[1] - 1 / 2) / (-vel[1])
-        assert t == approx(t_ref), a
-        assert u is not None and u > 0, a
+        assert line.detect_collision(pos, vel, 1 / 2)[0] == INF, a
 
-        cvel = line.resolve_collision(pos + t * vel, vel, 1 / 2, u)
-        assert_allclose(cvel, (vel[0], -vel[1]), atol=1e-14)
+    # check collision at right endpoint
+    for a in [pi / 2 + 1e-6, 2.0, pi - 1e-6]:
+        pos = np.asarray([-cos(a) + 1, sin(a)])
+        vel = np.asarray([cos(a), -sin(a)])
+        assert line.detect_collision(pos, vel, 1 / 2) == (approx(0.5), (vel[1], 1.0)), a
 
-    # collision at right endpoint
-    for a in [0, 1 / 6, 1 / 4, -1 / 2, pi / 2 - 1e-6]:
-        pos = np.asarray([-cos(a + pi) + 1, sin(a + pi)])
-        vel = np.asarray([cos(a + pi), -sin(a + pi)])
-        assert line.detect_collision(pos, vel, 1 / 2) == (approx(0.5), (1,)), a
-
-        cvel = line.resolve_collision(pos + 0.5 * vel, vel, 1 / 2, 1)
+        cvel = line.resolve_collision(pos + 0.5 * vel, vel, 1 / 2, vel[1], 1.0)
         assert_allclose(cvel, (-vel[0], -vel[1]), atol=1e-14)
 
-    pos = np.asarray([1 + sqrt(1 / 2) + 1, sqrt(1 / 2) - 1])
-    vel = np.asarray([-1, 1])
-    assert line.detect_collision(pos, vel, 1 + 1e-14) == (approx(1.0), (1,))
+    # check collision between the endpoints
+    for a in [pi / 2 + 1e-6, 2.0, pi - 1e-6]:
+        pos = np.asarray([-cos(a) - 1 / 2, sin(a) + 1 / 2])
+        vel = np.asarray([cos(a), -sin(a)])
+        assert line.detect_collision(pos, vel, 1 / 2) == (
+            approx(1.0),
+            (vel[1], approx(0.25)),
+        ), a
 
-    pos = np.asarray([1 + sqrt(1 / 2) - 1, sqrt(1 / 2) + 1])
+        cvel = line.resolve_collision(pos + 1.0 * vel, vel, 1 / 2, vel[1], 0.25)
+        assert_allclose(cvel, (vel[0], -vel[1]), atol=1e-14)
+
+
+def test_line_segment_twosided():
+    # check properties
+    line = LineSegment((-1, 0), (1, 0), no_go="none")
+    assert_allclose(line.start_point, (-1, 0))
+    assert_allclose(line.end_point, (1, 0))
+    assert_allclose(line._covector, (1 / 2, 0))
+    assert_allclose(line._normal, (0, 1))
+
+    assert line.detect_collision((0, 1), (0, -1), 1 / 2) == (approx(0.5), (-1.0, 0.5))
+    assert line.detect_collision((0, -1), (0, 1), 1 / 2) == (approx(0.5), (1.0, 0.5))
+
+    # collision at left endpoint
+    for a in [1e-6, 1 / 6, 1 / 4, pi / 2 - 1e-6]:
+        pos = np.asarray([-cos(a) - 1, sin(a)])
+        vel = np.asarray([cos(a), -sin(a)])
+        assert line.detect_collision(pos, vel, 1 / 2) == (approx(0.5), (vel[1], 0.0)), a
+
+        cvel = line.resolve_collision(pos + 0.5 * vel, vel, 1 / 2, vel[1], 0.0)
+        assert_allclose(cvel, (-vel[0], -vel[1]), atol=1e-14)
+
+    pos = np.asarray([-sqrt(1 / 2) - 2, 1 - sqrt(1 / 2)])
     vel = np.asarray([1, -1])
-    assert line.detect_collision(pos, vel, 1 + 1e-14) == (approx(1.0), (1,))
+    assert line.detect_collision(pos, vel, 1 + 1e-14) == (approx(1.0), (vel[1], 0.0))
 
-    pos = np.asarray([2, 1 - 1e-14])
-    vel = np.asarray([-1, 0])
-    assert line.detect_collision(pos, vel, 1) == (approx(1.0), (1,))
+    pos = np.asarray([-sqrt(1 / 2), sqrt(1 / 2) + 1])
+    vel = np.asarray([-1, -1])
+    assert line.detect_collision(pos, vel, 1 + 1e-14) == (approx(1.0), (vel[1], 0.0))
 
-    # check time of impact, velocity after collision and new time of impact
-    angle = 0.5
-    line = LineSegment((0, 0), (cos(angle), sin(angle)))
+    # check collision if vel_normal > 0
+    for a in [-1e-6, -1 / 6, -1 / 4, -pi / 2 + 1e-6]:
+        pos = np.asarray([-cos(a) - 1, sin(a)])
+        vel = np.asarray([cos(a), -sin(a)])
+        assert line.detect_collision(pos, vel, 1 / 2) == (approx(0.5), (vel[1], 0.0)), a
 
-    # particle starts from x axis and moves upwards
-    for x in [2e-10, 1e-3, 0.1, cos(angle) - 1e-3, cos(angle) - 1e-10]:
-        t_ref, u = sin(angle) / cos(angle) * x, x / cos(angle)
-        t, args = line.detect_collision((x, 0), (0, 1), 0)
-        assert (t, args[0]) == (approx(t_ref), approx(u)), (angle, x)
+        cvel = line.resolve_collision(pos + 0.5 * vel, vel, 1 / 2, vel[1], 0.0)
+        assert_allclose(cvel, (-vel[0], -vel[1]), atol=1e-14)
 
-    # particle starts close to the line and moves upwards
-    for dy in [0.1, 1e-3, 1.1e-10]:
-        for x in [1e-10, 1e-3, 0.1, cos(angle) - 1e-3, cos(angle) - 1e-10]:
-            y = sin(angle) / cos(angle) * x - dy
-            t_ref, u = dy, x / cos(angle)
-            t, args = line.detect_collision((x, y), (0, 1), 0)
-            assert (t, args[0]) == (approx(t), approx(u)), (angle, x, y, dy)
+    # check collision at right endpoint
+    for a in [pi / 2 + 1e-6, 2.0, pi - 1e-6]:
+        pos = np.asarray([-cos(a) + 1, sin(a)])
+        vel = np.asarray([cos(a), -sin(a)])
+        assert line.detect_collision(pos, vel, 1 / 2) == (approx(0.5), (vel[1], 1.0)), a
+
+        cvel = line.resolve_collision(pos + 0.5 * vel, vel, 1 / 2, vel[1], 1.0)
+        assert_allclose(cvel, (-vel[0], -vel[1]), atol=1e-14)
+
+    # check collision between the endpoints
+    for a in [pi / 2 + 1e-6, 2.0, pi - 1e-6]:
+        pos = np.asarray([-cos(a) - 1 / 2, sin(a) + 1 / 2])
+        vel = np.asarray([cos(a), -sin(a)])
+        assert line.detect_collision(pos, vel, 1 / 2) == (
+            approx(1.0),
+            (vel[1], approx(0.25)),
+        ), a
+
+        cvel = line.resolve_collision(pos + 1.0 * vel, vel, 1 / 2, vel[1], 0.25)
+        assert_allclose(cvel, (vel[0], -vel[1]), atol=1e-14)
 
 
 if __name__ == "__main__":

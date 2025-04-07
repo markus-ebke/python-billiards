@@ -5,18 +5,18 @@ You can import the obstacles from the top-level module::
     from billiard import Disk, InfiniteWall
 """
 
-from math import isinf, sqrt
+from math import sqrt
 
 import numpy as np
 
 from .physics import (
     elastic_collision,
     toi_and_param_ball_line_onesided,
-    toi_and_param_ball_segment,
+    toi_and_param_ball_segment_onesided,
+    toi_and_param_ball_segment_twosided,
     toi_ball_circle,
     toi_ball_disk,
     toi_ball_disk_exterior,
-    toi_ball_point,
 )
 
 
@@ -141,7 +141,7 @@ class InfiniteWall(Obstacle):
         Args:
             start_point: x and y coordinates of the lines starting point.
             end_point: x and y of the end point.
-            no_go: Either "left" or "right" of the line, defaults to "right".
+            no_go (optional): Either "left" or "right" of the line, defaults to "right".
         """
         self.start_point = np.asarray(start_point)
         self.end_point = np.asarray(end_point)
@@ -173,14 +173,17 @@ class InfiniteWall(Obstacle):
 
 
 class LineSegment(Obstacle):
-    """A line segment with collisions from both sides."""
+    """A line segment with collisions from one or both sides."""
 
-    def __init__(self, start_point, end_point):
+    def __init__(self, start_point, end_point, no_go="none"):
         """Create a line segment between two points.
 
         Args:
             start_point: Starting point of the line segment.
             end_point: Endpoint of the line segment.
+            no_go (optional): Either "none", "left" or "right". If "left" or
+                "right", then balls can collide only from one side.
+                If "none", then balls can collide from both sides.
         """
         self.start_point = np.asarray(start_point)
         self.end_point = np.asarray(end_point)
@@ -194,34 +197,47 @@ class LineSegment(Obstacle):
         # calculations in detect_collision
         self._covector = direction / length_sqrd
 
-        # normalized vector perpendicular to the line
-        self._normal = np.array([-direction[1], direction[0]]) / sqrt(length_sqrd)
+        # The normal vector is perpendicular to the line and points towards the allowed
+        # area (so that normal.dot(pos) is the signed distance to the line)
+        if no_go in {"right", "none"}:
+            self._normal = np.array([-direction[1], direction[0]]) / sqrt(length_sqrd)
+        elif no_go == "left":
+            self._normal = np.array([direction[1], -direction[0]]) / sqrt(length_sqrd)
+        else:
+            raise ValueError(f'no_go must be "none", "left" or "right", not {no_go}')
+        self.no_go = no_go
 
     def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the line segment."""
-        t_eps = 1e-10 if radius == 0 else -1e-10  # point particles need a buffer zone
-        t, u = toi_and_param_ball_segment(
-            pos, vel, radius, self.start_point, self._covector, self._normal, t_eps
-        )
-        if isinf(t):
-            if u == 0:
-                return toi_ball_point(pos, vel, radius, self.start_point), (u,)
-            elif u == 1:
-                return toi_ball_point(pos, vel, radius, self.end_point), (u,)
+        if self.no_go == "none":
+            return toi_and_param_ball_segment_twosided(
+                pos,
+                vel,
+                radius,
+                self.start_point,
+                self.end_point,
+                self._normal,
+                self._covector,
+            )
+        else:
+            return toi_and_param_ball_segment_onesided(
+                pos,
+                vel,
+                radius,
+                self.start_point,
+                self.end_point,
+                self._normal,
+                self._covector,
+            )
 
-        return t, (u,)
-
-    def resolve_collision(self, pos, vel, radius, u):
+    def resolve_collision(self, pos, vel, radius, vel_normal, u):
         """Calculate the velocity of a ball after colliding with the line segment."""
-        # dpos = np.subtract(pos, self.start_point)
-        # if abs(dpos.dot(dpos) - radius**2) < 1e-14:
         if u == 0:
             return elastic_collision(self.start_point, (0, 0), 1, pos, vel, 0)[1]
-
-        # dpos = np.subtract(pos, self.end_point)
-        # if abs(dpos.dot(dpos) - radius**2) < 1e-14:
         elif u == 1:
             return elastic_collision(self.end_point, (0, 0), 1, pos, vel, 0)[1]
 
         # collision with the line part of the segment
-        return vel - 2 * self._normal.dot(vel) * self._normal
+        assert 0 < u < 1, u
+        assert self.no_go == "none" or vel_normal < 0  # ball shouldn't move away
+        return vel - 2 * vel_normal * self._normal

@@ -362,7 +362,11 @@ def toi_ball_circle(pos, vel, radius, circle_center, circle_radius):
     Balls can collide from the outside or the inside of the circle, a
     ball overlapping the circle and moving away from the center is not
     colliding with the circle. If instead the ball is moving towards the
-    center, it may collide with the circle's boundary from the inside.
+    inside, it may collide with the circle's boundary from within.
+
+    If it is unclear if the ball is outside of the circle (due to
+    inaccuracies of the position vector), only test for collision from
+    the inside.
 
     Args:
         pos: Center of the ball.
@@ -403,39 +407,44 @@ def toi_ball_circle(pos, vel, radius, circle_center, circle_radius):
 
 
 def toi_and_param_ball_line_onesided(pos, vel, radius, line_point, line_normal):
-    """Calculate the time of impact of a moving ball and a halfplane.
+    """Calculate the time of impact of a moving ball and a halfspace.
 
-    The halfplane is an infinite line that detects collisions only from
+    The halfspace is an infinite line that detects collisions only from
     one side.
 
     Args:
         pos: Center of the ball.
         vel: Velocity of the ball.
         radius: Radius of the ball.
-        line_point: A point on the boundary of the halfplane. Ideally,
+        line_point: A point on the boundary of the halfspace. Ideally,
             it should be a point that is close to the origin (to
             minimize rounding errors).
         line_normal: The normal vector perpendicular to the boundary,
             pointing towards the outside (the allowed area) of the
-            halfplane. The input vector must be normalized (have a
+            halfspace. The input vector must be normalized (have a
             euclidean length of 1), otherwise the computed time is not
             correct.
 
     Returns:
-        Time of impact, is infinite if there is no collision at the
-        present or a future time.
+        A tuple ``(t, args)``, where ``t`` is the time of impact (a
+        float) and ``args`` is a tuple of arguments that can be used
+        when resolving a collision. The time of impact is infinite if
+        there is no collision at the present or a future time. The
+        ``args`` tuple always contains a single entry which is
+        ``line_normal.dot(vel)`` (the speed away from the halfspace, is
+        negative if the ball moves toward the no-go area).
     """
-    # vel_normal: speed away from the wall, is negative if the ball
+    # vel_normal: speed away from the halfspace, is negative if the ball
     # moves toward the no-go area and positive if it moves away from it
     vel_normal = line_normal.dot(vel)
-    if vel_normal >= 0:
-        # No collision if the ball doesn't move towards the halfplane
+    if vel_normal >= 0.0:
+        # No collision if the ball doesn't move towards the halfspace
         return INF, (vel_normal,)
 
-    # Compute the relative position between the ball and the halfplane
+    # Compute the relative position between the ball and the halfspace
     dpos = np.subtract(pos, line_point)
-    dpos_x_err = POS_RELIABLE_BITS * ulp(pos[0]) + ulp(line_point[0]) / 2
-    dpos_y_err = POS_RELIABLE_BITS * ulp(pos[1]) + ulp(line_point[1]) / 2
+    dpos_x_err = POS_SCALE_ULPS * ulp(pos[0]) + ulp(line_point[0]) / 2
+    dpos_y_err = POS_SCALE_ULPS * ulp(pos[1]) + ulp(line_point[1]) / 2
 
     dpos_normal = line_normal.dot(dpos)
     dpos_normal_err = (
@@ -446,11 +455,11 @@ def toi_and_param_ball_line_onesided(pos, vel, radius, line_point, line_normal):
     )
 
     if dpos_normal - radius < -(dpos_normal_err + ulp(radius) / 2):
-        # No collision because we can prove that the ball already overlaps the halfplane
+        # No collision because we can prove that the ball already overlaps the halfspace
         return INF, (vel_normal,)
 
-    # The ball collides with the wall when the gap between ball and
-    # wall becomes equal to the ball radius:
+    # The ball collides with the halplane when the gap between ball and
+    # halfspace becomes equal to the ball radius:
     # <normal, dpos + t * vel> == radius
     # Rearranged: <normal, dpos> - radius == - t * <normal, vel>,
     # note that <normal, dpos> - radius is the size of the gap and
@@ -458,26 +467,17 @@ def toi_and_param_ball_line_onesided(pos, vel, radius, line_point, line_normal):
     return -(dpos_normal - radius) / vel_normal, (vel_normal,)
 
 
-def toi_and_param_ball_segment(
-    pos, vel, radius, line_start, covector, normal, t_eps=-1e-10
+def toi_and_param_ball_segment_onesided(
+    pos, vel, radius, line_start, line_end, line_normal, line_covector
 ):
-    """Calculate the time of impact of a moving ball and an open line segment.
+    """Calculate the time of impact of a moving ball and a line segment.
 
-    This function will also return the line parameter for the collision
-    point. If there is no collision (time is infinite) but the line
-    parameter is 0 or 1, then the ball may collide with one the
-    endpoints (0: test ``line_start``, 1: test ``line_end``). If the
-    line parameter is None, there will be no collision with any
-    endpoint.
-
-    A ball already overlapping the segment is not colliding with it.
-    But due to rounding errors, we could miss a collision if the ball is
-    very close to the segment. Setting ``t_eps`` to a small negative
-    value will catch this potential collision.
+    The line segment is one-sided, it detects collisions only from the
+    side into which ``line_normal`` points.
 
     A segment is defined by two points ``line_start`` and ``line_end``,
-    but instead of the endpoints this functions requires the
-    ``covector`` and the ``normal`` which can be computed as follows::
+    but this functions also requires the ``covector`` and the ``normal``
+    which can be computed as follows::
 
         direction = np.subtract(line_end, line_start)
         length_sqrd = direction.dot(direction)
@@ -485,89 +485,174 @@ def toi_and_param_ball_segment(
         normal = np.asarray([-direction[1], direction[0]]) / sqrt(length_sqrd)
 
     Since ``covector`` and ``normal`` depend only on the endpoints, they
-    can be computed when defining the line and then reused. (We don't
-    acutally need to know the endpoints of the line since this
-    information can be deduced from ``covector`` and ``normal``.)
+    can be computed when defining the line and then reused.
 
     Args:
         pos: Center of the ball.
         vel: Velocity of the ball.
         radius: Radius of the ball.
-        line_start: Starting point of the line segment.
-        covector: Equal to ``(line_end - line_start) / line_length**2``.
-        normal: Normalized vector perpendicular to the line.
-        t_eps (optional): Return infinity if the calculated time of
-            impact is less than ``t_eps``. Ideally we should use
-            ``t_eps = 0.0``, but to account for rounding errors a value
-            slightly lower than zero is more useful in practice.
-            Default: -1e-10.
+        line_start: Starting point of the segment.
+        line_end: Endpoint of the segment.
+        line_normal: The normal vector pointing away from the no-go
+            area. The input vector must be normalized (have a euclidean
+            length of 1), otherwise the computed time is not correct.
+        line_covector: The vector in the direction of the line, but with
+            a euclidean length of ``1 / length``, where ``length`` is
+            the distance of ``line_start`` and ``line_end`` (the length
+            of the segment).
 
     Returns:
-        A tuple ``(t, u)``, where ``t`` is the time of impact (a float)
-        and ``u`` is the line parameter for the impact location (a float
-        or an integer). If ``t`` is finite, the ball will touch the line
-        at ``line_start + u * line_end``. If ``t`` is infinite and ``u``
-        is None, the ball will not collide with the segment or its its
-        endpoints. However, if ``t`` is infinite and ``u`` is an integer
-        (0 or 1), then the ball *may* collide with the first endpoint
-        (if ``u = 0``) or the second endpoint (if ``u = 1``). To check
-        if there is a collision, use the `toi_ball_point` function.
+        A tuple ``(t, args)``, where ``t`` is the time of impact (a
+        float) and ``args`` is a tuple of arguments that can be used
+        when resolving a collision. The time of impact is infinite if
+        there is no collision at the present or a future time. The
+        ``args`` tuple always contains two entries:
+        ``line_normal.dot(vel)`` (the speed away from the halfspace, is
+        negative if the ball moves toward the no-go area) and ``u`` (the
+        line parameter for the impact location). If the time of impact
+        is finite, then ``line_start + u * line_end`` is the position
+        where the ball will touch the line (and ``0 <= u <= 1``). If
+        ``u`` is an integer, then the ball collides with the endpoint at
+        ``line_start`` (when ``u == 0``) or the endpoint at ``line_end``
+        (when ``u == 1``). Use this information to resolve the collision
+        accordingly.
+    """
+    # vel_normal: speed away from the halfspace, is negative if the ball
+    # moves toward the no-go area and positive if it moves away from it
+    vel_normal = line_normal.dot(vel)
+    if vel_normal >= 0.0:
+        # No collision if the ball doesn't move towards the halfspace
+        return INF, (vel_normal, None)
+
+    # Compute the time of impact with the infinite line
+    dpos = np.subtract(pos, line_start)
+    dpos_normal = line_normal.dot(dpos)
+    t = -(dpos_normal - radius) / vel_normal
+
+    # Compute the line parameter u of the collision point. If 0 <= u <= 1,
+    # then the collision point lies inside the segment. Otherwise the ball
+    # might still hit one of the endpoints.
+    u = line_covector.dot(dpos) + t * line_covector.dot(vel)
+    if u < 0.0:
+        return toi_ball_point(pos, vel, radius, line_start), (vel_normal, 0)
+    elif u > 1.0:
+        return toi_ball_point(pos, vel, radius, line_end), (vel_normal, 1)
+    else:  # 0 <= u <= 1
+        dpos_x_err = POS_SCALE_ULPS * ulp(pos[0]) + ulp(line_start[0]) / 2
+        dpos_y_err = POS_SCALE_ULPS * ulp(pos[1]) + ulp(line_start[1]) / 2
+        dpos_normal_err = (
+            abs(line_normal[0]) * dpos_x_err
+            + ulp(line_normal[0]) / 2 * abs(dpos[0])
+            + abs(line_normal[1]) * dpos_y_err
+            + ulp(line_normal[1]) / 2 * abs(dpos[1])
+        )
+
+        if dpos_normal - radius < -(dpos_normal_err + ulp(radius) / 2):
+            # No collision because we can prove that the ball already overlaps
+            # the halfplane
+            return INF, (vel_normal, u)
+        else:
+            return t, (vel_normal, u)
+
+
+def toi_and_param_ball_segment_twosided(
+    pos, vel, radius, line_start, line_end, line_normal, line_covector
+):
+    """Calculate the time of impact of a moving ball and a line segment.
+
+    The line segment is two-sided, it detects collisions from the both
+    sides. If it is unclear if the ball overlaps the segment (due to
+    inaccuracies of the position vector), interpret this situation as
+    overlapping and return an infinite time of impact.
+
+    A segment is defined by two points ``line_start`` and ``line_end``,
+    but this functions also requires the ``covector`` and the ``normal``
+    which can be computed as follows::
+
+        direction = np.subtract(line_end, line_start)
+        length_sqrd = direction.dot(direction)
+        covector = direction / length_sqrd
+        normal = np.asarray([-direction[1], direction[0]]) / sqrt(length_sqrd)
+
+    Since ``covector`` and ``normal`` depend only on the endpoints, they
+    can be computed when defining the line and then reused.
+
+    Args:
+        pos: Center of the ball.
+        vel: Velocity of the ball.
+        radius: Radius of the ball.
+        line_start: Starting point of the segment.
+        line_end: Endpoint of the segment.
+        line_normal: The normal vector pointing away from the no-go
+            area. The input vector must be normalized (have a euclidean
+            length of 1), otherwise the computed time is not correct.
+        line_covector: The vector in the direction of the line, but with
+            a euclidean length of ``1 / length``, where ``length`` is
+            the distance of ``line_start`` and ``line_end`` (the length
+            of the segment).
+
+    Returns:
+        A tuple ``(t, args)``, where ``t`` is the time of impact (a
+        float) and ``args`` is a tuple of arguments that can be used
+        when resolving a collision. The time of impact is infinite if
+        there is no collision at the present or a future time. The
+        ``args`` tuple always contains two entries:
+        ``line_normal.dot(vel)`` (the speed away from the halfspace, is
+        negative if the ball moves toward the no-go area) and ``u`` (the
+        line parameter for the impact location). If the time of impact
+        is finite, then ``line_start + u * line_end`` is the position
+        where the ball will touch the line (and ``0 <= u <= 1``). If
+        ``u`` is an integer, then the ball collides with the endpoint at
+        ``line_start`` (when ``u == 0``) or the endpoint at ``line_end``
+        (when ``u == 1``). Use this information to resolve the collision
+        accordingly.
 
     Notes:
         A ball-segment intersection problem is equivalent to a
         particle-capsule intersection problem (via Minkowski addition).
     """
-    # The ball can collide with the line segment in four different places:
-    # face-on from the left or from the right or with one of the endpoints.
+    # Compute the relative position between the ball and the line
+    dpos = np.subtract(pos, line_start)
+    dpos_normal = line_normal.dot(dpos)
 
-    # Shift the position into the past by t_eps, later we only need to compare
-    # the collision time to zero but correct for t_eps before we return it.
+    # Keep track of absolute errors in floating point computations
+    dpos_x_err = POS_SCALE_ULPS * ulp(pos[0]) + ulp(line_start[0]) / 2
+    dpos_y_err = POS_SCALE_ULPS * ulp(pos[1]) + ulp(line_start[1]) / 2
+    dpos_normal_err = (
+        abs(line_normal[0]) * dpos_x_err
+        + ulp(line_normal[0]) / 2 * abs(dpos[0])
+        + abs(line_normal[1]) * dpos_y_err
+        + ulp(line_normal[1]) / 2 * abs(dpos[1])
+    )
+    gap_err = dpos_normal_err + ulp(radius) / 2  # error of dpos_normal +- radius
 
-    # Switch to line coordinate system by projecting the relative position of
-    # the ball onto the line direction and the normal direction, in this frame
-    # the line segment has coordinates 0 <= dpos_line <= 1, dpos_normal == 0.
-    dpos = np.subtract(pos, line_start) + t_eps * np.asarray(vel)
-    dpos_line = covector.dot(dpos)
-    dpos_normal = normal.dot(dpos)
-
-    # If the distance in normal direction is smaller than the radius, then the
-    # ball can only collide with one of the endpoints.
-    if abs(dpos_normal) <= radius:
-        # The sign of line_project indicates if the ball is behind (< 0) or
-        # ahead (> 0) of line_start
-        if dpos_line < 0:
-            return INF, 0
-        elif dpos_line > 1:
-            return INF, 1
-        else:
-            # ball must overlap the line
-            return INF, None
-
-    # Next, we figure out where along the path of the ball it will hit the line.
-    # Note that dpos_normal is the signed distance to the infinite line, we
-    # divide it by the velocity in normal direction to get the collision time.
-    vel_normal = normal.dot(vel)
-    if vel_normal == 0:
-        # ball moves parallel to the line and distance to the line is greater
-        # than radius => no collision
-        return INF, None
-
-    # Compute the time when the distance to the line becomes equal to the radius
-    t = -(dpos_normal + (-radius if dpos_normal > 0 else radius)) / vel_normal
-    if t < 0:
-        # ball is moving away
-        return INF, None
-
-    # Compute the line parameter u of the collision point. If 0 <= u <= 1, then
-    # the collision point lies inside the segment. Otherwise the ball might
-    # still hit one of the endpoints.
-    u = dpos_line + t * covector.dot(vel)
-    if 0 <= u <= 1:  # test u < 0, then u > 1 (one test fewer, faster?)
-        return t + t_eps, u
-    elif u < 0:
-        return INF, 0
+    if dpos_normal - radius > gap_err:
+        # Ball is on the side facing line_normal
+        return toi_and_param_ball_segment_onesided(
+            pos, vel, radius, line_start, line_end, line_normal, line_covector
+        )
+    elif dpos_normal + radius < -gap_err:
+        # Ball is on the side opposite of where line_normal is pointing
+        t, (vel_normal, u) = toi_and_param_ball_segment_onesided(
+            pos, vel, radius, line_start, line_end, -line_normal, line_covector
+        )
+        return t, (-vel_normal, u)  # reverse vel_normal, because we used -line_normal
     else:
-        return INF, 1
+        # Ball overlaps the infinite line, does it collide with the
+        # endpoints of the segment?
+        dpos_line = line_covector.dot(dpos)
+
+        # The sign of dpos_line indicates if the ball is behind line_start (< 0) or
+        # ahead of line_end (> 0)
+        if dpos_line < 0.0:
+            t = toi_ball_point(pos, vel, radius, line_start)
+            return t, (line_normal.dot(vel), 0)
+        elif dpos_line > 1.0:
+            t = toi_ball_point(pos, vel, radius, line_end)
+            return t, (line_normal.dot(vel), 1)
+        else:
+            # Ball overlaps the segment
+            return INF, (line_normal.dot(vel), None)
 
 
 def elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2):
