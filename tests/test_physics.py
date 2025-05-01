@@ -7,9 +7,9 @@ from pytest import approx
 from billiards.physics import (
     elastic_collision,
     set_pos_accuracy,
-    toi_and_param_ball_line_onesided,
-    toi_and_param_ball_segment_onesided,
-    toi_and_param_ball_segment_twosided,
+    toi_args_ball_line_onesided,
+    toi_args_ball_segment_onesided,
+    toi_args_ball_segment_twosided,
     toi_ball_ball,
     toi_ball_circle,
     toi_ball_disk,
@@ -629,16 +629,16 @@ def test_toi_ball_circle_error():
         assert toi(pos, vel, 0) == approx(t, abs=2e-8), eps  # slide inside
 
 
-def test_toi_and_param_ball_line_onesided():
+def test_toi_args_ball_halfspace():
     start, end = np.asarray([0, 1]), np.asarray([1, 0])
     direction = end - start
-    normal = np.asarray([-direction[1], direction[0]])  # to the right (no-go: left)
+    normal = np.asarray([-direction[1], direction[0]])  # to the right (blocked: left)
     normal = normal / np.linalg.norm(normal)
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
         set_pos_accuracy(52 - ubits)
-        return toi_and_param_ball_line_onesided(pos, vel, radius, start, normal)
+        return toi_args_ball_line_onesided(pos, vel, radius, start, normal)
 
     # check time of impact from outside going in
     assert toi((1, 11), (0, -1), sqrt(2)) == (approx(9), (approx(-sqrt(1 / 2)),))
@@ -673,16 +673,16 @@ def test_toi_and_param_ball_line_onesided():
     assert toi((0, 0), (0, 1), 0)[0] == INF
 
 
-def test_toi_and_param_ball_line_onesided_error():
+def test_toi_args_ball_halfspace_error():
     start, end = np.asarray([0, 1]), np.asarray([1, 0])
     direction = end - start
-    normal = np.asarray([-direction[1], direction[0]])  # to the right (no-go: left)
+    normal = np.asarray([-direction[1], direction[0]])  # to the right (blocked: left)
     normal = normal / np.linalg.norm(normal)
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
         set_pos_accuracy(52 - ubits)
-        return toi_and_param_ball_line_onesided(pos, vel, radius, start, normal)
+        return toi_args_ball_line_onesided(pos, vel, radius, start, normal)
 
     # touching and colliding
     assert toi((1, 2 - 2**-42), (0, -1), sqrt(2), ubits=1)[0] == INF
@@ -717,24 +717,24 @@ def test_toi_ball_segment_onesided():
     pos_init = np.asarray([0.3 + sqrt(1 / 2), 0.7 + sqrt(1 / 2) + 1])
     ball = pos_init, (0, -1), 1
     line = (start, end, normal, covector)
-    toi_and_param = approx(1.0), approx((-sqrt(1 / 2), 0.3))
-    assert toi_and_param_ball_segment_onesided(*ball, *line) == toi_and_param
+    toi_args = approx(1.0), approx((-sqrt(1 / 2), 0.3))
+    assert toi_args_ball_segment_onesided(*ball, *line) == toi_args
 
     # check that only relative coordinates are important
     ball = (42, 0) + pos_init, (0, -1), 1
     line = (start + (42, 0), end + (42, 0), normal, covector)
-    assert toi_and_param_ball_segment_onesided(*ball, *line) == toi_and_param
+    assert toi_args_ball_segment_onesided(*ball, *line) == toi_args
 
     # check that scale doesn't matter
     ball = 10 * pos_init, (0, -10), 10
     line = (10 * start, 10 * end, normal, covector / 10)
-    toi_and_param = approx(1.0), approx((-10 * sqrt(1 / 2), 0.3))
-    assert toi_and_param_ball_segment_onesided(*ball, *line) == toi_and_param
+    toi_args = approx(1.0), approx((-10 * sqrt(1 / 2), 0.3))
+    assert toi_args_ball_segment_onesided(*ball, *line) == toi_args
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
         set_pos_accuracy(52 - ubits)
-        return toi_and_param_ball_segment_onesided(
+        return toi_args_ball_segment_onesided(
             pos, vel, radius, start, end, normal, covector
         )
 
@@ -788,7 +788,7 @@ def test_toi_ball_segment_onesided():
     assert toi((-1, 2), (1, -1), 1)[0] == INF
 
 
-def test_toi_and_param_ball_segment_onesided_error():
+def test_toi_args_ball_segment_onesided_error():
     start, end = np.asarray([0, 1]), np.asarray([1, 0])
     direction = end - start
     length_sqrd = direction.dot(direction)
@@ -798,7 +798,7 @@ def test_toi_and_param_ball_segment_onesided_error():
     # for convenience
     def toi(pos, vel, radius, ubits=1):
         set_pos_accuracy(52 - ubits)
-        return toi_and_param_ball_segment_onesided(
+        return toi_args_ball_segment_onesided(
             pos, vel, radius, start, end, normal, covector
         )
 
@@ -834,22 +834,22 @@ def test_toi_ball_segment_twosided():
 
     ball = (1 / 2, 2), (0, -1), 1
     line = (start, end, normal, covector)
-    assert toi_and_param_ball_segment_twosided(*ball, *line) == (1.0, (-1.0, 0.5))
+    assert toi_args_ball_segment_twosided(*ball, *line) == (1.0, (-1.0, 0.5))
 
     # check that only relative coordinates are important
     ball = (1 / 2 + 42, 2), (0, -1), 1
     line = (start + (42, 0), end + (42, 0), normal, covector)
-    assert toi_and_param_ball_segment_twosided(*ball, *line) == (1.0, (-1.0, 0.5))
+    assert toi_args_ball_segment_twosided(*ball, *line) == (1.0, (-1.0, 0.5))
 
     # check that scale doesn't matter
     ball = (5, 20), (0, -10), 10
     line = (10 * start, 10 * end, normal, covector / 10)
-    assert toi_and_param_ball_segment_twosided(*ball, *line) == (1.0, (-10.0, 0.5))
+    assert toi_args_ball_segment_twosided(*ball, *line) == (1.0, (-10.0, 0.5))
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
         set_pos_accuracy(52 - ubits)
-        return toi_and_param_ball_segment_twosided(
+        return toi_args_ball_segment_twosided(
             pos, vel, radius, start, end, normal, covector
         )
 
@@ -939,7 +939,7 @@ def test_toi_ball_segment_twosided():
     assert toi((0.1, 1 - 2**-50), (0, -1), 1)[0] == INF
 
 
-def test_toi_and_param_ball_segment_twoided_error():
+def test_toi_args_ball_segment_twoided_error():
     start, end = np.asarray([0, 1]), np.asarray([1, 0])
     direction = end - start
     length_sqrd = direction.dot(direction)
@@ -949,7 +949,7 @@ def test_toi_and_param_ball_segment_twoided_error():
     # for convenience
     def toi(pos, vel, radius, ubits=1):
         set_pos_accuracy(52 - ubits)
-        return toi_and_param_ball_segment_twosided(
+        return toi_args_ball_segment_twosided(
             pos, vel, radius, start, end, normal, covector
         )
 

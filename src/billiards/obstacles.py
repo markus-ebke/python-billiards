@@ -11,9 +11,9 @@ import numpy as np
 
 from .physics import (
     elastic_collision,
-    toi_and_param_ball_line_onesided,
-    toi_and_param_ball_segment_onesided,
-    toi_and_param_ball_segment_twosided,
+    toi_args_ball_line_onesided,
+    toi_args_ball_segment_onesided,
+    toi_args_ball_segment_twosided,
     toi_ball_circle,
     toi_ball_disk,
     toi_ball_disk_exterior,
@@ -76,21 +76,21 @@ class Disk(Obstacle):
     """A circular obstacle where balls are not allowed on the inside or the outside.
 
     To create a circular hole where balls are not allowed on the outside
-    use ``no_go = "outside"`` when creating the obstacle.
+    use ``blocked = "outside"`` when creating the obstacle.
     """
 
-    def __init__(self, center, radius, no_go="inside"):
+    def __init__(self, center, radius, blocked="inside"):
         """Create a circular obstacle with the given center and radius."""
         self.center = np.asarray(center)
         self.radius = float(radius)
 
-        if no_go not in {"inside", "outside"}:
-            raise ValueError("'no_go' must be either 'inside' or 'outside'")
-        self.no_go = no_go
+        if blocked not in {"inside", "outside"}:
+            raise ValueError("'blocked' must be either 'inside' or 'outside'")
+        self.blocked = blocked
 
     def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the disk."""
-        if self.no_go == "inside":
+        if self.blocked == "inside":
             t = toi_ball_disk(pos, vel, radius, self.center, self.radius)
         else:
             t = toi_ball_disk_exterior(pos, vel, radius, self.center, self.radius)
@@ -130,18 +130,19 @@ class Circle(Obstacle):
 class InfiniteWall(Obstacle):
     """An infinite wall where balls can collide only from one side."""
 
-    def __init__(self, start_point, end_point, no_go="right"):
+    def __init__(self, start_point, end_point, blocked="right"):
         """Create an infinite wall through two points.
 
         Going from the starting point to the end, the inside of the billiard is on the
-        side indicated by the ``no_go`` argument, i.e. balls coming from the exterior
-        side will be reflected at the wall, balls that cross the wall from the no-go
+        side indicated by the ``blocked`` argument, i.e. balls coming from the exterior
+        side will be reflected at the wall, balls that cross the wall from the blocked
         side to the outside will not be reflected.
 
         Args:
             start_point: x and y coordinates of the lines starting point.
             end_point: x and y of the end point.
-            no_go (optional): Either "left" or "right" of the line, defaults to "right".
+            blocked (optional): Either "left" or "right" of the line, defaults to
+                "right".
         """
         self.start_point = np.asarray(start_point)
         self.end_point = np.asarray(end_point)
@@ -152,17 +153,17 @@ class InfiniteWall(Obstacle):
 
         # The normal vector is perpendicular to the wall and points towards the allowed
         # area (so that normal.dot(pos) is the signed distance to the wall)
-        if no_go == "right":
+        if blocked == "right":
             self._normal = np.asarray([-dy, dx])
-        elif no_go == "left":
+        elif blocked == "left":
             self._normal = np.asarray([dy, -dx])
         else:
-            raise ValueError(f'no_go must be "left" or "right", not {no_go}')
+            raise ValueError(f'blocked must be "left" or "right", not {blocked}')
         self._normal = self._normal / np.linalg.norm(self._normal)
 
     def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the wall."""
-        return toi_and_param_ball_line_onesided(
+        return toi_args_ball_line_onesided(
             pos, vel, radius, self.start_point, self._normal
         )
 
@@ -175,13 +176,13 @@ class InfiniteWall(Obstacle):
 class LineSegment(Obstacle):
     """A line segment with collisions from one or both sides."""
 
-    def __init__(self, start_point, end_point, no_go="none"):
+    def __init__(self, start_point, end_point, blocked="none"):
         """Create a line segment between two points.
 
         Args:
             start_point: Starting point of the line segment.
             end_point: Endpoint of the line segment.
-            no_go (optional): Either "none", "left" or "right". If "left" or
+            blocked (optional): Either "none", "left" or "right". If "left" or
                 "right", then balls can collide only from one side.
                 If "none", then balls can collide from both sides.
         """
@@ -199,18 +200,20 @@ class LineSegment(Obstacle):
 
         # The normal vector is perpendicular to the line and points towards the allowed
         # area (so that normal.dot(pos) is the signed distance to the line)
-        if no_go in {"right", "none"}:
+        if blocked in {"right", "none"}:
             self._normal = np.array([-direction[1], direction[0]]) / sqrt(length_sqrd)
-        elif no_go == "left":
+        elif blocked == "left":
             self._normal = np.array([direction[1], -direction[0]]) / sqrt(length_sqrd)
         else:
-            raise ValueError(f'no_go must be "none", "left" or "right", not {no_go}')
-        self.no_go = no_go
+            raise ValueError(
+                f'blocked must be "none", "left" or "right", not {blocked}'
+            )
+        self.blocked = blocked
 
     def detect_collision(self, pos, vel, radius):
         """Calculate the time of impact of a ball with the line segment."""
-        if self.no_go == "none":
-            return toi_and_param_ball_segment_twosided(
+        if self.blocked == "none":
+            return toi_args_ball_segment_twosided(
                 pos,
                 vel,
                 radius,
@@ -220,7 +223,7 @@ class LineSegment(Obstacle):
                 self._covector,
             )
         else:
-            return toi_and_param_ball_segment_onesided(
+            return toi_args_ball_segment_onesided(
                 pos,
                 vel,
                 radius,
@@ -239,5 +242,5 @@ class LineSegment(Obstacle):
 
         # collision with the line part of the segment
         assert 0 < u < 1, u
-        assert self.no_go == "none" or vel_normal < 0  # ball shouldn't move away
+        assert self.blocked == "none" or vel_normal < 0  # ball shouldn't move away
         return vel - 2 * vel_normal * self._normal

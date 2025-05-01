@@ -157,7 +157,7 @@ def plot_disk(obs, ax, color, **kwargs):
     assert isinstance(obs, Disk), type(obs)
     assert isinstance(ax, maxes.Axes), type(ax)
 
-    if obs.no_go == "inside":
+    if obs.blocked == "inside":
         patch = mpatches.Circle(obs.center, obs.radius, color=color, **kwargs)
         ax.add_patch(patch)
     else:
@@ -165,7 +165,7 @@ def plot_disk(obs, ax, color, **kwargs):
             obs.center, obs.radius, color=color, fill=False, **kwargs
         )
         ax.add_patch(patch)
-        # raise NotImplementedError("Plot for Disk(no_go='outside') is not implemented")
+        # raise NotImplementedError("Plot for Disk(blocked='outside') not implemented")
 
 
 obstacle_plot_functions[Disk] = plot_disk

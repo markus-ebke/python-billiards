@@ -56,7 +56,7 @@ Let's compute the first few digits of π using a billiard simulation following t
 We need a billiard table with a vertical wall and two balls:
 
 ```pycon
->>> obstacles = [billiards.obstacles.InfiniteWall((0, -1), (0, 1), no_go="right")]
+>>> obstacles = [billiards.obstacles.InfiniteWall((0, -1), (0, 1), blocked="right")]
 >>> bld = billiards.Billiard(obstacles)
 >>> bld.add_ball((3, 0), (0, 0), radius=0.2, mass=1)  # returns index of new ball
 0

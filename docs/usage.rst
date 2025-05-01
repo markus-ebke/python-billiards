@@ -34,8 +34,8 @@ in the list ``walls``, then we create a billiard:
 .. doctest::
 
    >>> walls = [
-   ...     billiards.InfiniteWall((-4, -2), (-4, 2), no_go="left"),
-   ...     billiards.InfiniteWall((10, -2), (10, 2), no_go="right"),
+   ...     billiards.InfiniteWall((-4, -2), (-4, 2), blocked="left"),
+   ...     billiards.InfiniteWall((10, -2), (10, 2), blocked="right"),
    ... ]
    >>> bld = billiards.Billiard(obstacles=walls)
 

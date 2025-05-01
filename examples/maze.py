@@ -21,10 +21,11 @@ bounds = [
     billiards.InfiniteWall((1, 1), (-1, 1)),  # top side
     billiards.InfiniteWall((-1, 1), (-1, -1)),  # left side
     # lines for maze
-    billiards.LineSegment((-0.3, -1), (-0.3, 0.5)),
-    billiards.LineSegment((0.3, 1), (0.3, -0.5)),
-    billiards.LineSegment((-0.2, -0.4), (0.2, 0.4)),
-    billiards.LineSegment((-0.2, 0.4), (0.2, -0.4)),
+    billiards.LineSegment((-0.3, -1), (-0.3, 0.5), blocked="none"),
+    billiards.LineSegment((0.3, 1), (0.3, -0.5), blocked="none"),
+    # first obstacle: "wedge"
+    billiards.LineSegment((-0.2, 0.0), (0.0, 0.5), blocked="right"),
+    billiards.LineSegment((0.0, 0.5), (0.2, 0.0), blocked="right"),
 ]
 bld = billiards.Billiard(obstacles=bounds)
 

@@ -52,11 +52,11 @@ def test_disk():
     # check properties
     assert tuple(d.center) == (0, 0)
     assert d.radius == 1
-    assert d.no_go == "inside"
+    assert d.blocked == "inside"
 
-    # check invalid argument for no_go
+    # check invalid argument for blocked
     with pytest.raises(ValueError):
-        Disk((0, 0), 1, no_go="outer")
+        Disk((0, 0), 1, blocked="outer")
 
     # check time of impact, velocity after collision and new time of impact
     pos, vel, r = (-10, 0), (1, 0), 1
@@ -84,12 +84,12 @@ def test_disk():
 
 
 def test_disk_exterior():
-    d = Disk((1.7, 2.3), 3, no_go="outside")
+    d = Disk((1.7, 2.3), 3, blocked="outside")
 
     # check properties
     assert tuple(d.center) == (1.7, 2.3)
     assert d.radius == 3
-    assert d.no_go == "outside"
+    assert d.blocked == "outside"
 
     # check time of impact, velocity after collision and new time of impact
     pos, vel, r = (0, 0), (1, 1), 1
@@ -280,12 +280,12 @@ def test_infinite_wall():
         w.resolve_collision((0, -10), (10, 1), 1, w._normal.dot((10, 1)))
 
     # use wall as ceiling
-    w = InfiniteWall((-1, 0), (1, 0), no_go="left")
+    w = InfiniteWall((-1, 0), (1, 0), blocked="left")
     assert w.detect_collision((0, -10), (10, 1), 1) == (9, (-1.0,))
     assert tuple(w.resolve_collision((0, -10), (10, 1), 1, -1.0)) == (10, -1)
 
     # test repeated collision for decreasing distances
-    w = InfiniteWall((-1, 0), (1, 0), no_go="right")
+    w = InfiniteWall((-1, 0), (1, 0), blocked="right")
     for dy in [10 ** (-e) for e in range(15)] + [0.0]:
         for vy in [10 ** (-e) for e in range(-2, 15)]:
             for r in [10 ** (-e) for e in range(15)] + [0.0]:
@@ -310,13 +310,13 @@ def test_line_segment_onesided():
         LineSegment((-1, 0), (1, 0), "Left")  # side must be lowercase
 
     # check properties
-    line = LineSegment((-1, 0), (1, 0), no_go="left")
+    line = LineSegment((-1, 0), (1, 0), blocked="left")
     assert_allclose(line.start_point, (-1, 0))
     assert_allclose(line.end_point, (1, 0))
     assert_allclose(line._covector, (1 / 2, 0))
     assert_allclose(line._normal, (0, -1))
 
-    line = LineSegment((-1, 0), (1, 0), no_go="right")
+    line = LineSegment((-1, 0), (1, 0), blocked="right")
     assert_allclose(line.start_point, (-1, 0))
     assert_allclose(line.end_point, (1, 0))
     assert_allclose(line._covector, (1 / 2, 0))
@@ -372,7 +372,7 @@ def test_line_segment_onesided():
 
 def test_line_segment_twosided():
     # check properties
-    line = LineSegment((-1, 0), (1, 0), no_go="none")
+    line = LineSegment((-1, 0), (1, 0), blocked="none")
     assert_allclose(line.start_point, (-1, 0))
     assert_allclose(line.end_point, (1, 0))
     assert_allclose(line._covector, (1 / 2, 0))

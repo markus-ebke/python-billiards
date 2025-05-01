@@ -14,7 +14,8 @@ from math import sqrt
 
 try:
     from math import ulp
-except ImportError:  # Python < 3.9
+except ImportError:  # pragma: no cover
+    # Python < 3.9 does not contain math.ulp, so we need to define it ourselves
     from math import frexp
 
     def ulp(x):
@@ -106,8 +107,8 @@ def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2):
         radius2: Radius of the second ball.
 
     Returns:
-        Time of impact, is infinite if there is no collision at the
-        present or a future time.
+        Time of impact, is infinite if there is no collision now or in
+        the future.
     """
     # Compute the relative position and velocity between the two balls
     dpos = np.subtract(pos1, pos2)
@@ -193,8 +194,8 @@ def toi_ball_disk(pos, vel, radius, disk_center, disk_radius):
         disk_radius: Radius of the disk.
 
     Returns:
-        Time of impact, is infinite if there is no collision at the
-        present or a future time.
+        Time of impact, is infinite if there is no collision now or in
+        the future.
     """
     # Compute the relative position between the ball and the disk
     dpos = np.subtract(pos, disk_center)
@@ -245,8 +246,8 @@ def toi_ball_point(pos, vel, radius, point):
         point: Position of the point.
 
     Returns:
-        Time of impact, is infinite if there is no collision at the
-        present or a future time.
+        Time of impact, is infinite if there is no collision now or in
+        the future.
     """
     # Compute the relative position between the ball and the point
     dpos = np.subtract(pos, point)
@@ -299,8 +300,8 @@ def toi_ball_disk_exterior(pos, vel, radius, disk_center, disk_radius):
         disk_radius: Radius of the disk.
 
     Returns:
-        Time of impact, is infinite if there is no collision at the
-        present or a future time.
+        Time of impact, is infinite if there is no collision now or in
+        the future.
     """
     if disk_radius <= radius:
         return INF  # no collision if the ball is larger than the disk
@@ -365,8 +366,8 @@ def toi_ball_circle(pos, vel, radius, circle_center, circle_radius):
     inside, it may collide with the circle's boundary from within.
 
     If it is unclear if the ball is outside of the circle (due to
-    inaccuracies of the position vector), only test for collision from
-    the inside.
+    numerical inaccuracy of the position vector), treat it as an overlap
+    and test for collision from the inside.
 
     Args:
         pos: Center of the ball.
@@ -376,8 +377,8 @@ def toi_ball_circle(pos, vel, radius, circle_center, circle_radius):
         circle_radius: Radius of the circle.
 
     Returns:
-        Time of impact, is infinite if there is no collision at the
-        present or a future time.
+        Time of impact, is infinite if there is no collision now or in
+        the future.
     """
     # Compute distance of ball center to circle center
     dpos = np.subtract(pos, circle_center)
@@ -406,42 +407,38 @@ def toi_ball_circle(pos, vel, radius, circle_center, circle_radius):
         return toi_ball_disk_exterior(pos, vel, radius, circle_center, circle_radius)
 
 
-def toi_and_param_ball_line_onesided(pos, vel, radius, line_point, line_normal):
-    """Calculate the time of impact of a moving ball and a halfspace.
+def toi_args_ball_line_onesided(pos, vel, radius, line_point, line_normal):
+    """Calculate the time of impact of a moving ball and an infinite line.
 
-    The halfspace is an infinite line that detects collisions only from
-    one side.
+    The infinite line is one-sided; it detects collisions only from the
+    side toward which ``line_normal`` points.
 
     Args:
         pos: Center of the ball.
         vel: Velocity of the ball.
         radius: Radius of the ball.
-        line_point: A point on the boundary of the halfspace. Ideally,
-            it should be a point that is close to the origin (to
-            minimize rounding errors).
-        line_normal: The normal vector perpendicular to the boundary,
-            pointing towards the outside (the allowed area) of the
-            halfspace. The input vector must be normalized (have a
-            euclidean length of 1), otherwise the computed time is not
-            correct.
+        line_point: A point that lies on the line (preferably near the
+            origin to minimize numerical errors).
+        line_normal: The unit vector that is perpendicular to the line
+            and pointing *away* from the blocked area.
 
     Returns:
-        A tuple ``(t, args)``, where ``t`` is the time of impact (a
+        A tuple ``(t, args)``, where ``t`` is the collision time (a
         float) and ``args`` is a tuple of arguments that can be used
-        when resolving a collision. The time of impact is infinite if
-        there is no collision at the present or a future time. The
-        ``args`` tuple always contains a single entry which is
-        ``line_normal.dot(vel)`` (the speed away from the halfspace, is
-        negative if the ball moves toward the no-go area).
+        when resolving a collision. The time is infinite if there is no
+        collision now or in the future. The ``args`` tuple contains a
+        single entry which is ``line_normal.dot(vel)`` (the component of
+        the ball's velocity perpendicular to the line, is negative if
+        the ball is moving toward the blocked area).
     """
-    # vel_normal: speed away from the halfspace, is negative if the ball
-    # moves toward the no-go area and positive if it moves away from it
+    # vel_normal: the component of the ball's velocity perpendicular to
+    # the line, is negative if the ball is moving toward the blocked area
     vel_normal = line_normal.dot(vel)
     if vel_normal >= 0.0:
-        # No collision if the ball doesn't move towards the halfspace
+        # No collision if the ball doesn't move towards the blocked area
         return INF, (vel_normal,)
 
-    # Compute the relative position between the ball and the halfspace
+    # Compute the relative position between the ball and the blocked area
     dpos = np.subtract(pos, line_point)
     dpos_x_err = POS_SCALE_ULPS * ulp(pos[0]) + ulp(line_point[0]) / 2
     dpos_y_err = POS_SCALE_ULPS * ulp(pos[1]) + ulp(line_point[1]) / 2
@@ -455,11 +452,12 @@ def toi_and_param_ball_line_onesided(pos, vel, radius, line_point, line_normal):
     )
 
     if dpos_normal - radius < -(dpos_normal_err + ulp(radius) / 2):
-        # No collision because we can prove that the ball already overlaps the halfspace
+        # No collision because we can prove that the ball already overlaps the blocked
+        # area
         return INF, (vel_normal,)
 
-    # The ball collides with the halplane when the gap between ball and
-    # halfspace becomes equal to the ball radius:
+    # The ball collides with the line when the gap between ball and
+    # blocked area becomes equal to the ball radius:
     # <normal, dpos + t * vel> == radius
     # Rearranged: <normal, dpos> - radius == - t * <normal, vel>,
     # note that <normal, dpos> - radius is the size of the gap and
@@ -467,13 +465,13 @@ def toi_and_param_ball_line_onesided(pos, vel, radius, line_point, line_normal):
     return -(dpos_normal - radius) / vel_normal, (vel_normal,)
 
 
-def toi_and_param_ball_segment_onesided(
+def toi_args_ball_segment_onesided(
     pos, vel, radius, line_start, line_end, line_normal, line_covector
 ):
     """Calculate the time of impact of a moving ball and a line segment.
 
-    The line segment is one-sided, it detects collisions only from the
-    side into which ``line_normal`` points.
+    The line segment is one-sided; it detects collisions only from the
+    side toward which ``line_normal`` points.
 
     A segment is defined by two points ``line_start`` and ``line_end``,
     but this functions also requires the ``covector`` and the ``normal``
@@ -485,7 +483,8 @@ def toi_and_param_ball_segment_onesided(
         normal = np.asarray([-direction[1], direction[0]]) / sqrt(length_sqrd)
 
     Since ``covector`` and ``normal`` depend only on the endpoints, they
-    can be computed when defining the line and then reused.
+    only need to be computed once (when defining the line) and reused
+    for each function call.
 
     Args:
         pos: Center of the ball.
@@ -493,35 +492,34 @@ def toi_and_param_ball_segment_onesided(
         radius: Radius of the ball.
         line_start: Starting point of the segment.
         line_end: Endpoint of the segment.
-        line_normal: The normal vector pointing away from the no-go
-            area. The input vector must be normalized (have a euclidean
-            length of 1), otherwise the computed time is not correct.
+        line_normal: The unit vector that is perpendicular to the line
+            and pointing *away* from the blocked area.
         line_covector: The vector in the direction of the line, but with
             a euclidean length of ``1 / length``, where ``length`` is
-            the distance of ``line_start`` and ``line_end`` (the length
-            of the segment).
+            the length of the segment (the distance between
+            ``line_start`` and ``line_end``).
 
     Returns:
-        A tuple ``(t, args)``, where ``t`` is the time of impact (a
+        A tuple ``(t, args)``, where ``t`` is the collision time (a
         float) and ``args`` is a tuple of arguments that can be used
-        when resolving a collision. The time of impact is infinite if
-        there is no collision at the present or a future time. The
-        ``args`` tuple always contains two entries:
-        ``line_normal.dot(vel)`` (the speed away from the halfspace, is
-        negative if the ball moves toward the no-go area) and ``u`` (the
-        line parameter for the impact location). If the time of impact
-        is finite, then ``line_start + u * line_end`` is the position
-        where the ball will touch the line (and ``0 <= u <= 1``). If
-        ``u`` is an integer, then the ball collides with the endpoint at
+        when resolving a collision. The time is infinite if there is no
+        collision now or in the future. The ``args`` tuple contains two
+        entries: ``line_normal.dot(vel)`` (the component of the ball's
+        velocity perpendicular to the line, is negative if the ball is
+        moving toward the blocked area) and ``u`` (the line parameter
+        for the impact location). If the time of impact is finite, then
+        ``line_start + u * line_end`` is the position where the ball
+        will touch the line (and ``0 <= u <= 1``). If ``u`` is an
+        integer, then the ball collides with the endpoint at
         ``line_start`` (when ``u == 0``) or the endpoint at ``line_end``
         (when ``u == 1``). Use this information to resolve the collision
         accordingly.
     """
-    # vel_normal: speed away from the halfspace, is negative if the ball
-    # moves toward the no-go area and positive if it moves away from it
+    # vel_normal: the component of the ball's velocity perpendicular to
+    # the line, is negative if the ball is moving toward the blocked area
     vel_normal = line_normal.dot(vel)
     if vel_normal >= 0.0:
-        # No collision if the ball doesn't move towards the halfspace
+        # No collision if the ball doesn't move towards the blocked area
         return INF, (vel_normal, None)
 
     # Compute the time of impact with the infinite line
@@ -549,21 +547,21 @@ def toi_and_param_ball_segment_onesided(
 
         if dpos_normal - radius < -(dpos_normal_err + ulp(radius) / 2):
             # No collision because we can prove that the ball already overlaps
-            # the halfplane
+            # the blocked area
             return INF, (vel_normal, u)
         else:
             return t, (vel_normal, u)
 
 
-def toi_and_param_ball_segment_twosided(
+def toi_args_ball_segment_twosided(
     pos, vel, radius, line_start, line_end, line_normal, line_covector
 ):
     """Calculate the time of impact of a moving ball and a line segment.
 
-    The line segment is two-sided, it detects collisions from the both
+    The line segment is two-sided; it detects collisions from both
     sides. If it is unclear if the ball overlaps the segment (due to
-    inaccuracies of the position vector), interpret this situation as
-    overlapping and return an infinite time of impact.
+    numerical inaccuracy of the position vector), treat it as an overlap
+    and return an infinite time of impact.
 
     A segment is defined by two points ``line_start`` and ``line_end``,
     but this functions also requires the ``covector`` and the ``normal``
@@ -583,22 +581,20 @@ def toi_and_param_ball_segment_twosided(
         radius: Radius of the ball.
         line_start: Starting point of the segment.
         line_end: Endpoint of the segment.
-        line_normal: The normal vector pointing away from the no-go
-            area. The input vector must be normalized (have a euclidean
-            length of 1), otherwise the computed time is not correct.
+        line_normal: A unit vector that is perpendicular to the line.
         line_covector: The vector in the direction of the line, but with
             a euclidean length of ``1 / length``, where ``length`` is
             the distance of ``line_start`` and ``line_end`` (the length
             of the segment).
 
     Returns:
-        A tuple ``(t, args)``, where ``t`` is the time of impact (a
+        A tuple ``(t, args)``, where ``t`` is the collision time (a
         float) and ``args`` is a tuple of arguments that can be used
-        when resolving a collision. The time of impact is infinite if
-        there is no collision at the present or a future time. The
-        ``args`` tuple always contains two entries:
-        ``line_normal.dot(vel)`` (the speed away from the halfspace, is
-        negative if the ball moves toward the no-go area) and ``u`` (the
+        when resolving a collision. The time is infinite if there is no
+        collision now or in the future. The ``args`` tuple contains two
+        entries: ``line_normal.dot(vel)`` (the component of the ball's
+        velocity perpendicular to the line, is negative if the ball is
+        moving against the direction of ``line_normal``) and ``u`` (the
         line parameter for the impact location). If the time of impact
         is finite, then ``line_start + u * line_end`` is the position
         where the ball will touch the line (and ``0 <= u <= 1``). If
@@ -628,12 +624,12 @@ def toi_and_param_ball_segment_twosided(
 
     if dpos_normal - radius > gap_err:
         # Ball is on the side facing line_normal
-        return toi_and_param_ball_segment_onesided(
+        return toi_args_ball_segment_onesided(
             pos, vel, radius, line_start, line_end, line_normal, line_covector
         )
     elif dpos_normal + radius < -gap_err:
         # Ball is on the side opposite of where line_normal is pointing
-        t, (vel_normal, u) = toi_and_param_ball_segment_onesided(
+        t, (vel_normal, u) = toi_args_ball_segment_onesided(
             pos, vel, radius, line_start, line_end, -line_normal, line_covector
         )
         return t, (-vel_normal, u)  # reverse vel_normal, because we used -line_normal

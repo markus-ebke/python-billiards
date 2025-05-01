@@ -162,7 +162,7 @@ def model_disk(obs, batch):
 
     x, y = obs.center
     color = (20, 100, 30, 255)
-    if obs.no_go == "inside":
+    if obs.blocked == "inside":
         shape = shapes.Circle(x, y, obs.radius, segments=64, color=color, batch=batch)
     else:
         shape = shapes.Arc(

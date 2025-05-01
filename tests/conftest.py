@@ -11,7 +11,7 @@ def create_newtons_cradle():
             left = -4
             right = 2 * num_balls + 3
             obs = [
-                billiards.InfiniteWall((left, -2), (left, 2), no_go="left"),
+                billiards.InfiniteWall((left, -2), (left, 2), blocked="left"),
                 billiards.InfiniteWall((right, -2), (right, 2)),
             ]
         else:

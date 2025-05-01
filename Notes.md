@@ -54,21 +54,21 @@ A list of features that might be useful, but for which I have no time or interes
 - The pos argument for Obstacle.resolve_collision is mutable. This could be used to teleport balls at collision, e.g. to create a box with periodic boundary conditions or portal objects.
 - Modify the pos argument to place the ball such that it really touches the obstacle to prevent accumulation of accuracy errors
 
-Regions in 1D (collisions from both sides, no_go="none"):
-- LineSegment(line_start, line_stop, no_go="none") (two-sided line segment)
-- InfiniteLine(point1, point2, no_go="none") or InfiniteLine(point1, None, direction, no_go="none") (two-sided infinite line)
+Regions in 1D (collisions from both sides, blocked="none"):
+- LineSegment(line_start, line_stop, blocked="none") (two-sided line segment)
+- InfiniteLine(point1, point2, blocked="none") or InfiniteLine(point1, None, direction, blocked="none") (two-sided infinite line) (not useful unless we have portal obstacles)
 - HalfLine(point1, point2) and HalfLine(point1, None, direction) (semi-infinite line) (alternative name: Ray or InfiniteRay)
 - PolyLine(list of points) (last point = first point => closed polyline)
-- Circle(center, radius=radius or (radius_x, radius_y), no_go="none") (for circles and ellipses)
+- Circle(center, radius=radius or (radius_x, radius_y), blocked="none") (for circles and ellipses)
 - Arc(center, radius=radius or (radius_x, radius_y), start_angle, stop_angle) (for circular and elliptic arcs)
 - Reference: DynamicalBilliards.jl, https://reference.wolfram.com/language/guide/GeometricSpecialRegions.html "Regions in 1D"
 
-Regions in 2D (no_go="outside" or "inside" for implicit regions, "left" or "right" for poly-lines):
-- LineSegment(line_start, line_stop, no_go="left" or "right") or LineSegment(line_start, None, normal, length) (one-sided line segment)
-- Halfplane(point, normal) or InfiniteLine(point1, point2, no_go="left" or "right") or InfiniteLine(point1, None, direction, no_go="left" or "right") (normal points towards the outside)
-- Triangle(point1, point2, point3, no_go="outside" or "inside" or "left" or "right")
+Regions in 2D (blocked="outside" or "inside" for implicit regions, "left" or "right" for poly-lines):
+- LineSegment(line_start, line_stop, blocked="left" or "right") or LineSegment(line_start, None, normal, length) (one-sided line segment)
+- HalfSpace(point, normal) or InfiniteLine(point1, point2, blocked="left" or "right") or InfiniteLine(point1, None, direction, blocked="left" or "right") (normal points towards the allowed area)
+- Triangle(point1, point2, point3, blocked="outside" or "inside" or "left" or "right")
 - Rectangle(bottomleft, topright) (supports corner points at infinity)
-- Polygon(list of points, no_go="left" or "right") (built from finite lines, how to treat holes if polyline is self-intersecting?)
+- Polygon(list of points, blocked="left" or "right") (built from finite lines, how to treat holes if polyline is self-intersecting?)
 - RegularPolygon(center, radius, numsides, rotate)
 - CenteredSquare(center, sidelength) (see https://github.com/nirnayroy/python-billiards/commit/71dcb950eac5e9eefea885e01cb74bcbfdfbe437)
 - Parallelogram(origin, direction1, direction2) (implement as skewed rectangle?)
@@ -83,7 +83,6 @@ Regions in 2D (no_go="outside" or "inside" for implicit regions, "left" or "righ
 - Reference: DynamicalBilliards.jl, https://reference.wolfram.com/language/guide/GeometricSpecialRegions.html "Regions in 2D"
 
 Further changes:
-- Remove InfiniteWall (equivalent to Halfplane)
 - Implement rounding of corners: Polyline -> list of Arcs and Polylines, Polygon -> shorter lines and virtual balls inside the corners?
 - In README.md write "Static obstacles to construct billiard tables with arbitrary shapes"
 - Helper functions: circle_through(p1, p2, p3) -> center, radius (circle through 3 points); circle_around(list of points) -> center, radius (smallest circle containing all points)
