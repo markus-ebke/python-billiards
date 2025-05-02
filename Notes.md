@@ -13,7 +13,7 @@ A list of features that might be useful, but for which I have no time or interes
 - Make `_obstacles_toi` and `_obstacle_obs` public (i.e. without underscore)? Also rename them?
 - Add ParticleBilliard: Simulate point particles that only collide with the obstacles, use parallelization in evolve
 - Rename class Billiard to BallBilliard, but set Billiard = BallBilliard to convencience
-- Write time-intensive functions in Cython (better: convert the whole Billiard class to Cython and use prange where possible?)
+- Write time-intensive functions in Cython (better: convert the whole Billiard class to Cython and use `prange` where possible?)
 
 ## Improve documentation
 - Get Sphinx autodoc to document a class's __init__ method
@@ -52,7 +52,8 @@ A list of features that might be useful, but for which I have no time or interes
 ## More obstacles
 - Implement as class Rotation(Obstacle) with `__init__(obstacle, angle)`, in `detect_collision` and `collide` inversely rotates the ball and then call the obstacle method.
 - The pos argument for Obstacle.resolve_collision is mutable. This could be used to teleport balls at collision, e.g. to create a box with periodic boundary conditions or portal objects.
-- Modify the pos argument to place the ball such that it really touches the obstacle to prevent accumulation of accuracy errors
+- Modify the pos argument to place the ball such that it really touches the obstacle to prevent accumulation of accuracy errors.
+- Define additional obstacles via a signed distance function and compute the collision time via raymarching. To resolve the collision, we only need the normal (= gradient of the sdf) at the collision point.
 
 Regions in 1D (collisions from both sides, blocked="none"):
 - LineSegment(line_start, line_stop, blocked="none") (two-sided line segment)
@@ -77,6 +78,8 @@ Regions in 2D (blocked="outside" or "inside" for implicit regions, "left" or "ri
 - DiskSegment(center, radii=radius or (radius_x, radius_y), start_angle, stop_angle) (circular arc closed by a chord)
 - AnnulusSector(center, outer_radius, inner_radius, start_angle, stop_angle)
 - Stadium(point1, point2, radius)
+- SDF(sdf_func, grad_func): obstacle defined via a signed distance function
+
 2D to 1D Conversion functions:
 - create_triangle_line, create_rectangle_line, create_regular_polyline, create_centered_square_line, create_parallelogram_line -> PolyLine
 - create_disk_sector_line, create_disk_segment_line, create_annulus_sector_line, create_stadium_line -> list of Polylines and Arcs with shared endpoints

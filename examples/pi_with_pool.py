@@ -19,8 +19,10 @@ from math import isinf, pi
 import matplotlib.pyplot as plt
 
 import billiards
-import billiards.visualize_matplotlib as visualize
 
+MODE = ["animate", "interact"][0]
+
+# global settings
 digits = 6  # number of digits of pi
 
 # setup the billiard table: Wall -- mass -<- MASS
@@ -44,7 +46,19 @@ bld = billiards.Billiard(obstacles)
 bld.add_ball((3, 0), (0, 0), radius=0.2)
 bld.add_ball((6, 0), (-1, 0), radius=1, mass=100 ** (digits - 1))
 
-# animate the simulation
-anim, fig, ax = visualize.animate(bld, end_time=16, dt=1 / 60, fps=60, figsize=(10, 5))
-# anim.save("pi_with_pool.mp4")
-plt.show()
+
+# visualize the simulation
+if MODE == "animate":
+    import billiards.visualize_matplotlib as visualize
+
+    anim, fig, ax = visualize.animate(
+        bld, end_time=16, dt=1 / 60, fps=60, figsize=(10, 5)
+    )
+    # anim.save("pi_with_pool.mp4")
+    plt.show()
+elif MODE == "interact":
+    import billiards.visualize_pyglet as visualize
+
+    visualize.interact(bld, camera_position=(6.5, 0), camera_zoom=0.07)
+else:
+    raise ValueError(f"MODE must be 'animate' or 'interact', not {MODE}")

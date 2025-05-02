@@ -9,8 +9,10 @@ end starts moving.
 import matplotlib.pyplot as plt
 
 import billiards
-import billiards.visualize_matplotlib as visualize
 
+MODE = ["animate", "interact"][0]
+
+# global settings
 num_balls = 5
 
 # setup the billiard table
@@ -26,6 +28,17 @@ bld.add_ball((-3, 0), (3, 0), 1)
 for i in range(1, num_balls):
     bld.add_ball((2 * i, 0), (0, 0), radius=1)
 
-# start the animation
-anim, fig, ax = visualize.animate(bld, end_time=3 * 4)  # period: 4
-plt.show()
+
+# visualize the simulation
+if MODE == "animate":
+    import billiards.visualize_matplotlib as visualize
+
+    anim, fig, ax = visualize.animate(bld, end_time=3 * 4)  # period: 4
+    # anim.save("newtons_cradle.mp4")
+    plt.show()
+elif MODE == "interact":
+    import billiards.visualize_pyglet as visualize
+
+    visualize.interact(bld, camera_position=(num_balls - 1, 0), camera_zoom=1 / 20)
+else:
+    raise ValueError(f"MODE must be 'animate' or 'interact', not {MODE}")

@@ -5,13 +5,12 @@ The billiard table is a square where a disk in the center was removed.
 The billiard balls are point particles that don't collide with each other.
 """
 
-from math import cos, pi, sin
-
 import matplotlib.pyplot as plt
 import numpy as np
 
 import billiards
-import billiards.visualize_matplotlib as visualize
+
+MODE = ["animate", "interact"][0]
 
 # global settings
 disk_radius = 0.5  # radius of the disk in the middle
@@ -28,19 +27,26 @@ obs = [
 ]
 bld = billiards.Billiard(obstacles=obs)
 
-# distribute particles uniformly in the square, moving in random directions but
-# with the same speed
-for _i in range(num_balls):
-    pos = np.random.uniform((-1, -1), (1, 1))
-    angle = np.random.uniform(0, 2 * pi)
-    vel = [cos(angle), sin(angle)]
+# particles start from almost the same point, moving with the same velocity
+for i in range(num_balls):
+    bld.add_ball((-1, 0.01 * 0.98**i), (1, 0), radius=0)
 
-    bld.add_ball(pos, vel, radius=0)
+# scale velocity to slow down particles
+# bld.balls_velocity *= 1 / 2
+# bld.recompute_toi()  # call this method after modifying position or velocity
 
-bld.balls_velocity /= 5  # slow down
-bld.recompute_toi()
+# visualize the simulation
+if MODE == "animate":
+    import billiards.visualize_matplotlib as visualize
 
-# start the animation
-anim, fig, ax = visualize.animate(bld, end_time=10, figsize=(6, 6), particle_marker="x")
-# anim.save("sinai_billiard.mp4")
-plt.show()
+    anim, fig, ax = visualize.animate(
+        bld, end_time=15, figsize=(6, 6), arrow_size=0, particle_marker="."
+    )
+    # anim.save("sinai_billiard.mp4")
+    plt.show()
+elif MODE == "interact":
+    import billiards.visualize_pyglet as visualize
+
+    visualize.interact(bld, camera_zoom=0.25)
+else:
+    raise ValueError(f"MODE must be 'animate' or 'interact', not {MODE}")

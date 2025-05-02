@@ -11,7 +11,8 @@ from math import sqrt
 import matplotlib.pyplot as plt
 
 import billiards
-import billiards.visualize_matplotlib as visualize
+
+MODE = ["animate", "interact"][0]
 
 # setup the billiard table
 breadth, length = 112, 224
@@ -34,7 +35,18 @@ for i in range(5):
 # add the white ball and give it a push
 bld.add_ball((0.25 * length, breadth / 2), (length / 3, 0), radius)
 
-# start the animation
-anim, fig, ax = visualize.animate(bld, end_time=30, figsize=(10, 5.5))
-# anim.save("pool_first_shot.mp4")
-plt.show()
+# visualize the simulation
+if MODE == "animate":
+    import billiards.visualize_matplotlib as visualize
+
+    anim, fig, ax = visualize.animate(bld, end_time=30, figsize=(10, 5.5))
+    # anim.save("pool_first_shot.mp4")
+    plt.show()
+elif MODE == "interact":
+    import billiards.visualize_pyglet as visualize
+
+    visualize.interact(
+        bld, camera_position=(length / 2, breadth / 2), camera_zoom=1 / length
+    )
+else:
+    raise ValueError(f"MODE must be 'animate' or 'interact', not {MODE}")

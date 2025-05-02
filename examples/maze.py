@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import billiards
-import billiards.visualize_matplotlib as visualize
+
+MODE = ["animate", "interact"][0]
 
 # global settings
 num_balls = 200  # increase this if your computer can handle it
@@ -26,6 +27,11 @@ bounds = [
     # first obstacle: "wedge"
     billiards.LineSegment((-0.2, 0.0), (0.0, 0.5), blocked="right"),
     billiards.LineSegment((0.0, 0.5), (0.2, 0.0), blocked="right"),
+    # second obstacle: "one-way slit"
+    billiards.LineSegment((0.3, -0.3), (0.1, -0.3), blocked="left"),
+    billiards.LineSegment((-0.1, -0.3), (-0.3, -0.3), blocked="left"),
+    # third obstacle: "disk"
+    billiards.Disk((0.65, -0.2), 0.3),
 ]
 bld = billiards.Billiard(obstacles=bounds)
 
@@ -39,8 +45,18 @@ for _i in range(num_balls):
 
     bld.add_ball(pos, vel, radius=0.02)
 
-# show a simulation of the first 10 seconds
-anim, fig, ax = visualize.animate(bld, end_time=10, arrow_size=0, figsize=(7, 7))
-# note: bld.time == 10.0
-# anim.save("maze.mp4")
-plt.show()
+
+# visualize the simulation
+if MODE == "animate":
+    import billiards.visualize_matplotlib as visualize
+
+    anim, fig, ax = visualize.animate(bld, end_time=10, arrow_size=0, figsize=(7, 7))
+    # note: bld.time == 10.0
+    # anim.save("maze.mp4")
+    plt.show()
+elif MODE == "interact":
+    import billiards.visualize_pyglet as visualize
+
+    visualize.interact(bld, camera_zoom=0.25)
+else:
+    raise ValueError(f"MODE must be 'animate' or 'interact', not {MODE}")

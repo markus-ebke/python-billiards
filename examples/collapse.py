@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import billiards
-import billiards.visualize_matplotlib as visualize
+
+MODE = ["animate", "interact"][0]
 
 # global settings
 num_balls = 200  # increase this if your computer can handle it
@@ -24,9 +25,22 @@ for _i in range(num_balls):
     # add ball to billiard
     idx = bld.add_ball(pos, vel, radius=1)
 
-# start the animation, but zoom into the origin to see the cloud colliding
-anim, fig, ax = visualize.animate(bld, end_time=15)
-ax.set_xlim(-40, 40)
-ax.set_ylim(-40, 40)
-# anim.save("collapse.mp4")
-plt.show()
+
+# visualize the simulation
+if MODE == "animate":
+    import billiards.visualize_matplotlib as visualize
+
+    anim, fig, ax = visualize.animate(bld, end_time=15)
+
+    # zoom into the origin to see the cloud colliding
+    ax.set_xlim(-40, 40)
+    ax.set_ylim(-40, 40)
+
+    # anim.save("collapse.mp4")
+    plt.show()
+elif MODE == "interact":
+    import billiards.visualize_pyglet as visualize
+
+    visualize.interact(bld, camera_zoom=1 / 200)
+else:
+    raise ValueError(f"MODE must be 'animate' or 'interact', not {MODE}")

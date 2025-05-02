@@ -1,5 +1,10 @@
 # Changelog
 
+**v<new_version>**
+- Implement disk exterior and circle obstacles
+- Implement propagation of uncertainty when computing collision times
+- Improve numerical algorithm to compute collision time
+
 **v1.0.0.dev0**
 - Many API changes, mostly to make method and function names more descriptive
 - Split visualization into a matplotlib and a pyglet file. Add more customization for plotting with matplotlib (including a color scheme for billiard objects). Rewrite the pyglet visualization for pyglet version 2.0, add camera controls.

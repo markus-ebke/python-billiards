@@ -13,10 +13,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import billiards
-import billiards.visualize_matplotlib as visualize
+
+MODE = ["animate", "interact"][0]
 
 # global settings
-num_balls = 1000  # increase this if your computer can handle it
+num_balls = 500  # increase this if your computer can handle it
 random.seed(0)  # fix random state for reproducibility
 
 # setup the billiard table
@@ -40,11 +41,20 @@ for _ in range(num_balls):
 # add a bigger ball to illustrate Brownian motion
 # bld.add_ball((0, 0), (0, 0), radius=0.1, mass=10)
 
-# show a simulation of the first 10 seconds
-anim, fig, ax = visualize.animate(bld, end_time=10, arrow_size=0.1, figsize=(7, 7))
-# note: bld.time == 10.0
-# anim.save("ideal_gas.mp4")
-plt.show()
+# visualize the simulation
+if MODE == "animate":
+    import billiards.visualize_matplotlib as visualize
+
+    anim, fig, ax = visualize.animate(bld, end_time=10, arrow_size=0.1, figsize=(7, 7))
+    # note: bld.time == 10.0
+    # anim.save("ideal_gas.mp4")
+    plt.show()
+elif MODE == "interact":
+    import billiards.visualize_pyglet as visualize
+
+    visualize.interact(bld, camera_zoom=0.25)
+else:
+    raise ValueError(f"MODE must be 'animate' or 'interact', not {MODE}")
 
 # plot histogram of speed distribution and compare with 2-dimensional
 # Maxwell–Boltzmann distribution (formula from Wikipedia, n-dimensional case)
