@@ -975,7 +975,8 @@ def test_toi_args_ball_segment_twoided_error():
 def test_elastic_collision():
     pos1, pos2 = (0, 0), (2, 0)
 
-    def ec(vel1, vel2, mass2=1):
+    def ec(vel1, vel2, mass2=1, ubits=1):
+        set_pos_accuracy(52 - ubits)
         v1, v2 = elastic_collision(pos1, vel1, 1, pos2, vel2, mass2)
         return (tuple(v1), tuple(v2))
 
@@ -995,14 +996,12 @@ def test_elastic_collision():
     # sliding past each other is possible
     assert ec((0, 0), (0, 1)) == ((0, 0), (0, 1))
 
-    # When the balls are moving slightly apart, we *should* get an exception. But to
-    # avoid false positives when balls are slightly moving towards each other, we allow
-    # it.
-    assert ec((0, 0), (5e-16, 1)) == ((5e-16, 0), (0, 1))
-
-    # check exceptions
+    # check exception when the balls are moving slightly apart
     with pytest.raises(ValueError):
-        ec((0, 0), (6e-16, 1))
+        ec((0, 0), (1e-20, 1))
+
+    with pytest.raises(ValueError):
+        ec((0, 0), (2e-20, 1), ubits=20)
 
     # collision of two massless particles makes no sense
     with pytest.raises(FloatingPointError):

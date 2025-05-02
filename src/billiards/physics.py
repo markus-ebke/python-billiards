@@ -674,9 +674,18 @@ def elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2):
     dpos = np.subtract(pos1, pos2)
     dvel = np.subtract(vel1, vel2)
 
-    # Make sure that impulse will be positive
     pos_dot_vel = dpos.dot(dvel)
-    if pos_dot_vel > 1e-15:
+
+    # Keep track of absolute errors in floating point computations
+    pos_dot_vel_err = POS_SCALE_ULPS * (
+        abs(dpos[0]) * (ulp(vel1[0]) + ulp(vel2[0]))
+        + (ulp(pos1[0]) + ulp(pos2[0])) * abs(dvel[0])
+        + abs(dpos[1]) * (ulp(vel1[1]) + ulp(vel2[1]))
+        + (ulp(pos1[1]) + ulp(pos2[1])) * abs(dvel[1])
+    )
+
+    # Make sure that impulse will be positive
+    if pos_dot_vel > pos_dot_vel_err:
         msg = f"Balls are not moving towards each other: pos * vel = {pos_dot_vel} > 0"
         raise ValueError(msg)
 
