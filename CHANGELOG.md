@@ -1,6 +1,6 @@
 # Changelog
 
-**v<new_version>**
+**v1.0.0.dev1**
 - Implement disk exterior and circle obstacles
 - Implement propagation of uncertainty when computing collision times
 - Improve numerical algorithm to compute collision time
