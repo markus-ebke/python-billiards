@@ -30,7 +30,7 @@ for _i in range(num_balls):
 if MODE == "animate":
     import billiards.visualize_matplotlib as visualize
 
-    anim, fig, ax = visualize.animate(bld, end_time=15)
+    anim, fig, ax = visualize.animate(bld, 15.0)
 
     # zoom into the origin to see the cloud colliding
     ax.set_xlim(-40, 40)

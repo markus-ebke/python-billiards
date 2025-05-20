@@ -96,10 +96,10 @@ information about the time of collisions.
 
 .. doctest::
 
-   >>> def print_time(t):
+   >>> def print_time(t, dt):
    ...     print(f"Collision at t = {t:.3}")
    ...
-   >>> bld.evolve(end_time=4, time_callback=print_time)
+   >>> bld.evolve(duration=4.0, time_callback=print_time)
    Collision at t = 0.5
    Collision at t = 0.55
    Collision at t = 0.6
@@ -121,8 +121,8 @@ seconds:
 .. doctest::
 
    >>> bld.time
-   4
-   >>> visualize.animate(bld, end_time=12)
+   4.0
+   >>> visualize.animate(bld, until=12.0)
    (<matplotlib.animation.FuncAnimation object at 0x...>, <Figure size 800x600 with 1 Axes>, <Axes: >)
    >>> plt.show()
 
@@ -152,11 +152,11 @@ callback we can record the trajectory of this ball and then plot it.
 .. doctest::
 
    >>> poslist = []
-   >>> def record(t, pos, vel_old, vel_new, idx_or_obs):
+   >>> def record(t, dt, pos, vel_old, vel_new, idx_or_obs):
    ...     poslist.append(pos)
    ...
-   >>> bld.evolve(end_time=30, ball_callbacks={2: record})
-   (36, 8)
+   >>> bld.evolve(30.0, ball_callbacks={2: record})
+   (46, 11)
    >>> poslist.append(bld.balls_position[2].copy())  # add last position
    >>> fig, ax = visualize.plot(bld)  # state of the billiard right now
    >>> x = [pos[0] for pos in poslist]

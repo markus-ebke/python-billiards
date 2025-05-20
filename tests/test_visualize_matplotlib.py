@@ -110,12 +110,12 @@ def test_plot(create_newtons_cradle):
 def test_animate(create_newtons_cradle):
     bld = create_newtons_cradle(5)
 
-    anim, fig, ax = visualize.animate(bld, end_time=1, dt=1 / 60, fps=30)
-    assert bld.time == 1
+    anim, fig, ax = visualize.animate(bld, 1.0, dt=1 / 60, fps=30)
+    assert bld.time == 1.0
     assert isinstance(anim, mpl.animation.FuncAnimation)
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(ax, mpl.axes.Axes)
-    assert anim._save_count == 61  # determined by bld.time, end_time and dt, not fps
+    assert anim._save_count == 61  # determined by bld.time, duration and dt, not fps
 
     animated_artists = anim._func(1)
     assert len(animated_artists) == 3  # text, circles, quiver
@@ -124,10 +124,10 @@ def test_animate(create_newtons_cradle):
     # UserWarning: Animation was deleted without rendering anything.
     anim._init_draw()
 
-    # from time = 1 to time = 2 in steps of 1/30 => 31 frames (endpoints included)
-    anim, fig, ax = visualize.animate(bld, end_time=2, dt=1 / 30)
-    assert bld.time == 2
-    assert anim._save_count == 31
+    # from time = 1 to time = 4 in steps of 1/30 => 91 frames (endpoints included)
+    anim, fig, ax = visualize.animate(bld, 3.0, dt=1 / 30)
+    assert bld.time == 4.0
+    assert anim._save_count == 91
 
     anim._init_draw()  # prevent warning from matplotlib
 
@@ -153,7 +153,7 @@ def test_color_scheme():
     visualize.plot(bld, color_scheme={0: ("red", "blue"), 1: ("orange", "yellow")})
 
     anim, fig, ax = visualize.animate(
-        bld, 1, color_scheme={0: ("red", "blue"), 1: ("orange", "yellow")}
+        bld, 1.0, color_scheme={0: ("red", "blue"), 1: ("orange", "yellow")}
     )
     anim._init_draw()
 
@@ -174,7 +174,7 @@ def test_color_scheme_with_alpha():
     visualize.plot(bld, color_scheme={0: (("red", 0.6), ("blue", 0.3))})
 
     anim, fig, ax = visualize.animate(
-        bld, 1, color_scheme={0: (("red", 0.6), ("blue", 0.3))}
+        bld, 1.0, color_scheme={0: (("red", 0.6), ("blue", 0.3))}
     )
     anim._init_draw()
 

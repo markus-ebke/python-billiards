@@ -31,8 +31,8 @@ def quickstart():
     # Quickstart - Iteration
     print(bld.next_collision)
     total_collisions = 0
-    for i in [1, 2, 3, 4, 5]:
-        total_collisions += sum(bld.evolve(i))
+    for _ in range(5):
+        total_collisions += sum(bld.evolve(1.0))
         print(f"Until t = {bld.time}: {total_collisions} collisions")
     print(bld.time)
     fig, ax = visualize.plot(bld)
@@ -42,7 +42,7 @@ def quickstart():
     print()
 
     # Quickstart - End Result
-    total_collisions += sum(bld.evolve(16))
+    total_collisions += sum(bld.evolve(until=16.0))
     print(bld.balls_velocity)
     print(bld.next_ball_ball_collision)
     print(bld.next_ball_obstacle_collision)
@@ -82,30 +82,30 @@ def brownian_motion(animate=False):
     idx = bld.add_ball((0, 0), (0, 0), radius=0.1, mass=10)
 
     # simulate until t = 50, recording the position at each collision
-    end_time = 50
+    duration = 50
     poslist = []
 
     poslist = [bld.balls_position[idx].copy()]  # record initial position
 
-    def record(t, p, u, v, i_o):
+    def record(t, dt, p, u, v, i_o):
         poslist.append(p)
 
     if animate:  # just to check animation
-        anim, fig, ax = visualize.animate(bld, end_time, arrow_size=0, figsize=(7, 7))
+        anim, fig, ax = visualize.animate(bld, duration, arrow_size=0, figsize=(7, 7))
         anim.save("brownian motion.mp4")
         # plt.show()
         return
 
-    with tqdm(total=end_time) as pbar:
+    with tqdm(total=duration) as pbar:
         t_prev = bld.time
 
-        def progress(t):
+        def progress(t, dt):
             nonlocal t_prev
             t_now = round(t, 1)
             pbar.update(t_now - t_prev)
             t_prev = t_now
 
-        bld.evolve(end_time, time_callback=progress, ball_callbacks={idx: record})
+        bld.evolve(duration, time_callback=progress, ball_callbacks={idx: record})
     poslist.append(bld.balls_position[idx].copy())  # record last position
 
     # plot the billiard and overlay the path of the particle
@@ -138,12 +138,12 @@ def newtons_cradle():
     print(bld.next_ball_obstacle_collision)
     print(bld.next_collision)
 
-    def print_time(t):
+    def print_time(t, dt):
         print(f"Collision at t = {t:.3}")
 
-    bld.evolve(end_time=4, time_callback=print_time)
+    bld.evolve(4.0, time_callback=print_time)
     print(bld.time)
-    anim, fig, ax = visualize.animate(bld, end_time=12)
+    anim, fig, ax = visualize.animate(bld, until=12.0)
     anim.save(here / "_static/newtons_cradle.mp4")
     # plt.show()
 
@@ -153,10 +153,10 @@ def newtons_cradle():
 
     poslist = []
 
-    def record(t, pos, vel_old, vel_new, idx_or_obs):
+    def record(t, dt, pos, vel_old, vel_new, idx_or_obs):
         poslist.append(pos)
 
-    bld.evolve(end_time=40, ball_callbacks={2: record})
+    bld.evolve(until=40.0, ball_callbacks={2: record})
     poslist.append(bld.balls_position[2].copy())
 
     fig, ax = visualize.plot(bld)  # state of the billiard right now

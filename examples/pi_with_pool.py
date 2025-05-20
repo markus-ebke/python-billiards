@@ -34,7 +34,7 @@ bld.add_ball((6, 0), (-1, 0), radius=1, mass=100 ** (digits - 1))
 # simulate until there are no more collisions and print the total number of collisions
 total_collisions = 0
 while not isinf(bld.next_collision[0]):
-    num_collisions = sum(bld.evolve(bld.time + 1))
+    num_collisions = sum(bld.evolve(1.0))
     print(f"From t = {bld.time - 1:4} to t = {bld.time:4}: {num_collisions} collisions")
     total_collisions += num_collisions
 
@@ -51,9 +51,7 @@ bld.add_ball((6, 0), (-1, 0), radius=1, mass=100 ** (digits - 1))
 if MODE == "animate":
     import billiards.visualize_matplotlib as visualize
 
-    anim, fig, ax = visualize.animate(
-        bld, end_time=16, dt=1 / 60, fps=60, figsize=(10, 5)
-    )
+    anim, fig, ax = visualize.animate(bld, 16.0, dt=1 / 60, fps=60, figsize=(10, 5))
     # anim.save("pi_with_pool.mp4")
     plt.show()
 elif MODE == "interact":

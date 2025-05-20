@@ -50,7 +50,7 @@ for _i in range(num_balls):
 if MODE == "animate":
     import billiards.visualize_matplotlib as visualize
 
-    anim, fig, ax = visualize.animate(bld, end_time=10, arrow_size=0, figsize=(7, 7))
+    anim, fig, ax = visualize.animate(bld, 10.0, arrow_size=0, figsize=(7, 7))
     # note: bld.time == 10.0
     # anim.save("maze.mp4")
     plt.show()

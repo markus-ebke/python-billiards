@@ -42,33 +42,33 @@ Using the *visualize* module, let’s see how this initial state looks like:
 
    Initial state of Galperin’s billiard
 
-The *Billiard.evolve* method simulates our billiard system from
-*bld.time* until a given end time. It returns a list of collisions
-(ball-ball and ball-obstacle collisions).
+The *Billiard.evolve* method simulates our billiard system for a given
+time interval. It returns a list of collisions (the number of ball-ball
+and the number of ball-obstacle collisions).
 
 .. doctest::
 
    >>> bld.next_collision  # (time, ball index, ball index or obstacle)-triplet
-   (1.8000000000000005, 0, 1)
+   (1.8, 0, 1)
    >>> total_collisions = 0
-   >>> for i in [1, 2, 3, 4, 5]:
-   ...     total_collisions += sum(bld.evolve(i))
+   >>> for i in range(5):
+   ...     total_collisions += sum(bld.evolve(1.0))
    ...     print(f"Until t = {bld.time}: {total_collisions} collisions")
    ...
-   Until t = 1: 0 collisions
-   Until t = 2: 1 collisions
-   Until t = 3: 1 collisions
-   Until t = 4: 4 collisions
-   Until t = 5: 314152 collisions
+   Until t = 1.0: 0 collisions
+   Until t = 2.0: 1 collisions
+   Until t = 3.0: 1 collisions
+   Until t = 4.0: 4 collisions
+   Until t = 5.0: 314152 collisions
 
-The first collision happened at time t = 1.8. Until t = 4 there were
-only 4 collisions, but then between t = 4 and t = 5 there were several
-thousands. Let’s see how the situation looks now:
+The first collision happened at time t = 1.8. Until t = 4.0 there were
+only 4 collisions, but then between t = 4.0 and t = 5.0 there were
+several thousand. Let’s see how the situation looks now:
 
 .. doctest::
 
    >>> bld.time  # current time
-   5
+   5.0
    >>> visualize.plot(bld)
    (<Figure size 800x600 with 1 Axes>, <Axes: >)
    >>> plt.show()
@@ -78,19 +78,19 @@ thousands. Let’s see how the situation looks now:
 
    State at time t = 5
 
-Let’s advance the simulation to t = 16. As we can check, there won’t be
-any other collisions after this time:
+Let’s advance the simulation to t = 16.0. As we can check, there won’t
+be any other collisions after this time:
 
 .. doctest::
 
-   >>> total_collisions += sum(bld.evolve(16))
+   >>> total_collisions += sum(bld.evolve(until=16.0))
    >>> bld.balls_velocity  # nx2 numpy array where n is the number of balls
-   array([[0.73463055, 0.        ],
+   array([[0.73463056, 0.        ],
           [1.        , 0.        ]])
    >>> bld.next_ball_ball_collision  # next ball-ball collision
    (inf, -1, 0)
    >>> bld.next_ball_obstacle_collision  # next ball-obstacle collision
-   (inf, 0, None)
+   (inf, 0, (None, ()))
    >>> visualize.plot(bld)
    (<Figure size 800x600 with 1 Axes>, <Axes: >)
    >>> plt.show()
@@ -129,7 +129,7 @@ conserved the kinetic energy (within floating point accuracy):
    5000000000.0
    >>> v_squared = (bld.balls_velocity**2).sum(axis=1)
    >>> (bld.balls_mass * v_squared).sum() / 2  # kinetic energy now
-   np.float64(4999999999.989935)
+   np.float64(5000000000.044419)
 
 
 
@@ -175,11 +175,10 @@ each collision (this will take some time)
 .. doctest::
 
    >>> poslist = [bld.balls_position[idx].copy()]  # record initial position
-   >>> def record(t, p, u, v, i_o):
+   >>> def record(t, dt, p, u, v, i_o):
    ...     poslist.append(p)
    ...
-   >>> bld.evolve(50, ball_callbacks={idx: record})
-   (0, 0)
+   >>> bld.evolve(50.0, ball_callbacks={idx: record})
    >>> poslist.append(bld.balls_position[idx].copy())  # record last position
 
 Plot the billiard and overlay the path of the particle

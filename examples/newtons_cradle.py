@@ -33,7 +33,7 @@ for i in range(1, num_balls):
 if MODE == "animate":
     import billiards.visualize_matplotlib as visualize
 
-    anim, fig, ax = visualize.animate(bld, end_time=3 * 4)  # period: 4
+    anim, fig, ax = visualize.animate(bld, 3 * 4)  # period: 4
     # anim.save("newtons_cradle.mp4")
     plt.show()
 elif MODE == "interact":

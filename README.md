@@ -75,31 +75,31 @@ Using the _visualize_ module, let's see how this initial state looks:
 ![Initial state of Galperin's billiard](docs/_images/quickstart_1.svg)
 
 
-The _Billiard.evolve_ method simulates our billiard system from _bld.time_ until a given end time.
-It returns a list of collisions (ball-ball and ball-obstacle collisions).
+The _Billiard.evolve_ method simulates our billiard system for a given time interval.
+It returns a list of collisions (the number of ball-ball and the number of ball-obstacle collisions).
 
 ```pycon
 >>> bld.next_collision  # (time, ball index, ball index or obstacle)-triplet
-(1.8000000000000005, 0, 1)
+(1.8, 0, 1)
 >>> total_collisions = 0
->>> for i in [1, 2, 3, 4, 5]:
-...     total_collisions += sum(bld.evolve(i))
+>>> for i in range(5):
+...     total_collisions += sum(bld.evolve(1.0))
 ...     print(f"Until t = {bld.time}: {total_collisions} collisions")
 ...
-Until t = 1: 0 collisions
-Until t = 2: 1 collisions
-Until t = 3: 1 collisions
-Until t = 4: 4 collisions
-Until t = 5: 314152 collisions
+Until t = 1.0: 0 collisions
+Until t = 2.0: 1 collisions
+Until t = 3.0: 1 collisions
+Until t = 4.0: 4 collisions
+Until t = 5.0: 314152 collisions
 ```
 
 The first collision happened at time t = 1.8.
-Until t = 4 there were only 4 collisions, but then between t = 4 and t = 5 there were several thousands.
+Until t = 4.0 there were only 4 collisions, but then between t = 4.0 and t = 5.0 there were several thousand.
 Let's see how the situation looks now:
 
 ```pycon
 >>> bld.time  # current time
-5
+5.0
 >>> visualize.plot(bld)
 (<Figure size 800x600 with 1 Axes>, <Axes: >)
 >>> plt.show()
@@ -108,18 +108,18 @@ Let's see how the situation looks now:
 ![State at time t = 5](docs/_images/quickstart_2.svg)
 
 
-Let's advance the simulation to t = 16.
+Let's advance the simulation to t = 16.0.
 As we can check, there won't be any other collisions after this time:
 
 ```pycon
->>> total_collisions += sum(bld.evolve(16))
+>>> total_collisions += sum(bld.evolve(until=16.0))
 >>> bld.balls_velocity  # nx2 numpy array where n is the number of balls
 array([[0.73463055, 0.        ],
        [1.        , 0.        ]])
->>> bld.next_ball_ball_collision
+>>> bld.next_ball_ball_collision  # (time, ball index, ball index) of next collision
 (inf, -1, 0)
->>> bld.next_ball_obstacle_collision
-(inf, 0, None)
+>>> bld.next_ball_obstacle_collision  # (time, ball index, obstacle info)
+(inf, 0, (None, ()))
 >>> visualize.plot(bld)
 (<Figure size 800x600 with 1 Axes>, <Axes: >)
 >>> plt.show()
@@ -149,7 +149,7 @@ Lastly, I want to point out that all collisions were elastic, i.e. they conserve
 5000000000.0
 >>> v_squared = (bld.balls_velocity**2).sum(axis=1)
 >>> (bld.balls_mass * v_squared).sum() / 2  # kinetic energy now
-np.float64(4999999999.989935)
+np.float64(5000000000.044419)
 ```
 
 The video [examples/pi_with_pool.mp4](examples/pi_with_pool.mp4) replays the whole billiard simulation (it was created using `visualize.animate`).
@@ -200,7 +200,7 @@ Add the white ball and give it a push, then view the animation:
 
 ```pycon
 >>> bld.add_ball((0.25 * length, width / 2), (length / 3, 0), radius)
->>> anim, fig, ax = visualize.animate(bld, end_time=10, figsize=(10, 5.5))
+>>> anim, fig, ax = visualize.animate(bld, 10.0, figsize=(10, 5.5))
 >>> plt.show()
 ```
 
@@ -245,10 +245,11 @@ and simulate until t = 50, recording the position of the bigger ball at each col
 
 ```pycon
 >>> poslist = [bld.balls_position[idx].copy()]  # record initial position
->>> def record(t, p, u, v, i_o):
+>>> def record(t, dt, p, u, v, i_o):
 ...     poslist.append(p)
 ...
->>> bld.evolve(50, ball_callbacks={idx: record})
+>>> bld.evolve(50.0, ball_callbacks={idx: record})
+(25506, 13224)
 >>> poslist.append(bld.balls_position[idx].copy())  # record last position
 ```
 

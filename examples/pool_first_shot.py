@@ -39,7 +39,7 @@ bld.add_ball((0.25 * length, breadth / 2), (length / 3, 0), radius)
 if MODE == "animate":
     import billiards.visualize_matplotlib as visualize
 
-    anim, fig, ax = visualize.animate(bld, end_time=30, figsize=(10, 5.5))
+    anim, fig, ax = visualize.animate(bld, 30.0, figsize=(10, 5.5))
     # anim.save("pool_first_shot.mp4")
     plt.show()
 elif MODE == "interact":

@@ -9,8 +9,8 @@ Usage (assuming ``bld`` is an instance of the ``Billiard`` class)::
     visualize_matplotlib.plot(bld)
     plt.show()
 
-    # show evolution of the simulation from bld.time to end_time
-    visualize_matplotlib.animate(bld, end_time=10)
+    # show evolution of the simulation for 10 time units
+    visualize_matplotlib.animate(bld, 10.0)
     plt.show()
 
 Use the functions ``plot_obstacles``, ``plot_balls``, ``plot_particles`` and
@@ -35,6 +35,8 @@ mapping (key: obstacle class, value: plot function). For more information, see
 the documentation for ``obstacle_plot_functions``.
 """
 
+from math import ceil
+
 import matplotlib.animation as manimation
 import matplotlib.artist as martist
 import matplotlib.axes as maxes
@@ -48,9 +50,9 @@ import numpy as np
 
 # If tqdm is installed, use it to draw a progress bar in 'animate'
 try:
-    from tqdm.auto import trange
+    from tqdm.auto import tqdm
 except ImportError:  # pragma: no cover
-    trange = range
+    tqdm = iter
 
 
 from .obstacles import Circle, Disk, InfiniteWall, LineSegment
@@ -666,7 +668,9 @@ def plot(
 
 def animate(
     bld,
-    end_time,
+    duration=None,
+    until=None,
+    *,
     dt=1 / 30,
     particle_marker=".",
     particle_size=20,
@@ -685,17 +689,20 @@ def animate(
 ):
     """Animate the billiard plot.
 
-    Advance the simulation from ``bld.time`` in steps of size ``dt`` until
-    ``bld.time`` reaching ``end_time``. After every step, create a plot of the
-    billiard simulation and assemble the plots into an animation. To display the
-    animation, assign the returned animation instance to a variable (to prevent
-    it from garbage-collection) and call ``matplotlib.pyplot.show()``.
+    Evolve the simulation for the given time interval in steps of size ``dt``.
+    After every step, create a plot of the billiard simulation and assemble the
+    plots into an animation. To display the animation, assign the returned
+    animation instance to a variable (to avoid being garbage-collected)
+    and call ``matplotlib.pyplot.show()``.
 
     Will show a progress bar if the package *tqdm* is installed.
 
     Args:
         bld: A billiard simulation.
-        end_time: The animation runs from ``t = bld.time`` until ``t = end_time``.
+        duration: The animation shows the time evolution from ``bld.time`` until
+            ``bld.time + duration``.
+        until: Provide an end time instead of a duration. The animation then shows
+            the time evolution from ``bld.time`` to ``bld.time == until``.
         dt (optional): Size of the timesteps. Defaults to 1 / 30.
         particle_marker (optional): A *matplotlib* marker style for the particles.
             Defaults to ".".
@@ -727,15 +734,34 @@ def animate(
         ``matplotlib.axes.Axes`` instance) are the figure and axes that will be
         animated. Their properties can be adjusted before calling ``pyplot.show()``.
     """
-    start_time = bld.time
-    frames = int((end_time - start_time) / dt) + 1  # include end_time frame
+    # check "duration" and "until"
+    if duration is not None:
+        if until is not None:
+            raise ValueError(
+                f"either 'duration' or 'until' must be given, but not both "
+                f"({duration=}, {until=})"
+            )
+        elif duration < 0:
+            raise ValueError(f"cannot evolve backwards in time ({duration=})")
+
+        until = bld.time + duration
+    else:
+        if until is None:
+            raise ValueError("either 'duration' or 'until' must be given")
+        elif until < bld.time:
+            raise ValueError(f"{until=} cannot be smaller than {bld.time=}")
+
+        until = float(until)
+
+    # Collect all timestamps where we should snapshot the simulation
+    timestamps = [bld.time + i * dt for i in range(ceil((until - bld.time) / dt))]
+    timestamps.append(until)
+    frames = len(timestamps)
 
     # precompute the simulation
-    time = []
-    positions = []
-    velocities = []
-    for i in trange(frames):
-        bld.evolve(start_time + i * dt)
+    time, positions, velocities = [], [], []
+    for ts in tqdm(timestamps):
+        bld.evolve(until=ts)
 
         time.append(bld.time)
         positions.append(bld.balls_position.copy())

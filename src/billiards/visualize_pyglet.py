@@ -762,7 +762,7 @@ ESC: Close window and exit"""
         if self.running or self.advance_one_frame:
             tick = clock()
             timestep = self.simulation_speed * dt
-            collisions = self.billiard.evolve(self.billiard.time + timestep)
+            collisions = self.billiard.evolve(timestep)
             tock = clock()
             self.timing_simulate.append(tock - tick)
 
@@ -776,7 +776,7 @@ ESC: Close window and exit"""
             if self.billiard.next_collision[0] < float("inf"):
                 tick = clock()
                 start_time = self.billiard.time
-                collisions = self.billiard.evolve(self.billiard.next_collision[0])
+                collisions = self.billiard.evolve(until=self.billiard.next_collision[0])
                 timestep = self.billiard.time - start_time
                 tock = clock()
                 self.timing_simulate.append(tock - tick)

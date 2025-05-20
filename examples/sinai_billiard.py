@@ -40,7 +40,7 @@ if MODE == "animate":
     import billiards.visualize_matplotlib as visualize
 
     anim, fig, ax = visualize.animate(
-        bld, end_time=15, figsize=(6, 6), arrow_size=0, particle_marker="."
+        bld, 15.0, figsize=(6, 6), arrow_size=0, particle_marker="."
     )
     # anim.save("sinai_billiard.mp4")
     plt.show()
