@@ -6,8 +6,8 @@ import pytest
 from numpy.testing import assert_allclose
 from pytest import approx
 
+import billiards.physics as physics
 from billiards.obstacles import Circle, Disk, InfiniteWall, LineSegment
-from billiards.physics import set_pos_accuracy
 
 INF = float("inf")
 
@@ -213,7 +213,7 @@ def test_circle():
 
     assert c.detect_collision(collpos, collvel, 0.0)[0] == INF
 
-    set_pos_accuracy(52 - 1)
+    physics.REL_TOL = 2 ** (-53 + 1)
     for dx in [1e-3, 1e-6, 1e-9, 1e-12, 2**-40, 2**-50, 2**-51]:
         for vx in [2.5, 1e-3, 1e-6, 1e-9, 1e-12, 1e-15]:
             pos, vel = ((1 - sqrt(1 / 2) - dx), sqrt(1 / 2)), (vx, 0)

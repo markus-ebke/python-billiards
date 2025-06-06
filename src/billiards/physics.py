@@ -2,15 +2,26 @@
 
 To detect a collision between a ball and an obstacle, we compute the
 *time of impact* (toi) and check that it is non-negative. Note that due
-to floating-point issues the computed time of impact can be negative in
-certain pathological cases (usually when the two balls or a ball and an
-obstacle touch). Since these cases occur quite often (because a ball and
-obstacles touch after resolving a previous collision), we allow for some
-uncertainty of the ball position. See the documentation of
-`set_pos_accuracy` for details.
+to floating-point issues, a ball and obstacle (or two balls) may
+erronously overlap, causing the toi to be negative. To handle such
+issues, we allow for some uncertainty of the ball position.
+
+The size of this uncertainty range is controlled by the module-level
+variables `REL_TOL` and `ABS_TOL`. The uncertainty of the x-coordinate
+of a ball is ``max(REL_TOL * abs(x), ABS_TOL)`` (and similar for the
+y-coordinate). If there is a position within this range such that the
+ball and obstacle do not overlap, then we assume that the ball and the
+obstacle do not touch and return the computed toi (which my be negative).
+
+Attributes:
+    REL_TOL (float): Relative tolerance for position uncertainty.
+        The default value is ``2 ** (-53 + 10)``, i.e. we assume that
+        the last 10 bits of a float64 number are inaccurate.
+    ABS_TOL (float): Absolute tolerance for position uncertainty.
+        The default value is ``0.0``
 """
 
-from math import sqrt
+from math import fabs, sqrt
 
 try:
     from math import ulp
@@ -27,48 +38,8 @@ except ImportError:  # pragma: no cover
 import numpy as np
 
 INF = float("inf")
-
-POS_RELIABLE_BITS = 52 - 20  # assume that the last 20 bits are inaccurate
-POS_SCALE_ULPS = 2 ** (52 - POS_RELIABLE_BITS - 1)
-
-
-def set_pos_accuracy(num_bits):
-    """Specify the expected accuracy of the ball position in bits.
-
-    By default, the ball coordinates are recorded as 64-bit
-    floating-point numbers. Since these numbers have only a finite
-    precision, arithmetic operations can introduce rounding errors or
-    cancel significant digits, decreasing the accuracy of the final
-    result.
-
-    This is a problem because the toi-functions should compute a time
-    that is not in the past, and we would like to implement this via
-    a statement ``return INF if toi < 0 else toi``. However, if the ball
-    position is slightly inaccurate such that the ball accidentally
-    overlaps an obstacle, then the computed time of impact will be
-    negative.
-
-    To correct for such floating-point issues, we keep track of the
-    uncertainty in the position and if the amount of overlap is within
-    the propagated uncertainty, we will return the (negative) toi
-    anyway. (The minimal allowed time is roughly the time it takes the
-    ball to traverse the uncertainty range at the given velocity.)
-
-    Args:
-        num_bits: The number of bits in the ball position coordinates
-            that are expected to be accurate. The maximum is 52, since
-            64-bit floating point numbers use a 52-bit mantissa.
-
-            To indicate that the last four bits may be inaccurate, use
-            ``num_bits = 52 - 4``.
-
-            To set the uncertainty via a given relative tolerance (e.g.
-            ``rel_tol = 1e-9``), use ``num_bits = -log2(rel_tol) - 1``.
-    """
-    global POS_RELIABLE_BITS, POS_SCALE_ULPS
-    POS_RELIABLE_BITS = min(num_bits, 52)
-    POS_SCALE_ULPS = 2 ** (52 - POS_RELIABLE_BITS - 1)
-    # POS_REL_TOL = 2 ** (-POS_RELIABLE_BITS - 1)
+REL_TOL = 2 ** (-53 + 10)  # assume that the last 10 bits of a float64 are inaccurate
+ABS_TOL = 0.0
 
 
 def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2):
@@ -154,16 +125,17 @@ def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2):
     # In practice, we don't want to check c_minus_r2 against zero because the least
     # significant bits of the position vectors may be inaccurate. Instead we propagate
     # the uncertainty of the position and check against the error of dist_sqrd.
-    # We assume that the uncertainty of pos[i] is POS_SCALE_ULPS * ulp(pos[i]) and the
-    # uncertainty of other quantities is ulp(x) / 2, i.e. all present bits are accurate.
+    # We assume that the uncertainty of pos[i] is max(REL_TOL * fabs(pos[i]), ABS_TOL)
+    # and the uncertainty of other quantities is ulp(x) / 2, i.e. all present bits are
+    # accurate.
     # To propagate absolute errors, we use the linear approximations
     # (x + x_err) + (y + y_err) = (x + y) + (x_err + y_err)
     # (x + x_err) - (y + y_err) = (x - y) + (x_err + y_err)
     # (x + x_err) * (y + y_err) = (x * y) + (|x| * y_err + |y| * x_err) + (negligible)
     # (x + x_err) ** n = x ** n + n * |x| ** (n - 1) * x_err + (negligible), n > 0
-    dpos_x_err = POS_SCALE_ULPS * (ulp(pos1[0]) + ulp(pos2[0]))
-    dpos_y_err = POS_SCALE_ULPS * (ulp(pos1[1]) + ulp(pos2[1]))
-    dist_sqrd_err = 2 * (abs(dpos[0]) * dpos_x_err + abs(dpos[1]) * dpos_y_err)
+    dpos_x_err = max(REL_TOL * (fabs(pos1[0]) + fabs(pos2[0])), ABS_TOL)
+    dpos_y_err = max(REL_TOL * (fabs(pos1[1]) + fabs(pos2[1])), ABS_TOL)
+    dist_sqrd_err = 2 * (fabs(dpos[0]) * dpos_x_err + fabs(dpos[1]) * dpos_y_err)
     rsum_sqrd_err = 2 * (radius1 + radius2) * (ulp(radius1) + ulp(radius2)) / 2
 
     if c_minus_r2 < -(dist_sqrd_err + rsum_sqrd_err):
@@ -221,9 +193,9 @@ def toi_ball_disk(pos, vel, radius, disk_center, disk_radius):
     c_minus_r2 = dist_sqrd - rsum_sqrd
 
     # Progate uncertainty of pos, analogous to toi_ball_ball
-    dpos_x_err = POS_SCALE_ULPS * ulp(pos[0]) + ulp(disk_center[0]) / 2
-    dpos_y_err = POS_SCALE_ULPS * ulp(pos[1]) + ulp(disk_center[1]) / 2
-    dist_sqrd_err = 2 * (abs(dpos[0]) * dpos_x_err + abs(dpos[1]) * dpos_y_err)
+    dpos_x_err = max(REL_TOL * fabs(pos[0]), ABS_TOL) + ulp(disk_center[0]) / 2
+    dpos_y_err = max(REL_TOL * fabs(pos[1]), ABS_TOL) + ulp(disk_center[1]) / 2
+    dist_sqrd_err = 2 * (fabs(dpos[0]) * dpos_x_err + fabs(dpos[1]) * dpos_y_err)
     rsum_sqrd_err = 2 * (radius + disk_radius) * (ulp(radius) + ulp(disk_radius)) / 2
 
     if c_minus_r2 < -(dist_sqrd_err + rsum_sqrd_err):
@@ -273,9 +245,9 @@ def toi_ball_point(pos, vel, radius, point):
     c_minus_r2 = dist_sqrd - radius_sqrd
 
     # Progate uncertainty of pos, analogous to toi_ball_ball
-    dpos_x_err = POS_SCALE_ULPS * ulp(pos[0]) + ulp(point[0]) / 2
-    dpos_y_err = POS_SCALE_ULPS * ulp(pos[1]) + ulp(point[1]) / 2
-    dist_sqrd_err = 2 * (abs(dpos[0]) * dpos_x_err + abs(dpos[1]) * dpos_y_err)
+    dpos_x_err = max(REL_TOL * fabs(pos[0]), ABS_TOL) + ulp(point[0]) / 2
+    dpos_y_err = max(REL_TOL * fabs(pos[1]), ABS_TOL) + ulp(point[1]) / 2
+    dist_sqrd_err = 2 * (fabs(dpos[0]) * dpos_x_err + fabs(dpos[1]) * dpos_y_err)
     radius_sqrd_err = 2 * radius * (ulp(radius) / 2)
 
     if c_minus_r2 < -(dist_sqrd_err + radius_sqrd_err):
@@ -339,9 +311,9 @@ def toi_ball_disk_exterior(pos, vel, radius, disk_center, disk_radius):
         return (-pos_dot_vel + sqrt(delta_over_4)) / speed_sqrd
     else:
         # Progate uncertainty of pos, analogous to toi_ball_ball
-        dpos_x_err = POS_SCALE_ULPS * ulp(pos[0]) + ulp(disk_center[0]) / 2
-        dpos_y_err = POS_SCALE_ULPS * ulp(pos[1]) + ulp(disk_center[1]) / 2
-        dist_sqrd_err = 2 * (abs(dpos[0]) * dpos_x_err + abs(dpos[1]) * dpos_y_err)
+        dpos_x_err = max(REL_TOL * fabs(pos[0]), ABS_TOL) + ulp(disk_center[0]) / 2
+        dpos_y_err = max(REL_TOL * fabs(pos[1]), ABS_TOL) + ulp(disk_center[1]) / 2
+        dist_sqrd_err = 2 * (fabs(dpos[0]) * dpos_x_err + fabs(dpos[1]) * dpos_y_err)
         rsum_sqrd_err = (
             2 * (disk_radius - radius) * (ulp(radius) + ulp(disk_radius)) / 2
         )
@@ -385,9 +357,9 @@ def toi_ball_circle(pos, vel, radius, circle_center, circle_radius):
     dist_sqrd = dpos.dot(dpos)
 
     # Keep track of absolute errors in floating point computations
-    dpos_x_err = POS_SCALE_ULPS * ulp(pos[0]) + ulp(circle_center[0]) / 2
-    dpos_y_err = POS_SCALE_ULPS * ulp(pos[1]) + ulp(circle_center[1]) / 2
-    dist_sqrd_err = 2 * (abs(dpos[0]) * dpos_x_err + abs(dpos[1]) * dpos_y_err)
+    dpos_x_err = max(REL_TOL * fabs(pos[0]), ABS_TOL) + ulp(circle_center[0]) / 2
+    dpos_y_err = max(REL_TOL * fabs(pos[1]), ABS_TOL) + ulp(circle_center[1]) / 2
+    dist_sqrd_err = 2 * (fabs(dpos[0]) * dpos_x_err + fabs(dpos[1]) * dpos_y_err)
     radius_sqrd_err = circle_radius * ulp(circle_radius) / 2
 
     # Figure out how the ball collides with the circle
@@ -440,15 +412,15 @@ def toi_args_ball_line_onesided(pos, vel, radius, line_point, line_normal):
 
     # Compute the relative position between the ball and the blocked area
     dpos = np.subtract(pos, line_point)
-    dpos_x_err = POS_SCALE_ULPS * ulp(pos[0]) + ulp(line_point[0]) / 2
-    dpos_y_err = POS_SCALE_ULPS * ulp(pos[1]) + ulp(line_point[1]) / 2
+    dpos_x_err = max(REL_TOL * fabs(pos[0]), ABS_TOL) + ulp(line_point[0]) / 2
+    dpos_y_err = max(REL_TOL * fabs(pos[1]), ABS_TOL) + ulp(line_point[1]) / 2
 
     dpos_normal = line_normal.dot(dpos)
     dpos_normal_err = (
-        abs(line_normal[0]) * dpos_x_err
-        + ulp(line_normal[0]) / 2 * abs(dpos[0])
-        + abs(line_normal[1]) * dpos_y_err
-        + ulp(line_normal[1]) / 2 * abs(dpos[1])
+        fabs(line_normal[0]) * dpos_x_err
+        + ulp(line_normal[0]) / 2 * fabs(dpos[0])
+        + fabs(line_normal[1]) * dpos_y_err
+        + ulp(line_normal[1]) / 2 * fabs(dpos[1])
     )
 
     if dpos_normal - radius < -(dpos_normal_err + ulp(radius) / 2):
@@ -536,13 +508,13 @@ def toi_args_ball_segment_onesided(
     elif u > 1.0:
         return toi_ball_point(pos, vel, radius, line_end), (vel_normal, 1)
     else:  # 0 <= u <= 1
-        dpos_x_err = POS_SCALE_ULPS * ulp(pos[0]) + ulp(line_start[0]) / 2
-        dpos_y_err = POS_SCALE_ULPS * ulp(pos[1]) + ulp(line_start[1]) / 2
+        dpos_x_err = max(REL_TOL * fabs(pos[0]), ABS_TOL) + ulp(line_start[0]) / 2
+        dpos_y_err = max(REL_TOL * fabs(pos[1]), ABS_TOL) + ulp(line_start[1]) / 2
         dpos_normal_err = (
-            abs(line_normal[0]) * dpos_x_err
-            + ulp(line_normal[0]) / 2 * abs(dpos[0])
-            + abs(line_normal[1]) * dpos_y_err
-            + ulp(line_normal[1]) / 2 * abs(dpos[1])
+            fabs(line_normal[0]) * dpos_x_err
+            + ulp(line_normal[0]) / 2 * fabs(dpos[0])
+            + fabs(line_normal[1]) * dpos_y_err
+            + ulp(line_normal[1]) / 2 * fabs(dpos[1])
         )
 
         if dpos_normal - radius < -(dpos_normal_err + ulp(radius) / 2):
@@ -612,13 +584,13 @@ def toi_args_ball_segment_twosided(
     dpos_normal = line_normal.dot(dpos)
 
     # Keep track of absolute errors in floating point computations
-    dpos_x_err = POS_SCALE_ULPS * ulp(pos[0]) + ulp(line_start[0]) / 2
-    dpos_y_err = POS_SCALE_ULPS * ulp(pos[1]) + ulp(line_start[1]) / 2
+    dpos_x_err = max(REL_TOL * fabs(pos[0]), ABS_TOL) + ulp(line_start[0]) / 2
+    dpos_y_err = max(REL_TOL * fabs(pos[1]), ABS_TOL) + ulp(line_start[1]) / 2
     dpos_normal_err = (
-        abs(line_normal[0]) * dpos_x_err
-        + ulp(line_normal[0]) / 2 * abs(dpos[0])
-        + abs(line_normal[1]) * dpos_y_err
-        + ulp(line_normal[1]) / 2 * abs(dpos[1])
+        fabs(line_normal[0]) * dpos_x_err
+        + ulp(line_normal[0]) / 2 * fabs(dpos[0])
+        + fabs(line_normal[1]) * dpos_y_err
+        + ulp(line_normal[1]) / 2 * fabs(dpos[1])
     )
     gap_err = dpos_normal_err + ulp(radius) / 2  # error of dpos_normal +- radius
 
@@ -677,11 +649,11 @@ def elastic_collision(pos1, vel1, mass1, pos2, vel2, mass2):
     pos_dot_vel = dpos.dot(dvel)
 
     # Keep track of absolute errors in floating point computations
-    pos_dot_vel_err = POS_SCALE_ULPS * (
-        abs(dpos[0]) * (ulp(vel1[0]) + ulp(vel2[0]))
-        + (ulp(pos1[0]) + ulp(pos2[0])) * abs(dvel[0])
-        + abs(dpos[1]) * (ulp(vel1[1]) + ulp(vel2[1]))
-        + (ulp(pos1[1]) + ulp(pos2[1])) * abs(dvel[1])
+    pos_dot_vel_err = (
+        fabs(dpos[0]) * (ulp(vel1[0]) + ulp(vel2[0])) / 2
+        + max(REL_TOL * (fabs(pos1[0]) + fabs(pos2[0])), ABS_TOL) * fabs(dvel[0])
+        + fabs(dpos[1]) * (ulp(vel1[1]) + ulp(vel2[1])) / 2
+        + max(REL_TOL * (fabs(pos1[1]) + fabs(pos2[1])), ABS_TOL) * fabs(dvel[1])
     )
 
     # Make sure that impulse will be positive

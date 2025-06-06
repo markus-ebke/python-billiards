@@ -1,12 +1,13 @@
-from math import asin, cos, pi, sin, sqrt, ulp
+from math import asin, cos, pi, sin, sqrt
 
 import numpy as np
 import pytest
 from pytest import approx
 
+import billiards.physics as physics
 from billiards.physics import (
+    INF,
     elastic_collision,
-    set_pos_accuracy,
     toi_args_ball_line_onesided,
     toi_args_ball_segment_onesided,
     toi_args_ball_segment_twosided,
@@ -15,9 +16,9 @@ from billiards.physics import (
     toi_ball_disk,
     toi_ball_disk_exterior,
     toi_ball_point,
+    ulp,
 )
 
-INF = float("inf")
 np.seterr(divide="raise")  # use pytest.raises to catch numpy errors
 
 
@@ -116,7 +117,7 @@ def test_toi_ball_ball_error():
 
     # for convenience
     def toi(pos2, vel2, radius2, ubits=1):
-        set_pos_accuracy(52 - ubits)
+        physics.REL_TOL = 2 ** (-53 + ubits)
         return toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2)
 
     # touching
@@ -213,7 +214,7 @@ def test_toi_ball_disk_error():
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
-        set_pos_accuracy(52 - ubits)
+        physics.REL_TOL = 2 ** (-53 + ubits)
         return toi_ball_disk(pos, vel, radius, disk_center, disk_radius)
 
     # touching
@@ -320,7 +321,7 @@ def test_toi_ball_point_error():
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
-        set_pos_accuracy(52 - ubits)
+        physics.REL_TOL = 2 ** (-53 + ubits)
         return toi_ball_point(pos, vel, radius, point)
 
     # touching
@@ -342,7 +343,7 @@ def test_toi_ball_point_error():
     # touching, change the ball radius
     pos = point + (sqrt(1 / 2), sqrt(1 / 2))
     assert toi(pos, (-(2**-30), 0), 1 + 2**-30) == INF
-    assert toi(pos, (-(2**-30), 0), 1 + 2**-30, ubits=53 - 31) == INF
+    assert toi(pos, (-(2**-30), 0), 1 + 2**-30, ubits=53 - 32) == INF
     assert toi(pos, (-(2**-30), 0), 1 + 2**-30, ubits=53 - 30) == approx(0.0, abs=2**2)
     assert toi(pos, (-(2**-30), 0), 1, ubits=1) == approx(0.0, abs=2 ** (-52 + 30))
 
@@ -433,7 +434,7 @@ def test_toi_ball_disk_exterior_error():
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
-        set_pos_accuracy(52 - ubits)
+        physics.REL_TOL = 2 ** (-53 + ubits)
         return toi_ball_disk_exterior(pos, vel, radius, disk_center, disk_radius)
 
     # touching
@@ -456,7 +457,7 @@ def test_toi_ball_disk_exterior_error():
     # touching, change the ball radius
     pos, radius = disk_center + (sqrt(8), sqrt(8)), 1 + 2**-30
     assert toi(pos, (2**-29, 0), radius) == INF
-    assert toi(pos, (2**-29, 0), radius, ubits=53 - 32) == INF
+    assert toi(pos, (2**-29, 0), radius, ubits=53 - 33) == INF
     assert toi(pos, (2**-29, 0), radius, ubits=53 - 31) == approx(0.0, abs=2**0)
     assert toi(pos, (2**-29, 0), radius=1, ubits=1) == approx(0.0, abs=2 ** -(52 - 31))
 
@@ -558,7 +559,7 @@ def test_toi_ball_circle_error():
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
-        set_pos_accuracy(52 - ubits)
+        physics.REL_TOL = 2 ** (-53 + ubits)
         return toi_ball_circle(pos, vel, radius, circle_center, circle_radius)
 
     # touching
@@ -614,7 +615,7 @@ def test_toi_ball_circle_error():
     # touching, change the ball radius
     pos, radius = circle_center + (sqrt(8), sqrt(8)), 1 + 2**-30
     assert toi(pos, (2**-29, 0), radius) == INF
-    assert toi(pos, (2**-29, 0), radius, ubits=53 - 32) == INF
+    assert toi(pos, (2**-29, 0), radius, ubits=53 - 33) == INF
     assert toi(pos, (2**-29, 0), radius, ubits=53 - 31) == approx(0.0, abs=2**0)
     assert toi(pos, (2**-29, 0), radius=1, ubits=1) == approx(0.0, abs=2 ** -(52 - 31))
 
@@ -637,7 +638,7 @@ def test_toi_args_ball_halfspace():
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
-        set_pos_accuracy(52 - ubits)
+        physics.REL_TOL = 2 ** (-53 + ubits)
         return toi_args_ball_line_onesided(pos, vel, radius, start, normal)
 
     # check time of impact from outside going in
@@ -681,7 +682,7 @@ def test_toi_args_ball_halfspace_error():
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
-        set_pos_accuracy(52 - ubits)
+        physics.REL_TOL = 2 ** (-53 + ubits)
         return toi_args_ball_line_onesided(pos, vel, radius, start, normal)
 
     # touching and colliding
@@ -733,7 +734,7 @@ def test_toi_ball_segment_onesided():
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
-        set_pos_accuracy(52 - ubits)
+        physics.REL_TOL = 2 ** (-53 + ubits)
         return toi_args_ball_segment_onesided(
             pos, vel, radius, start, end, normal, covector
         )
@@ -797,7 +798,7 @@ def test_toi_args_ball_segment_onesided_error():
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
-        set_pos_accuracy(52 - ubits)
+        physics.REL_TOL = 2 ** (-53 + ubits)
         return toi_args_ball_segment_onesided(
             pos, vel, radius, start, end, normal, covector
         )
@@ -848,7 +849,7 @@ def test_toi_ball_segment_twosided():
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
-        set_pos_accuracy(52 - ubits)
+        physics.REL_TOL = 2 ** (-53 + ubits)
         return toi_args_ball_segment_twosided(
             pos, vel, radius, start, end, normal, covector
         )
@@ -948,7 +949,7 @@ def test_toi_args_ball_segment_twoided_error():
 
     # for convenience
     def toi(pos, vel, radius, ubits=1):
-        set_pos_accuracy(52 - ubits)
+        physics.REL_TOL = 2 ** (-53 + ubits)
         return toi_args_ball_segment_twosided(
             pos, vel, radius, start, end, normal, covector
         )
@@ -976,7 +977,7 @@ def test_elastic_collision():
     pos1, pos2 = (0, 0), (2, 0)
 
     def ec(vel1, vel2, mass2=1, ubits=1):
-        set_pos_accuracy(52 - ubits)
+        physics.REL_TOL = 2 ** (-53 + ubits)
         v1, v2 = elastic_collision(pos1, vel1, 1, pos2, vel2, mass2)
         return (tuple(v1), tuple(v2))
 
