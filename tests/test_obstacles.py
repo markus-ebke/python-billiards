@@ -66,9 +66,10 @@ def test_disk():
     upos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
     assert upos[0] ** 2 + upos[1] ** 2 == approx((d.radius + r) ** 2), upos
 
-    uvel = d.resolve_collision(upos, vel, r)
-    assert tuple(uvel) == (-1, 0)
-    assert d.detect_collision(upos, uvel, 1) == (INF, ())
+    pos_new, vel_new = d.resolve_collision(upos, vel, r)
+    assert tuple(vel_new) == (-1, 0)
+    assert_allclose(pos_new, upos, atol=1e-14)
+    assert d.detect_collision(pos_new, vel_new, 1) == (INF, ())
 
     pos, vel, r = (-10, 0), (1, 1 / 11), 1
     t_ref = -2 * sqrt(1 - 24 * vel[1] ** 2) / (vel[1] ** 2 + 1) + 10 / (vel[1] ** 2 + 1)
@@ -78,9 +79,10 @@ def test_disk():
     upos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
     assert upos[0] ** 2 + upos[1] ** 2 == approx((d.radius + r) ** 2), upos
 
-    uvel = d.resolve_collision(upos, vel, r)
-    assert tuple(uvel) == approx((-0.663553336824114, 0.753632159610709), abs=1e-15)
-    assert d.detect_collision(upos, uvel, 1) == (INF, ())
+    pos_new, vel_new = d.resolve_collision(upos, vel, r)
+    assert_allclose(pos_new, upos, atol=1e-14)
+    assert tuple(vel_new) == approx((-0.663553336824114, 0.753632159610709), abs=1e-15)
+    assert d.detect_collision(upos, vel_new, 1) == (INF, ())
 
 
 def test_disk_exterior():
@@ -99,9 +101,12 @@ def test_disk_exterior():
     upos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
     assert (upos[0] - 1.7) ** 2 + (upos[1] - 2.3) ** 2 == approx((3 - r) ** 2)
 
-    uvel = d.resolve_collision(upos, vel, r)
-    assert tuple(uvel) == approx((-0.91 - 0.03 * sqrt(191), -0.91 + 0.03 * sqrt(191)))
-    assert d.detect_collision(upos, uvel, 1) == (approx(sqrt(191) / 5), ())
+    pos_new, vel_new = d.resolve_collision(upos, vel, r)
+    assert_allclose(pos_new, upos, atol=1e-14)
+    assert tuple(vel_new) == approx(
+        (-0.91 - 0.03 * sqrt(191), -0.91 + 0.03 * sqrt(191))
+    )
+    assert d.detect_collision(pos_new, vel_new, 1) == (approx(sqrt(191) / 5), ())
 
     # "slide" along the inner boundary
     pos, vel, r = (1.7, 2.3 - 3 + 2e-8), (1, 0), 1e-8
@@ -115,10 +120,11 @@ def test_disk_exterior():
         upos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
         assert (upos[0] - 1.7) ** 2 + (upos[1] - 2.3) ** 2 == approx((3 - r) ** 2)
 
-        uvel = d.resolve_collision(upos, vel, r)
-        assert uvel[0] ** 2 + uvel[1] ** 2 == approx(1.0), uvel
+        pos_new, vel_new = d.resolve_collision(upos, vel, r)
+        assert_allclose(pos_new, upos, atol=1e-14)
+        assert vel_new[0] ** 2 + vel_new[1] ** 2 == approx(1.0), vel_new
 
-        pos, vel = upos, uvel
+        pos, vel = pos_new, vel_new
 
 
 def test_circle():
@@ -136,9 +142,10 @@ def test_circle():
     collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
     assert collpos[0] ** 2 + collpos[1] ** 2 == approx((c.radius + r) ** 2), collpos
 
-    collvel = c.resolve_collision(collpos, vel, r)
-    assert tuple(collvel) == (-1, 0)
-    assert c.detect_collision(collpos, collvel, 1) == (INF, ())
+    pos_new, vel_new = c.resolve_collision(collpos, vel, r)
+    assert_allclose(pos_new, collpos, atol=1e-14)
+    assert tuple(vel_new) == (-1, 0)
+    assert c.detect_collision(pos_new, vel_new, 1) == (INF, ())
 
     pos, vel, r = (-10, 0), (1, 1 / 11), 1
     t_ref = -2 * sqrt(1 - 24 * vel[1] ** 2) / (vel[1] ** 2 + 1) + 10 / (vel[1] ** 2 + 1)
@@ -148,9 +155,10 @@ def test_circle():
     collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
     assert collpos[0] ** 2 + collpos[1] ** 2 == approx((c.radius + r) ** 2), collpos
 
-    collvel = c.resolve_collision(collpos, vel, r)
-    assert tuple(collvel) == approx((-0.663553336824114, 0.753632159610709), abs=1e-15)
-    assert c.detect_collision(collpos, collvel, 1) == (INF, ())
+    pos_new, vel_new = c.resolve_collision(collpos, vel, r)
+    assert_allclose(pos_new, collpos, atol=1e-14)
+    assert tuple(vel_new) == approx((-0.663553336824114, 0.753632159610709), abs=1e-15)
+    assert c.detect_collision(pos_new, vel_new, 1) == (INF, ())
 
     c = Circle((1.7, 2.3), 3)
 
@@ -166,11 +174,12 @@ def test_circle():
     collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
     assert (collpos[0] - 1.7) ** 2 + (collpos[1] - 2.3) ** 2 == approx((3 - r) ** 2)
 
-    collvel = c.resolve_collision(collpos, vel, r)
-    assert tuple(collvel) == approx(
+    pos_new, vel_new = c.resolve_collision(collpos, vel, r)
+    assert_allclose(pos_new, collpos, atol=1e-14)
+    assert tuple(vel_new) == approx(
         (-0.91 - 0.03 * sqrt(191), -0.91 + 0.03 * sqrt(191))
     )
-    assert c.detect_collision(collpos, collvel, 1) == (approx(sqrt(191) / 5), ())
+    assert c.detect_collision(pos_new, vel_new, 1) == (approx(sqrt(191) / 5), ())
 
     # "slide" along the inner boundary
     pos, vel, r = (1.7, 2.3 - 3 + 2e-8), (1, 0), 1e-8
@@ -184,10 +193,11 @@ def test_circle():
         collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
         assert (collpos[0] - 1.7) ** 2 + (collpos[1] - 2.3) ** 2 == approx((3 - r) ** 2)
 
-        collvel = c.resolve_collision(collpos, vel, r)
-        assert collvel[0] ** 2 + collvel[1] ** 2 == approx(1.0), collvel
+        pos_new, vel_new = c.resolve_collision(collpos, vel, r)
+        assert_allclose(pos_new, collpos, atol=1e-14)
+        assert vel_new[0] ** 2 + vel_new[1] ** 2 == approx(1.0), vel_new
 
-        pos, vel = collpos, collvel
+        pos, vel = pos_new, vel_new
 
     # check very small balls
     for rexp in range(2, 20):
@@ -196,9 +206,10 @@ def test_circle():
         assert t < 1, (rexp, pos, vel, r)
 
         collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
-        collvel = c.resolve_collision(collpos, vel, r)
-        t, args = c.detect_collision(collpos, collvel, r)
-        assert t == float("inf"), (rexp, collpos, collvel, r)
+        pos_new, vel_new = c.resolve_collision(collpos, vel, r)
+        assert_allclose(pos_new, collpos, atol=1e-14)
+        t, args = c.detect_collision(pos_new, vel_new, r)
+        assert t == float("inf"), (rexp, pos_new, vel_new, r)
 
     # check point particle
     c = Circle((1, 0), 1)
@@ -208,10 +219,11 @@ def test_circle():
     assert t == approx(1e-3 / 2.5)
 
     collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
-    collvel = c.resolve_collision(collpos, vel, 0.0, args)
-    assert tuple(collvel) == (-2.5, 0.0)
+    pos_new, vel_new = c.resolve_collision(collpos, vel, 0.0, args)
+    assert_allclose(pos_new, collpos, atol=1e-14)
+    assert_allclose(vel_new, (-2.5, 0.0), atol=1e-14)
 
-    assert c.detect_collision(collpos, collvel, 0.0)[0] == INF
+    assert c.detect_collision(pos_new, vel_new, 0.0)[0] == INF
 
     physics.REL_TOL = 2 ** (-53 + 1)
     for dx in [1e-3, 1e-6, 1e-9, 1e-12, 2**-40, 2**-50, 2**-51]:
@@ -222,8 +234,9 @@ def test_circle():
             assert t == approx(dx / vx, abs=abserr), (dx, vx)
 
             collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
-            collvel = c.resolve_collision(collpos, vel, 0.0, args)
-            assert c.detect_collision(collpos, collvel, 0.0)[0] == INF, (dx, vx)
+            pos_new, vel_new = c.resolve_collision(collpos, vel, 0.0, args)
+            assert_allclose(pos_new, collpos, atol=1e-14)
+            assert c.detect_collision(pos_new, vel_new, 0.0)[0] == INF, (dx, vx)
 
 
 def test_infinite_wall():
@@ -272,8 +285,12 @@ def test_infinite_wall():
     assert w.detect_collision((0, 0), (0, 1), 0)[0] == INF
 
     # check collision
-    assert tuple(w.resolve_collision((0, 10), (0, -1), 1, -1.0)) == (0, 1)
-    assert tuple(w.resolve_collision((0, 10), (10, -1), 1, -1.0)) == (10, 1)
+    pos_new, vel_new = w.resolve_collision((0, 10), (0, -1), 1, -1.0)
+    assert tuple(pos_new) == (0, 1)
+    assert tuple(vel_new) == (0, 1)
+    pos_new, vel_new = w.resolve_collision((0, 10), (10, -1), 1, -1.0)
+    assert tuple(pos_new) == (90, 1)
+    assert tuple(vel_new) == (10, 1)
 
     assert w.detect_collision((0, -10), (10, 1), 1)[0] == INF  # wrong side
     with pytest.raises(AssertionError):
@@ -282,7 +299,9 @@ def test_infinite_wall():
     # use wall as ceiling
     w = InfiniteWall((-1, 0), (1, 0), blocked="left")
     assert w.detect_collision((0, -10), (10, 1), 1) == (9, (-1.0,))
-    assert tuple(w.resolve_collision((0, -10), (10, 1), 1, -1.0)) == (10, -1)
+    pos_new, vel_new = w.resolve_collision((0, -10), (10, 1), 1, -1.0)
+    assert tuple(pos_new) == (90, -1)
+    assert tuple(vel_new) == (10, -1)
 
     # test repeated collision for decreasing distances
     w = InfiniteWall((-1, 0), (1, 0), blocked="right")
@@ -295,10 +314,11 @@ def test_infinite_wall():
                 assert t == approx(dy / vy, rel=relerr), (dy, vy, r, pos, vel)
 
                 collpos = (pos[0] + t * vel[0], pos[1] + t * vel[1])
-                collvel = w.resolve_collision(collpos, vel, r, *args)
-                assert tuple(collvel) == (0, vy), (dy, vy, r, collpos, vel)
+                pos_new, vel_new = w.resolve_collision(collpos, vel, r, *args)
+                assert_allclose(pos_new, collpos, atol=1e-14)
+                assert tuple(vel_new) == (0, vy), (dy, vy, r, collpos, vel)
 
-                assert w.detect_collision(collpos, collvel, r)[0] == INF
+                assert w.detect_collision(pos_new, vel_new, r)[0] == INF
 
 
 def test_line_segment_onesided():
@@ -331,8 +351,10 @@ def test_line_segment_onesided():
         vel = np.asarray([cos(a), -sin(a)])
         assert line.detect_collision(pos, vel, 1 / 2) == (approx(0.5), (vel[1], 0.0)), a
 
-        cvel = line.resolve_collision(pos + 0.5 * vel, vel, 1 / 2, vel[1], 0.0)
-        assert_allclose(cvel, (-vel[0], -vel[1]), atol=1e-14)
+        collpos = pos + 0.5 * vel
+        pos_new, vel_new = line.resolve_collision(collpos, vel, 1 / 2, vel[1], 0.0)
+        assert_allclose(pos_new, collpos, atol=1e-14)
+        assert_allclose(vel_new, (-vel[0], -vel[1]), atol=1e-14)
 
     pos = np.asarray([-sqrt(1 / 2) - 2, 1 - sqrt(1 / 2)])
     vel = np.asarray([1, -1])
@@ -354,8 +376,10 @@ def test_line_segment_onesided():
         vel = np.asarray([cos(a), -sin(a)])
         assert line.detect_collision(pos, vel, 1 / 2) == (approx(0.5), (vel[1], 1.0)), a
 
-        cvel = line.resolve_collision(pos + 0.5 * vel, vel, 1 / 2, vel[1], 1.0)
-        assert_allclose(cvel, (-vel[0], -vel[1]), atol=1e-14)
+        collpos = pos + 0.5 * vel
+        pos_new, vel_new = line.resolve_collision(collpos, vel, 1 / 2, vel[1], 1.0)
+        assert_allclose(pos_new, collpos, atol=1e-14)
+        assert_allclose(vel_new, (-vel[0], -vel[1]), atol=1e-14)
 
     # check collision between the endpoints
     for a in [pi / 2 + 1e-6, 2.0, pi - 1e-6]:
@@ -366,8 +390,10 @@ def test_line_segment_onesided():
             (vel[1], approx(0.25)),
         ), a
 
-        cvel = line.resolve_collision(pos + 1.0 * vel, vel, 1 / 2, vel[1], 0.25)
-        assert_allclose(cvel, (vel[0], -vel[1]), atol=1e-14)
+        collpos = pos + 1.0 * vel
+        pos_new, vel_new = line.resolve_collision(collpos, vel, 1 / 2, vel[1], 0.25)
+        assert_allclose(pos_new, collpos, atol=1e-14)
+        assert_allclose(vel_new, (vel[0], -vel[1]), atol=1e-14)
 
 
 def test_line_segment_twosided():
@@ -387,8 +413,10 @@ def test_line_segment_twosided():
         vel = np.asarray([cos(a), -sin(a)])
         assert line.detect_collision(pos, vel, 1 / 2) == (approx(0.5), (vel[1], 0.0)), a
 
-        cvel = line.resolve_collision(pos + 0.5 * vel, vel, 1 / 2, vel[1], 0.0)
-        assert_allclose(cvel, (-vel[0], -vel[1]), atol=1e-14)
+        collpos = pos + 0.5 * vel
+        pos_new, vel_new = line.resolve_collision(collpos, vel, 1 / 2, vel[1], 0.0)
+        assert_allclose(pos_new, collpos, atol=1e-14)
+        assert_allclose(vel_new, (-vel[0], -vel[1]), atol=1e-14)
 
     pos = np.asarray([-sqrt(1 / 2) - 2, 1 - sqrt(1 / 2)])
     vel = np.asarray([1, -1])
@@ -404,8 +432,10 @@ def test_line_segment_twosided():
         vel = np.asarray([cos(a), -sin(a)])
         assert line.detect_collision(pos, vel, 1 / 2) == (approx(0.5), (vel[1], 0.0)), a
 
-        cvel = line.resolve_collision(pos + 0.5 * vel, vel, 1 / 2, vel[1], 0.0)
-        assert_allclose(cvel, (-vel[0], -vel[1]), atol=1e-14)
+        collpos = pos + 0.5 * vel
+        pos_new, vel_new = line.resolve_collision(collpos, vel, 1 / 2, vel[1], 0.0)
+        assert_allclose(pos_new, collpos, atol=1e-14)
+        assert_allclose(vel_new, (-vel[0], -vel[1]), atol=1e-14)
 
     # check collision at right endpoint
     for a in [pi / 2 + 1e-6, 2.0, pi - 1e-6]:
@@ -413,8 +443,10 @@ def test_line_segment_twosided():
         vel = np.asarray([cos(a), -sin(a)])
         assert line.detect_collision(pos, vel, 1 / 2) == (approx(0.5), (vel[1], 1.0)), a
 
-        cvel = line.resolve_collision(pos + 0.5 * vel, vel, 1 / 2, vel[1], 1.0)
-        assert_allclose(cvel, (-vel[0], -vel[1]), atol=1e-14)
+        collpos = pos + 0.5 * vel
+        pos_new, vel_new = line.resolve_collision(collpos, vel, 1 / 2, vel[1], 1.0)
+        assert_allclose(pos_new, collpos, atol=1e-14)
+        assert_allclose(vel_new, (-vel[0], -vel[1]), atol=1e-14)
 
     # check collision between the endpoints
     for a in [pi / 2 + 1e-6, 2.0, pi - 1e-6]:
@@ -425,8 +457,10 @@ def test_line_segment_twosided():
             (vel[1], approx(0.25)),
         ), a
 
-        cvel = line.resolve_collision(pos + 1.0 * vel, vel, 1 / 2, vel[1], 0.25)
-        assert_allclose(cvel, (vel[0], -vel[1]), atol=1e-14)
+        collpos = pos + 1.0 * vel
+        pos_new, vel_new = line.resolve_collision(collpos, vel, 1 / 2, vel[1], 0.25)
+        assert_allclose(pos_new, collpos, atol=1e-14)
+        assert_allclose(vel_new, (vel[0], -vel[1]), atol=1e-14)
 
 
 if __name__ == "__main__":

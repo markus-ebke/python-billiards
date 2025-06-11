@@ -50,9 +50,6 @@ def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2):
     considered to be colliding (because the collision has already
     happened).
 
-    Note that the returned time may be negative! See the documentation
-    of `set_pos_accuracy` for an explanation.
-
     Notes:
         Two balls are colliding at a present or future time if
 
@@ -153,6 +150,52 @@ def toi_ball_ball(pos1, vel1, radius1, pos2, vel2, radius2):
     # we can derive t1 = c / (a t2) when t2 is not zero.
     # Note that pos_dot_vel != sqrt(delta_over_4) because pos_dot_vel < 0
     return c_minus_r2 / (-pos_dot_vel + sqrt(delta_over_4))
+
+
+def toi_ball_ball_nocheck(pos1, vel1, radius1, pos2, vel2, radius2):
+    """Calculate the time of impact of two moving balls.
+
+    This function does not check if the balls overlap or if the returned
+    time is in the past. Note that the time is still infinite if the
+    balls don't collide at all.
+
+    Args:
+        pos1: Center of the first ball.
+        vel1: Velocity of the first ball.
+        radius1: Radius of the first ball.
+        pos2: Center of the second ball.
+        vel2: Velocity of the second ball.
+        radius2: Radius of the second ball.
+
+    Returns:
+        Time of impact, is infinite if there is no collision.
+    """
+    # Compute the relative position and velocity between the two balls
+    dpos = np.subtract(pos1, pos2)
+    dvel = np.subtract(vel1, vel2)
+
+    # Compute the scalar products <p, v>, <v, v> = |v|^2 and <p, p> = |p|^2
+    pos_dot_vel = dpos.dot(dvel)
+    speed_sqrd = dvel.dot(dvel)
+    dist_sqrd = dpos.dot(dpos)
+
+    # Compute the discriminant delta = b'^2 - 4 a c'
+    rsum_sqrd = (radius1 + radius2) * (radius1 + radius2)
+    cross = dpos[0] * dvel[1] - dpos[1] * dvel[0]
+    delta_over_4 = speed_sqrd * rsum_sqrd - cross * cross
+    if delta_over_4 <= 0:
+        return INF  # no collision if the balls miss or slide past each other
+
+    if pos_dot_vel >= 0.0:
+        # With a = speed_sqrd and b = pos_dot_vel the solutions are
+        # t12 = (-b -+ sqrt(delta / 4)) / a. The smaller solution is the
+        # time of impact.
+        return -(pos_dot_vel + sqrt(delta_over_4)) / speed_sqrd
+    else:
+        # The solution computed with minimal rounding error is t1 = c / (a t2),
+        # where c = <p, p> - (radius1 + radius2)^2.
+        # Note that pos_dot_vel != sqrt(delta_over_4) because pos_dot_vel < 0.
+        return (dist_sqrd - rsum_sqrd) / (sqrt(delta_over_4) - pos_dot_vel)
 
 
 def toi_ball_disk(pos, vel, radius, disk_center, disk_radius):
@@ -423,7 +466,8 @@ def toi_args_ball_line_onesided(pos, vel, radius, line_point, line_normal):
         + ulp(line_normal[1]) / 2 * fabs(dpos[1])
     )
 
-    if dpos_normal - radius < -(dpos_normal_err + ulp(radius) / 2):
+    gap = dpos_normal - radius
+    if gap < -(dpos_normal_err + ulp(radius) / 2):
         # No collision because we can prove that the ball already overlaps the blocked
         # area
         return INF, (vel_normal,)
@@ -434,7 +478,7 @@ def toi_args_ball_line_onesided(pos, vel, radius, line_point, line_normal):
     # Rearranged: <normal, dpos> - radius == - t * <normal, vel>,
     # note that <normal, dpos> - radius is the size of the gap and
     # -<normal, vel> is the speed of closing the gap.
-    return -(dpos_normal - radius) / vel_normal, (vel_normal,)
+    return -gap / vel_normal, (vel_normal,)
 
 
 def toi_args_ball_segment_onesided(
@@ -496,8 +540,8 @@ def toi_args_ball_segment_onesided(
 
     # Compute the time of impact with the infinite line
     dpos = np.subtract(pos, line_start)
-    dpos_normal = line_normal.dot(dpos)
-    t = -(dpos_normal - radius) / vel_normal
+    gap = line_normal.dot(dpos) - radius
+    t = -gap / vel_normal
 
     # Compute the line parameter u of the collision point. If 0 <= u <= 1,
     # then the collision point lies inside the segment. Otherwise the ball
@@ -517,7 +561,7 @@ def toi_args_ball_segment_onesided(
             + ulp(line_normal[1]) / 2 * fabs(dpos[1])
         )
 
-        if dpos_normal - radius < -(dpos_normal_err + ulp(radius) / 2):
+        if gap < -(dpos_normal_err + ulp(radius) / 2):
             # No collision because we can prove that the ball already overlaps
             # the blocked area
             return INF, (vel_normal, u)

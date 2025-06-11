@@ -4,6 +4,7 @@
 - Implement disk exterior and circle obstacles
 - Implement propagation of uncertainty when computing collision times
 - Improve numerical algorithm to compute collision time
+- Improve the accuracy of the collision resolution by making small adjustements to the ball positions
 
 **v1.0.0.dev0**
 - Many API changes, mostly to make method and function names more descriptive

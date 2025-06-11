@@ -47,9 +47,10 @@ class Obstacle:  # pragma: no cover
         raise NotImplementedError("Subclasses should implement this!")
 
     def resolve_collision(self, pos, vel, radius, *args):
-        """Calculate the velocity of a ball after colliding with this obstacle.
+        """Calculate the position and velocity of a ball after the collision.
 
-        The velocity after an elastic collision is::
+        The adjusted position is the location of the ball when it touches
+        the obstacle. The velocity after an elastic collision is::
 
             vel - 2 * normal.dot(vel) * normal
 
@@ -64,11 +65,21 @@ class Obstacle:  # pragma: no cover
             *args: Optional arguments for more collision info.
 
         Returns:
-            The velocity of the ball after the impact as a numpy array of
-            the form np.ndarray(shape=(2,), dtype=np.float64).
+            A tuple ``(pos_new, vel_new)``, where ``pos_new`` is the
+            corrected position so that the ball touches the boundary of
+            the obstacle and ``vel_new`` is the velocity of the ball
+            after the impact. Both entries are numpy arrays of the form
+            np.ndarray(shape=(2,), dtype=np.float64).
         """
-        # Compute normal of obstacle boundary at the location where the ball
-        # touches, then return vel - 2 * normal.dot(vel) * normal
+        # To compute pos_new, compute
+        # - the distance (gap) between the ball and the obstacle, and
+        # - the normal of the obstacle boundary at the point closest to
+        #   the ball,
+        # then set pos_new = pos - (gap / normal.dot(vel)) * vel
+
+        # For the velocity, compute
+        # - the normal at the point where the ball touches,
+        # then set vel_new = vel - 2 * normal.dot(vel) * normal
         raise NotImplementedError("Subclasses should implement this!")
 
 
@@ -97,12 +108,29 @@ class Disk(Obstacle):
         return t, ()
 
     def resolve_collision(self, pos, vel, radius, *args):
-        """Calculate the velocity of a ball after colliding with the disk."""
-        # Switch to coordinate system of the disk
+        """Calculate the position and velocity of a ball after the collision."""
+        pos, vel = np.asarray(pos), np.asarray(vel)
+
+        # Compute the size of the gap between the ball and the obstacle
         dpos = np.subtract(pos, self.center)
+        dist = sqrt(dpos.dot(dpos))
+        if self.blocked == "inside":
+            gap = dist - self.radius - radius
+        else:
+            assert self.blocked == "outside", self.blocked
+            gap = dist - self.radius + radius
+
+        # Compute position such that the ball touches the obstacle,
+        # i.e. pos - (gap / normal.dot(vel)) * vel
+        # with normal = dpos / dist
+        assert dpos.dot(vel) != 0.0  # ball should not move parallel to the obstacle
+        pos_new = pos - (gap * dist / dpos.dot(vel)) * vel
 
         # Compute the change in velocity (normal = dpos / |dpos|)
-        return vel - 2 * dpos.dot(vel) * dpos / dpos.dot(dpos)
+        dpos = np.subtract(pos_new, self.center)
+        vel_new = vel - 2 * dpos.dot(vel) / dpos.dot(dpos) * dpos
+
+        return pos_new, vel_new
 
 
 class Circle(Obstacle):
@@ -119,12 +147,28 @@ class Circle(Obstacle):
         return t, ()
 
     def resolve_collision(self, pos, vel, radius, *args):
-        """Calculate the velocity of a ball after colliding with the circle."""
-        # Switch to coordinate system of circle
+        """Calculate the position and velocity of a ball after the collision."""
+        pos, vel = np.asarray(pos), np.asarray(vel)
+
+        # Compute the size of the gap between the ball and the obstacle
         dpos = np.subtract(pos, self.center)
+        dist = sqrt(dpos.dot(dpos))
+        if dist > self.radius:
+            gap = dist - self.radius - radius
+        else:
+            gap = dist - self.radius + radius
+
+        # Compute position such that the ball touches the obstacle,
+        # i.e. pos - (gap / normal.dot(vel)) * vel
+        # with normal = dpos / dist
+        assert dpos.dot(vel) != 0.0  # ball should not move parallel to the obstacle
+        pos_new = pos - (gap * dist / dpos.dot(vel)) * vel
 
         # Compute the change in velocity (normal = dpos / norm(dpos))
-        return vel - 2 * dpos.dot(vel) * dpos / dpos.dot(dpos)
+        dpos = np.subtract(pos_new, self.center)
+        vel_new = vel - 2 * dpos.dot(vel) / dpos.dot(dpos) * dpos
+
+        return pos_new, vel_new
 
 
 class InfiniteWall(Obstacle):
@@ -169,8 +213,21 @@ class InfiniteWall(Obstacle):
 
     def resolve_collision(self, pos, vel, radius, vel_normal):
         """Calculate the velocity of a ball after colliding with the wall."""
+        pos, vel = np.asarray(pos), np.asarray(vel)
         assert vel_normal < 0  # if the ball is colliding, it shouldn't move away
-        return vel - 2 * vel_normal * self._normal
+
+        # Compute the size of the gap between the ball and the obstacle
+        dpos = np.subtract(pos, self.start_point)
+        gap = self._normal.dot(dpos) - radius
+
+        # Compute position such that the ball touches the obstacle,
+        # i.e. pos - (gap / normal.dot(vel)) * vel
+        pos_new = pos - gap / vel_normal * vel
+
+        # Compute the change in velocity (vel_normal = vel.dot(normal))
+        vel_new = vel - 2 * vel_normal * self._normal
+
+        return pos_new, vel_new
 
 
 class LineSegment(Obstacle):
@@ -235,12 +292,51 @@ class LineSegment(Obstacle):
 
     def resolve_collision(self, pos, vel, radius, vel_normal, u):
         """Calculate the velocity of a ball after colliding with the line segment."""
-        if u == 0:
-            return elastic_collision(self.start_point, (0, 0), 1, pos, vel, 0)[1]
-        elif u == 1:
-            return elastic_collision(self.end_point, (0, 0), 1, pos, vel, 0)[1]
+        pos, vel = np.asarray(pos), np.asarray(vel)
+        assert 0 <= u <= 1, u
 
-        # collision with the line part of the segment
-        assert 0 < u < 1, u
-        assert self.blocked == "none" or vel_normal < 0  # ball shouldn't move away
-        return vel - 2 * vel_normal * self._normal
+        # u == 0 or u == 1: collision with one of the end points of the line,
+        # 0 < u < 1: collision with the line part of the segment
+        if u == 0:
+            # Compute the size of the gap between the ball and the obstacle
+            dpos = np.subtract(pos, self.start_point)
+            dist = sqrt(dpos.dot(dpos))
+            gap = dist - radius
+
+            # Compute position such that the ball touches the obstacle,
+            # i.e. pos - (gap / normal.dot(vel)) * vel
+            # with normal = dpos / dist
+            assert dpos.dot(vel) != 0.0  # ball should not move parallel to the obstacle
+            pos_new = pos - (gap * dist / dpos.dot(vel)) * vel
+
+            # Compute the change in velocity
+            vel_new = elastic_collision(self.start_point, (0, 0), 1, pos_new, vel, 0)[1]
+        elif u == 1:
+            # Compute the size of the gap between the ball and the obstacle
+            dpos = np.subtract(pos, self.end_point)
+            dist = sqrt(dpos.dot(dpos))
+            gap = dist - radius
+
+            # Compute position such that the ball touches the obstacle,
+            # i.e. pos - (gap / normal.dot(vel)) * vel
+            # with normal = dpos / dist
+            assert dpos.dot(vel) != 0.0  # ball should not move parallel to the obstacle
+            pos_new = pos - (gap * dist / dpos.dot(vel)) * vel
+
+            # Compute the change in velocity
+            vel_new = elastic_collision(self.end_point, (0, 0), 1, pos_new, vel, 0)[1]
+        else:
+            assert vel_normal != 0.0  # ball should not move parallel to the obstacle
+
+            # Compute the size of the gap between the ball and the obstacle
+            dpos = np.subtract(pos, self.start_point)
+            gap = abs(self._normal.dot(dpos)) - radius
+
+            # Compute position such that the ball touches the obstacle,
+            # i.e. pos - (gap / normal.dot(vel)) * vel
+            pos_new = pos - gap / vel_normal * vel
+
+            # Compute the change in velocity (vel_normal = vel.dot(normal))
+            vel_new = vel - 2 * vel_normal * self._normal
+
+        return pos_new, vel_new

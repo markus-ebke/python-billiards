@@ -12,6 +12,7 @@ from billiards.physics import (
     toi_args_ball_segment_onesided,
     toi_args_ball_segment_twosided,
     toi_ball_ball,
+    toi_ball_ball_nocheck,
     toi_ball_circle,
     toi_ball_disk,
     toi_ball_disk_exterior,
@@ -40,7 +41,7 @@ def test_toi_ball_ball():
     # check one inside the other
     assert toi((0.5, 0), (-42, 0), 0.1) == INF
     assert toi((1, 0), (-42, 0), 1) == INF
-    assert toi((1, 0), (-42, 0), 10) == INF
+    assert toi((2, 0), (-42, 0), 10) == INF
 
     # check miss
     assert toi((2, 0), (1, 0), 1) == INF
@@ -161,6 +162,36 @@ def test_toi_particle_particle():
             x, y = cos(a), sin(a)
             vx, vy = -x, -y * (1 + eps)  # fly towards origin, arrive at time t = 1
             assert toi((x, y), (vx, vy)) == INF, (eps, a)
+
+
+def test_toi_ball_ball_nocheck():
+    # for convenience
+    def toi(pos, vel, radius):
+        return toi_ball_ball_nocheck(pos, vel, radius, (0, 0), (0, 0), 1)
+
+    # check one inside the other (toi is in the past)
+    assert toi((0.5, 0), (-42, 0), 0.1) == approx((0.5 - (1 + 0.1)) / 42, rel=2**-50)
+    assert toi((-0.5, 0), (-42, 0), 0.1) == approx((-0.5 - (1 + 0.1)) / 42, rel=2**-50)
+    assert toi((1, 0), (-42, 0), 1) == approx((1 - 2) / 42, rel=2**-50)
+    assert toi((2, 0), (-42, 0), 10) == approx((2 - 11) / 42, rel=2**-50)
+
+    # check miss
+    assert toi((2, 0), (0, 1), 1) == INF
+    assert toi((sqrt(2) + 0.5, sqrt(2) - 0.5 + 1e-10), (-1, 1), 1) == INF
+
+    # check sliding past each other
+    assert toi((2, 0), (0, 1), 1) == INF
+    assert toi((2, 10), (0, -1), 1) == INF
+    assert toi((sqrt(2) - 0.5, sqrt(2) + 0.5 + 1e-10), (1, -1), 1) == INF
+
+    # check collision
+    assert toi((3, 0), (-1, 0), 1) == 1.0  # head-on collision
+    assert toi((3, 0), (-1, 1e-10), 1) == 1.0  # slightly skewed collision
+    assert toi((0, 101), (0, -33), 1) == approx(3.0)
+    assert toi((1, 2), (0, -1), sqrt(2) - 1) == approx(1.0)  # sideways collision
+    assert toi((sqrt(2) - 0.5, sqrt(2) + 0.5 - 1e-10), (1, -1), 1) == approx(
+        0.49998810787885, abs=2e-11
+    )
 
 
 def test_toi_ball_disk():

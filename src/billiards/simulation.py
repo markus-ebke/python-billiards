@@ -11,7 +11,7 @@ from math import isinf
 import numpy as np
 
 from .obstacles import Obstacle
-from .physics import elastic_collision, toi_ball_ball, ulp
+from .physics import elastic_collision, toi_ball_ball, toi_ball_ball_nocheck, ulp
 
 ZERO = np.float64(0.0)
 INF = np.float64("inf")
@@ -819,8 +819,13 @@ class Billiard:
         elif isinf(m2):
             m1, m2 = (0, 1)
 
-        # compute new velocites
-        vnew1, vnew2 = elastic_collision(p1, v1, m1, p2, v2, m2)
+        # resolve collision
+        r1, r2 = self.balls_radius[idx1], self.balls_radius[idx2]
+        dt = toi_ball_ball_nocheck(p1, v1, r1, p2, v2, r2)
+        if not isinf(dt):
+            p1_new = p1 + dt * v1
+            p2_new = p2 + dt * v2
+        v1_new, v2_new = elastic_collision(p1_new, v1, m1, p2_new, v2, m2)
 
         # call callback here, because updating self.balls_velocity will change v1 and v2
         if ball_callbacks is not None:
@@ -828,24 +833,27 @@ class Billiard:
                 interval = self._time_hi - self._balls_initial_time_hi[idx1, 0]
                 interval += self._time_lo - self._balls_initial_time_lo[idx1, 0]
                 ball_callbacks[idx1](
-                    self.time, interval, p1.copy(), v1.copy(), vnew1.copy(), idx2
+                    self.time, interval, p1_new.copy(), v1.copy(), v1_new.copy(), idx2
                 )
             if idx2 in ball_callbacks:
                 interval = self._time_hi - self._balls_initial_time_hi[idx2, 0]
                 interval += self._time_lo - self._balls_initial_time_lo[idx2, 0]
                 ball_callbacks[idx2](
-                    self.time, interval, p2.copy(), v2.copy(), vnew2.copy(), idx1
+                    self.time, interval, p2_new.copy(), v2.copy(), v2_new.copy(), idx1
                 )
 
         # update ball time, position and velocity
         self._balls_initial_time_hi[idx1] = self._time_hi
         self._balls_initial_time_lo[idx1] = self._time_lo
+        self.balls_initial_position[idx1] = p1_new
+        self.balls_position[idx1] = p1_new
+        self.balls_velocity[idx1] = v1_new
+
         self._balls_initial_time_hi[idx2] = self._time_hi
         self._balls_initial_time_lo[idx2] = self._time_lo
-        self.balls_initial_position[idx1] = p1
-        self.balls_initial_position[idx2] = p2
-        self.balls_velocity[idx1] = vnew1
-        self.balls_velocity[idx2] = vnew2
+        self.balls_initial_position[idx2] = p2_new
+        self.balls_position[idx2] = p2_new
+        self.balls_velocity[idx2] = v2_new
 
     def _resolve_obstacle_collision(
         self, idx, obs_and_args, ball_callbacks=None, obstacle_callbacks=None
@@ -863,25 +871,25 @@ class Billiard:
         vel = self.balls_velocity[idx]
         radius = self.balls_radius[idx]
 
+        # let the obstacle resolve the collision
         obs, args = obs_and_args
-        new_vel = obs.resolve_collision(pos, vel, radius, *args)
+        pos_new, vel_new = obs.resolve_collision(pos, vel, radius, *args)
 
         # call callback here, because updating self.balls_velocity will change vel
-        # note: no copy of new_vel needed, because after we assign it we never use it
-        # again
         if ball_callbacks is not None and idx in ball_callbacks:
             interval = self._time_hi - self._balls_initial_time_hi[idx, 0]
             interval += self._time_lo - self._balls_initial_time_lo[idx, 0]
             ball_callbacks[idx](
-                self.time, interval, pos.copy(), vel.copy(), new_vel, obs
+                self.time, interval, pos_new.copy(), vel.copy(), vel_new.copy(), obs
             )
         if obstacle_callbacks is not None and obs in obstacle_callbacks:
             obstacle_callbacks[obs](
-                self.time, pos.copy(), vel.copy(), new_vel, idx, args
+                self.time, pos_new.copy(), vel.copy(), vel_new.copy(), idx, args
             )
 
         # update ball time, position and velocity
         self._balls_initial_time_hi[idx] = self._time_hi
         self._balls_initial_time_lo[idx] = self._time_lo
-        self.balls_initial_position[idx] = pos
-        self.balls_velocity[idx] = new_vel
+        self.balls_initial_position[idx] = pos_new
+        self.balls_position[idx] = pos_new
+        self.balls_velocity[idx] = vel_new
