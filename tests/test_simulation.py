@@ -37,6 +37,42 @@ def test_time():
     assert bld.time == 11.0
 
 
+def test_evolve_exceptions():
+    bld = Billiard()
+    bld.add_ball((0, 0), (1, 0))
+
+    # No time given
+    with pytest.raises(ValueError):
+        bld.evolve()
+
+    # Both duration and until given
+    with pytest.raises(ValueError):
+        bld.evolve(1.0, 10.0)
+
+    # Too many arguments / callbacks only as keyword arguments
+    with pytest.raises(TypeError):
+        bld.evolve(1.0, 10.0, {0: lambda bla: bla})
+
+    # only one time given and callback as keyword should work
+    bld.evolve(1.0, ball_callbacks={0: lambda bla: bla})
+    bld.evolve(until=2.0, ball_callbacks={0: lambda bla: bla})
+    assert bld.time == 2.0
+
+    # Negative duration not allowed
+    with pytest.raises(ValueError):
+        bld.evolve(-1.0)
+
+    with pytest.raises(ValueError):
+        bld.evolve(until=0.5)
+
+    # Infinite time not allowed
+    with pytest.raises(ValueError):
+        bld.evolve(float("inf"))
+
+    with pytest.raises(ValueError):
+        bld.evolve(until=float("inf"))
+
+
 def test_index():
     n = 10
     bld = Billiard()
@@ -140,9 +176,11 @@ def test_toi_contents():
     assert bld._balls_idx.tolist() == [-1, 0]
     assert bld.next_ball_ball_collision == (2.0, 0, 1)
 
+    bld.evolve(0.5)  # evolve some time, but not until the collision
+
     # add a third ball that collides earlier with the first one and then with
     # the second one
-    bld.add_ball((0, 4), (0, -2), 1)
+    bld.add_ball((0, 4 - 1), (0, -2), 1)
     assert bld.toi_table[2].tolist() == [1.0, approx(2.0)]
     assert bld._balls_toi_hi.tolist() == [INF, 2.0, 1.0]
     assert bld._balls_toi_lo.tolist() == [0.0, 0.0, 0.0]
@@ -153,6 +191,10 @@ def test_toi_contents():
     assert bld._detect_ball_collision(0, 1) == (2.0, 0.0)
     assert bld._detect_ball_collision(0, 2) == (1.0, 0.0)
     assert bld._detect_ball_collision(1, 2) == (2.0, 0.0)
+
+    # no collision yet, so the initial time is the time at which the ball
+    # was added to the billiard
+    assert bld.balls_initial_time.tolist() == [0.0, 0.0, 0.5]
 
 
 def test_simple_collision():
@@ -236,6 +278,9 @@ def test_newton_cradle():
     assert bld._balls_toi_hi.tolist() == [INF, INF, INF, INF]
     assert bld._balls_idx.tolist() == [-1, 0, 0, 0]
     assert bld.next_ball_ball_collision == (INF, -1, 0)
+
+    # the initial time is the time of the last collision
+    assert bld.balls_initial_time.tolist() == [1.0, 2.0, 2.0, 2.0]
 
 
 def test_masses():
