@@ -155,7 +155,7 @@ def test_toi_structure():
         assert len(bld._balls_idx) == i
 
         assert bld._obstacles_toi_hi.shape == (i,)
-        assert len(bld._obstacles_obs) == i
+        assert len(bld._obstacles_and_args) == i
 
 
 def test_toi_contents():
@@ -166,6 +166,9 @@ def test_toi_contents():
     assert bld._balls_toi_hi.tolist() == [INF]
     assert bld._balls_toi_lo.tolist() == [0.0]
     assert bld._balls_idx.tolist() == [-1]
+    balls_toi_hi, balls_idx = bld.ball_ball_collisions
+    assert balls_toi_hi.tolist() == [INF]
+    assert balls_idx.tolist() == [-1]
     assert bld.next_ball_ball_collision == (INF, -1, 0)
 
     # add one more ball on collision course
@@ -174,6 +177,9 @@ def test_toi_contents():
     assert bld._balls_toi_hi.tolist() == [INF, 2.0]
     assert bld._balls_toi_lo.tolist() == [0.0, 0.0]
     assert bld._balls_idx.tolist() == [-1, 0]
+    balls_toi_hi, balls_idx = bld.ball_ball_collisions
+    assert balls_toi_hi.tolist() == [2.0, 2.0]
+    assert balls_idx.tolist() == [1, 0]
     assert bld.next_ball_ball_collision == (2.0, 0, 1)
 
     bld.evolve(0.5)  # evolve some time, but not until the collision
@@ -185,6 +191,9 @@ def test_toi_contents():
     assert bld._balls_toi_hi.tolist() == [INF, 2.0, 1.0]
     assert bld._balls_toi_lo.tolist() == [0.0, 0.0, 0.0]
     assert bld._balls_idx.tolist() == [-1, 0, 0]
+    balls_toi_hi, balls_idx = bld.ball_ball_collisions
+    assert balls_toi_hi.tolist() == [1.0, 2.0, 1.0]
+    assert balls_idx.tolist() == [2, 0, 0]
     assert bld.next_ball_ball_collision == (1.0, 0, 2)
 
     # test simulation.detect_collision
@@ -252,6 +261,9 @@ def test_newton_cradle():
 
     assert bld._balls_toi_hi.tolist() == [INF, 1.0, 6.0, 4.0]
     assert bld._balls_idx.tolist() == [-1, 0, 0, 0]
+    balls_toi_hi, balls_idx = bld.ball_ball_collisions
+    assert balls_toi_hi.tolist() == [1.0, 1.0, 6.0, 4.0]
+    assert balls_idx.tolist() == [1, 0, 0, 0]
     assert bld.next_ball_ball_collision == (1.0, 0, 1)
 
     # first collision
@@ -277,6 +289,9 @@ def test_newton_cradle():
     assert table_tolist(bld.toi_table) == [[], [INF], [INF, INF], [INF, INF, INF]]
     assert bld._balls_toi_hi.tolist() == [INF, INF, INF, INF]
     assert bld._balls_idx.tolist() == [-1, 0, 0, 0]
+    balls_toi_hi, balls_idx = bld.ball_ball_collisions
+    assert balls_toi_hi.tolist() == [INF, INF, INF, INF]
+    assert balls_idx.tolist() == [-1, 0, 0, 0]
     assert bld.next_ball_ball_collision == (INF, -1, 0)
 
     # the initial time is the time of the last collision
@@ -379,7 +394,10 @@ def test_obstacles():
     assert bld._obstacles_toi_hi.shape == (1,)
     assert bld._obstacles_toi_hi.tolist() == [8.0]
     assert bld._obstacles_toi_lo.tolist() == [0.0]
-    assert bld._obstacles_obs == [(disk, ())]
+    assert bld._obstacles_and_args == [(disk, ())]
+    obstacles_toi_hi, obs_list = bld.ball_obstacle_collisions
+    assert obstacles_toi_hi.tolist() == [8.0]
+    assert obs_list == [disk]
     assert bld.next_ball_obstacle_collision == (8.0, 0, (disk, ()))
 
     # record ball collisions via callback function
@@ -401,8 +419,11 @@ def test_obstacles():
 
     assert bld._obstacles_toi_hi.tolist() == [INF]
     assert bld._obstacles_toi_lo.tolist() == [0.0]
-    assert bld._obstacles_obs == [(None, ())]
-    assert bld.next_ball_obstacle_collision == (INF, 0, (None, ()))
+    assert bld._obstacles_and_args == [None]
+    obstacles_toi_hi, obs_list = bld.ball_obstacle_collisions
+    assert obstacles_toi_hi.tolist() == [INF]
+    assert obs_list == [None]
+    assert bld.next_ball_obstacle_collision == (INF, 0, None)
     assert tuple(bld.balls_velocity[0]) == (-1.0, 0.0)
 
     # wrong type
@@ -418,7 +439,10 @@ def test_newtons_cradle_with_obstacles(create_newtons_cradle):
     assert bld.next_ball_ball_collision == (3.0, 0, 1)
     assert bld._obstacles_toi_hi.tolist() == [9.0, INF]
     assert bld._obstacles_toi_lo.tolist() == [0.0, 0.0]
-    assert bld._obstacles_obs == [(right_wall, (-1.0,)), (None, ())]
+    assert bld._obstacles_and_args == [(right_wall, (-1.0,)), None]
+    obstacles_toi_hi, obs_list = bld.ball_obstacle_collisions
+    assert obstacles_toi_hi.tolist() == [9.0, INF]
+    assert obs_list == [right_wall, None]
     assert bld.next_ball_obstacle_collision == (9.0, 0, (right_wall, (-1.0,)))
     assert bld.next_collision == bld.next_ball_ball_collision
 
@@ -430,7 +454,10 @@ def test_newtons_cradle_with_obstacles(create_newtons_cradle):
     assert bld.next_ball_ball_collision == (INF, -1, 0)
     assert bld._obstacles_toi_hi.tolist() == [INF, 7.0]
     assert bld._obstacles_toi_lo.tolist() == [0.0, 0.0]
-    assert bld._obstacles_obs == [(None, ()), (right_wall, (-1.0,))]
+    assert bld._obstacles_and_args == [None, (right_wall, (-1.0,))]
+    obstacles_toi_hi, obs_list = bld.ball_obstacle_collisions
+    assert obstacles_toi_hi.tolist() == [INF, 7.0]
+    assert obs_list == [None, right_wall]
     assert bld.next_ball_obstacle_collision == (7.0, 1, (right_wall, (-1.0,)))
     assert bld.next_collision == bld.next_ball_obstacle_collision
 
@@ -442,7 +469,10 @@ def test_newtons_cradle_with_obstacles(create_newtons_cradle):
     assert bld.next_ball_ball_collision == (11.0, 0, 1)
     assert bld._obstacles_toi_hi.tolist() == [INF, 16.0]
     assert bld._obstacles_toi_lo.tolist() == [0.0, 0.0]
-    assert bld._obstacles_obs == [(None, ()), (left_wall, (-1.0,))]
+    assert bld._obstacles_and_args == [None, (left_wall, (-1.0,))]
+    obstacles_toi_hi, obs_list = bld.ball_obstacle_collisions
+    assert obstacles_toi_hi.tolist() == [INF, 16.0]
+    assert obs_list == [None, left_wall]
     assert bld.next_ball_obstacle_collision == (16.0, 1, (left_wall, (-1.0,)))
     assert bld.next_collision == bld.next_ball_ball_collision
 
@@ -621,7 +651,7 @@ def copy_and_check(bld):
     # compare ball-obstacle collisions
     assert bld._obstacles_toi_hi.tolist() == tolist_approx(bld_check._obstacles_toi_hi)
     assert bld._obstacles_toi_lo.tolist() == tolist_approx(bld_check._obstacles_toi_lo)
-    assert bld._obstacles_obs == bld_check._obstacles_obs
+    assert bld._obstacles_and_args == bld_check._obstacles_and_args
     t, i, o = bld.next_ball_obstacle_collision
     assert t == approx(bld_check.next_ball_obstacle_collision[0])
     assert i == bld_check.next_ball_obstacle_collision[1]

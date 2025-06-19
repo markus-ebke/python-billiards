@@ -119,7 +119,7 @@ array([[0.73463055, 0.        ],
 >>> bld.next_ball_ball_collision  # (time, ball index, ball index) of next collision
 (inf, -1, 0)
 >>> bld.next_ball_obstacle_collision  # (time, ball index, obstacle info)
-(inf, 0, (None, ()))
+(inf, 0, None)
 >>> visualize.plot(bld)
 (<Figure size 800x600 with 1 Axes>, <Axes: >)
 >>> plt.show()

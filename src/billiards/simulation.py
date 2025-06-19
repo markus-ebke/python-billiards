@@ -130,11 +130,11 @@ class Billiard:
         # toi: time of impact with an obstacle for each ball (size == self.count)
         self._obstacles_toi_hi = np.empty(shape=(0,), dtype=np.float64)
         self._obstacles_toi_lo = np.empty(shape=(0,), dtype=np.float64)
-        self._obstacles_obs = []  # colliding obstacle (or None) and args for each ball
+        self._obstacles_and_args = []  # colliding obstacle and args for each ball
 
         # next_ball_obstacle_collision is the minimum of _obstacles_toi, the ball index
         # and the obstacle along with optional arguments for the collide method
-        self._next_ball_obstacle_collision = (INF, ZERO, np.int64(-1), (None, ()))
+        self._next_ball_obstacle_collision = (INF, ZERO, np.int64(-1), None)
 
     @property
     def time(self):
@@ -155,6 +155,36 @@ class Billiard:
     def toi_table(self):
         """Time-of-impact for each ball-ball pair as a lower-triangular table."""
         return self._toi_table_hi
+
+    @property
+    def ball_ball_collisions(self):
+        """Time of the next ball-ball collision for each ball."""
+        balls_toi_hi = self._balls_toi_hi.copy()
+        balls_toi_lo = self._balls_toi_lo.copy()
+        balls_idx = self._balls_idx.copy()
+
+        # Note that self._balls_toi[i] is only the toi of ball i with any ball j < i.
+        # To include also collision times with the balls j > i we need to check the
+        # entries self._toi_table[j][i] for j > i.
+        for j in range(self.count):
+            row_j_hi, row_j_lo = self._toi_table_hi[j], self._toi_table_lo[j]
+            for i in range(len(row_j_hi)):
+                toi_j_i = row_j_hi[i], row_j_lo[i]
+                if toi_j_i < (balls_toi_hi[i], balls_toi_lo[i]):
+                    balls_toi_hi[i] = toi_j_i[0]
+                    balls_toi_lo[i] = toi_j_i[1]
+                    balls_idx[i] = j
+
+        return balls_toi_hi, balls_idx
+
+    @property
+    def ball_obstacle_collisions(self):
+        """Time of the next ball-obstacle collision for each ball."""
+        obs = [
+            (obs_args[0] if obs_args is not None else None)
+            for obs_args in self._obstacles_and_args
+        ]
+        return self._obstacles_toi_hi, obs
 
     @property
     def next_ball_ball_collision(self):
@@ -247,13 +277,13 @@ class Billiard:
         (toi_hi, toi_lo), obs_and_args_min = self._detect_next_obstacle(idx)
         self._obstacles_toi_hi = np.append(self._obstacles_toi_hi, toi_hi)
         self._obstacles_toi_lo = np.append(self._obstacles_toi_lo, toi_lo)
-        self._obstacles_obs.append(obs_and_args_min)
+        self._obstacles_and_args.append(obs_and_args_min)
         ball_idx = self._obstacles_toi_hi.argmin()
         self._next_ball_obstacle_collision = (
             self._obstacles_toi_hi[ball_idx],
             self._obstacles_toi_lo[ball_idx],
             ball_idx,
-            self._obstacles_obs[ball_idx],
+            self._obstacles_and_args[ball_idx],
         )
 
         # Consistency checks
@@ -271,7 +301,7 @@ class Billiard:
         assert len(self._balls_idx) == self.count
         assert self._obstacles_toi_hi.shape == (self.count,)
         assert self._obstacles_toi_lo.shape == (self.count,)
-        assert len(self._obstacles_obs) == self.count
+        assert len(self._obstacles_and_args) == self.count
 
         return idx
 
@@ -339,7 +369,7 @@ class Billiard:
             (toi_hi, toi_lo), obs_and_args_min = self._detect_next_obstacle(idx)
             self._obstacles_toi_hi[idx] = toi_hi
             self._obstacles_toi_lo[idx] = toi_lo
-            self._obstacles_obs[idx] = obs_and_args_min
+            self._obstacles_and_args[idx] = obs_and_args_min
 
             # update minimum index
             min_idx = idx if idx < min_idx else min_idx
@@ -369,7 +399,7 @@ class Billiard:
             self._obstacles_toi_hi[ball_idx],
             self._obstacles_toi_lo[ball_idx],
             ball_idx,
-            self._obstacles_obs[ball_idx],
+            self._obstacles_and_args[ball_idx],
         )
 
     def _detect_ball_collision(self, idx1, idx2):
@@ -419,7 +449,7 @@ class Billiard:
                 toi_min, obs_and_args_min = toi, (obs, args)
 
         if isinf(toi_min):
-            return ((INF, ZERO), (None, ()))
+            return ((INF, ZERO), None)
         else:
             time = _advance_timestamp(self._time_hi, self._time_lo, toi_min)
             return (time, obs_and_args_min)
@@ -688,19 +718,19 @@ class Billiard:
         (toi_hi, toi_lo), obs_and_args_min = self._detect_next_obstacle(idx1)
         self._obstacles_toi_hi[idx1] = toi_hi
         self._obstacles_toi_lo[idx1] = toi_lo
-        self._obstacles_obs[idx1] = obs_and_args_min
+        self._obstacles_and_args[idx1] = obs_and_args_min
 
         (toi_hi, toi_lo), obs_and_args_min = self._detect_next_obstacle(idx2)
         self._obstacles_toi_hi[idx2] = toi_hi
         self._obstacles_toi_lo[idx2] = toi_lo
-        self._obstacles_obs[idx2] = obs_and_args_min
+        self._obstacles_and_args[idx2] = obs_and_args_min
 
         ball_idx = self._obstacles_toi_hi.argmin()
         self._next_ball_obstacle_collision = (
             self._obstacles_toi_hi[ball_idx],
             self._obstacles_toi_lo[ball_idx],
             ball_idx,
-            self._obstacles_obs[ball_idx],
+            self._obstacles_and_args[ball_idx],
         )
 
         return interval
@@ -719,7 +749,7 @@ class Billiard:
         toi_hi, toi_lo, idx, obs_and_args = self._next_ball_obstacle_collision
         assert self._obstacles_toi_hi[idx] == toi_hi
         assert self._obstacles_toi_lo[idx] == toi_lo
-        assert self._obstacles_obs[idx] == obs_and_args
+        assert self._obstacles_and_args[idx] == obs_and_args
 
         # advance to the next collision and handle it
         interval = self._move(toi_hi, toi_lo)
@@ -760,14 +790,14 @@ class Billiard:
         (toi_hi, toi_lo), obs_and_args_min = self._detect_next_obstacle(idx)
         self._obstacles_toi_hi[idx] = toi_hi
         self._obstacles_toi_lo[idx] = toi_lo
-        self._obstacles_obs[idx] = obs_and_args_min
+        self._obstacles_and_args[idx] = obs_and_args_min
 
         ball_idx = self._obstacles_toi_hi.argmin()
         self._next_ball_obstacle_collision = (
             self._obstacles_toi_hi[ball_idx],
             self._obstacles_toi_lo[ball_idx],
             ball_idx,
-            self._obstacles_obs[ball_idx],
+            self._obstacles_and_args[ball_idx],
         )
 
         return interval

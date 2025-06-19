@@ -85,12 +85,12 @@ be any other collisions after this time:
 
    >>> total_collisions += sum(bld.evolve(until=16.0))
    >>> bld.balls_velocity  # nx2 numpy array where n is the number of balls
-   array([[0.73463056, 0.        ],
+   array([[0.73463055, 0.        ],
           [1.        , 0.        ]])
    >>> bld.next_ball_ball_collision  # next ball-ball collision
    (inf, -1, 0)
-   >>> bld.next_ball_obstacle_collision  # next ball-obstacle collision
-   (inf, 0, (None, ()))
+   >>> bld.next_ball_obstacle_collision  # returns (time, ball index, obstacle info)
+   (inf, 0, None)
    >>> visualize.plot(bld)
    (<Figure size 800x600 with 1 Axes>, <Axes: >)
    >>> plt.show()
@@ -129,7 +129,7 @@ conserved the kinetic energy (within floating point accuracy):
    5000000000.0
    >>> v_squared = (bld.balls_velocity**2).sum(axis=1)
    >>> (bld.balls_mass * v_squared).sum() / 2  # kinetic energy now
-   np.float64(5000000000.044419)
+   np.float64(5000000000.026515)
 
 
 
