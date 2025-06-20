@@ -1,22 +1,34 @@
 """This module contains functions for collision detection and handling.
 
-To detect a collision between a ball and an obstacle, we compute the
-*time of impact* (toi) and check that it is non-negative. Note that due
-to floating-point issues, a ball and obstacle (or two balls) may
-erronously overlap, causing the toi to be negative. To handle such
-issues, we allow for some uncertainty of the ball position.
+The functions prefixed by ``toi_`` are used to detect collisions and
+return the *time of impact* (toi) or infinity if there is no collision
+now or in the future. The `elastic_collision` function is used to handle
+collisions between two balls.
 
-The size of this uncertainty range is controlled by the module-level
+To detect a collision between a ball and an obstacle, we compute the toi
+and check if it is non-negative. However, note that the ball coordinates
+are recorded as 64bit floating-point number and that these numbers only
+have a finite precision. Arithmetic operations can introduce rounding
+errors or cancel significant digits. This can lead to situations where
+two balls (or a ball and an obstacle) erroneously overlap and the
+computed toi is negative.
+
+To handle these situations correctly, we allow for some uncertainty of
+the ball coordinates. If the ball can reach a non-overlapping position
+within the specified uncertainty range, we will return the (negative)
+toi as a valid collision time.
+Otherwise, we return ``float("inf")``, since we can prove that the balls
+(or ball and obstacle) overlap.
+
+The size of the uncertainty range is controlled by the module-level
 variables `REL_TOL` and `ABS_TOL`. The uncertainty of the x-coordinate
 of a ball is ``max(REL_TOL * abs(x), ABS_TOL)`` (and similar for the
-y-coordinate). If there is a position within this range such that the
-ball and obstacle do not overlap, then we assume that the ball and the
-obstacle do not touch and return the computed toi (which my be negative).
+y-coordinate).
 
 Attributes:
     REL_TOL (float): Relative tolerance for position uncertainty.
-        The default value is ``2 ** (-53 + 10)``, i.e. we assume that
-        the last 10 bits of a float64 number are inaccurate.
+        The default value is ``2 ** (-53 + 10)``, i.e. we allow that the
+        last 10 bits of a float64 number are inaccurate.
     ABS_TOL (float): Absolute tolerance for position uncertainty.
         The default value is ``0.0``
 """
@@ -38,7 +50,7 @@ except ImportError:  # pragma: no cover
 import numpy as np
 
 INF = float("inf")
-REL_TOL = 2 ** (-53 + 10)  # assume that the last 10 bits of a float64 are inaccurate
+REL_TOL = 2 ** (-53 + 10)  # allow inaccuracy of the last 10 bits of a float64 position
 ABS_TOL = 0.0
 
 

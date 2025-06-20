@@ -108,3 +108,6 @@ venv.bak/
 
 # pipenv lock file
 Pipfile.lock
+
+# Private notes
+notes/

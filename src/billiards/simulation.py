@@ -58,6 +58,10 @@ class Billiard:
         collision (at `next_collision[0]`) is calculated using the formula:
         `position = initial position + velocity * (time - initial time)`.
 
+    The properties `toi_table`, `ball_ball_collisions`, `ball_obstacle_collisions`,
+    `next_ball_ball_collision`, `next_ball_obstacle_collision` and `next_collision`
+    contain information about upcoming collisions.
+
     Attributes:
         balls_initial_position: Numpy.ndarray of 2D position of the balls' centers at
             the initial time indicated in `balls_initial_time`.
@@ -321,7 +325,7 @@ class Billiard:
                 given, recompute for all balls.
 
         Raises:
-            TypeError: if indices is not None or not int or not iterable.
+            TypeError: if indices is not None, not int, or not iterable.
         """
         # check type of indices
         if indices is None:
@@ -512,8 +516,8 @@ class Billiard:
                     def func(time: float, interval: float) -> Any
 
                 where ``time`` is the timestamp of the collision and ``interval`` is the
-                time since the last collision. On the first call the interval is the
-                time since the start of the simulation.
+                time since the last collision (on the first call: the time since the
+                start of the simulation). The return value of the callback is ignored.
             ball_callbacks (optional): Mapping from ball indices to callback functions.
                 The functions must have the signature::
 

@@ -1,10 +1,14 @@
 # Changelog
 
+**v<new_version>**
+- Improve accuracy of the simulation: higher internal precision of simulation time, make small adjustements to the ball position when resolving collisions
+- API changes: Billiard.evolve now takes a duration as first argument, to pass an end time use the second argument "until". Callback functions can only be passed as keyword arguments, also added the time interval (float) as second argument for time callback and ball callback functions. The visualize_matplotlib.animate function also takes "duration" and "until" arguments and everything else as keyword arguments.
+- Expose the next collision of each ball as the properties Billiard.ball_ball_collisions -> (time list, ball index list) and Billiard.ball_obstacle_collisions -> (time list, obstacle list)
+
 **v1.0.0.dev1**
 - Implement disk exterior and circle obstacles
 - Implement propagation of uncertainty when computing collision times
 - Improve numerical algorithm to compute collision time
-- Improve the accuracy of the collision resolution by making small adjustements to the ball positions
 
 **v1.0.0.dev0**
 - Many API changes, mostly to make method and function names more descriptive

@@ -8,9 +8,8 @@ A list of features that might be useful, but for which I have no time or interes
 - https://www.bernat.tech/the-state-of-type-hints-in-python/
 
 ## Simulation
-- Add `max_ball_collisions` parameter to `Billiard.evolve` as alternative stopping condition (int: total number of collisions, tuple: ball-ball and ball-obstacle collisions). Compare https://github.com/ssnl/python-billiards/commit/a862f1fe9984f974b229f2a05f6aaff8794a341a
+- Implement `Billiard.evolve_steps(max_collisions, indices=None, ball_callbacks=None, obstacle_callbacks=None)`, where `max_collisions` is int (total number of collisions) or tuple (ball-ball and ball-obstacle collisions) and indices is None (count all collisions) or iterable (only count collisions of the balls with the given indices). Compare https://github.com/ssnl/python-billiards/commit/a862f1fe9984f974b229f2a05f6aaff8794a341a#diff-8a1bc141cc46c184e09c900cb0f4cd9ebc5ff21539a18bf52477f73d6e739c1e
 - Make Simulation attributes readonly / automatically recalculate toi after changing position, velocity or radius
-- Make `_obstacles_toi` and `_obstacle_obs` public (i.e. without underscore)? Also rename them?
 - Add ParticleBilliard: Simulate point particles that only collide with the obstacles, use parallelization in evolve
 - Rename class Billiard to BallBilliard, but set Billiard = BallBilliard to convencience
 - Write time-intensive functions in Cython (better: convert the whole Billiard class to Cython and use `prange` where possible?)
@@ -20,6 +19,7 @@ A list of features that might be useful, but for which I have no time or interes
 - Spellchecker? (sphinxcontrib.spelling is deprecated, but see cookiecutter-pylibrary for setup)
 - Use a gallery page for the examples (like https://matplotlib.org/stable/gallery/index)
 - Upload documentation to ReadTheDocs and extend README.md with badges and link to documentation
+- Create a logo?
 
 ## Publish on PyPi
 - https://packaging.python.org/guides/making-a-pypi-friendly-readme
